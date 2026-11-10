@@ -132,7 +132,8 @@ SELECT p.campaign_id,u.id,u.name,u.username,COALESCE(cs.score,0)::NUMERIC(12,2) 
 FROM participants p JOIN public.users u ON u.firebase_uid=p.creator_uid
 LEFT JOIN creator_scores cs ON cs.campaign_id=p.campaign_id AND cs.creator_uid=p.creator_uid;
 
-CREATE OR REPLACE VIEW public.challenge_givers_leaderboard AS
+DROP VIEW IF EXISTS public.challenge_givers_leaderboard;
+CREATE VIEW public.challenge_givers_leaderboard AS
 SELECT brand AS name,COUNT(*)::INTEGER AS active_challenges,
  COALESCE(SUM(amount_num),0)::NUMERIC(14,2) AS total_prize_pool
 FROM public.campaigns WHERE type='CHALLENGE' GROUP BY brand;
@@ -148,4 +149,8 @@ VALUES
 ('c1000000-0000-0000-0000-000000000004','Sustainable Streetwear Lookbook','EcoThreads',false,'PROMOTION','DEMO — ETB 45,000 Per Video',45000,'Demo only — no sponsor offer','Demo deadline','Demo slots','Fashion','Sample data only. Not a verified brand partnership.','["Demo data only"]'::jsonb,NULL),
 ('c1000000-0000-0000-0000-000000000005','Indie Game Playtest & Reaction','PixelForge',false,'PROMOTION','DEMO — ETB 115,000 + Rev Share',115000,'Demo only — no sponsor offer','Demo deadline','Demo slots','Gaming','Sample data only. Not a verified brand partnership.','["Demo data only"]'::jsonb,NULL),
 ('c1000000-0000-0000-0000-000000000006','Quick Meal Prep Speedrun','FreshBites',false,'CHALLENGE','DEMO — ETB 275,000 Prize Pool',275000,'Demo only — no sponsor offer','Demo deadline','Demo slots','Food','Sample data only. Not a verified brand partnership.','["Demo data only"]'::jsonb,NULL)
-ON CONFLICT(id) DO NOTHING;
+ON CONFLICT(id) DO UPDATE SET
+ brand=EXCLUDED.brand, verified=false, reward=EXCLUDED.reward,
+ amount_num=EXCLUDED.amount_num, requirements=EXCLUDED.requirements,
+ deadline=EXCLUDED.deadline, slots=EXCLUDED.slots, description=EXCLUDED.description,
+ rules=EXCLUDED.rules, image_url=NULL;
