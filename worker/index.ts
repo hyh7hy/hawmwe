@@ -1,233 +1,195 @@
-import { initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 export interface Env {
-    FIREBASE_PROJECT_ID: string;
-    SUPABASE_URL: string;
-    SUPABASE_SECRET_KEY: string;
-    R2_ACCESS_KEY_ID: string;
-    R2_SECRET_ACCESS_KEY: string;
-    CLOUDFLARE_ACCOUNT_ID: string;
-    BUCKET_NAME: string;
-    ALLOWED_ORIGIN: string;
+  FIREBASE_PROJECT_ID: string;
+  SUPABASE_URL: string;
+  SUPABASE_SECRET_KEY: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
+  CLOUDFLARE_ACCOUNT_ID: string;
+  BUCKET_NAME: string;
+  ALLOWED_ORIGINS: string;
+  PUBLIC_R2_BASE_URL: string;
 }
+type UserClaims = { uid: string; email?: string };
+const firebaseKeys = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
 
-let firebaseApp: any;
-
-function getFirebaseAdmin(env: Env) {
-    if (!firebaseApp) {
-        firebaseApp = initializeApp({ projectId: env.FIREBASE_PROJECT_ID });
-    }
-    return getAuth(firebaseApp);
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) { super(message); this.status = status; }
 }
-
+function allowedOrigins(env: Env): string[] {
+  return (env.ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
+}
+function corsHeaders(request: Request, env: Env): Headers {
+  const h = new Headers({
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin"
+  });
+  const origin = request.headers.get("Origin");
+  if (origin && allowedOrigins(env).includes(origin)) h.set("Access-Control-Allow-Origin", origin);
+  return h;
+}
+function json(data: unknown, status = 200, headers?: Headers): Response {
+  const h = new Headers(headers);
+  h.set("Content-Type", "application/json; charset=utf-8");
+  return new Response(JSON.stringify(data), { status, headers: h });
+}
+async function readJson(request: Request): Promise<Record<string, unknown>> {
+  const value = await request.json();
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new HttpError(400, "Request body must be a JSON object.");
+  return value as Record<string, unknown>;
+}
+async function verifyAuth(request: Request, env: Env): Promise<UserClaims> {
+  const header = request.headers.get("Authorization") || "";
+  if (!header.startsWith("Bearer ")) throw new HttpError(401, "Sign in to continue.");
+  try {
+    const { payload } = await jwtVerify(header.slice(7).trim(), firebaseKeys, {
+      algorithms: ["RS256"],
+      issuer: "https://securetoken.google.com/" + env.FIREBASE_PROJECT_ID,
+      audience: env.FIREBASE_PROJECT_ID
+    });
+    if (typeof payload.sub !== "string" || !payload.sub || payload.sub.length > 128) throw new Error("Invalid subject");
+    return { uid: payload.sub, email: typeof payload.email === "string" ? payload.email : undefined };
+  } catch {
+    throw new HttpError(401, "Your session is invalid or expired. Please sign in again.");
+  }
+}
+function supabaseEndpoint(env: Env, endpoint: string): URL {
+  return new URL(env.SUPABASE_URL.replace(/\/+$/, "") + "/rest/v1/" + endpoint);
+}
+async function supabaseRequest(env: Env, endpoint: string, method = "GET", body?: unknown, prefer?: string): Promise<any> {
+  const headers = new Headers({
+    apikey: env.SUPABASE_SECRET_KEY,
+    Authorization: "Bearer " + env.SUPABASE_SECRET_KEY,
+    "Content-Type": "application/json"
+  });
+  if (prefer) headers.set("Prefer", prefer);
+  const response = await fetch(supabaseEndpoint(env, endpoint), {
+    method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const raw = await response.text();
+  let data: any = null;
+  try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
+  if (!response.ok) {
+    const message = data && typeof data === "object" ? (data.message || data.details || data.hint || data.error) : data;
+    throw new HttpError(response.status >= 500 ? 502 : response.status, String(message || "Database request failed."));
+  }
+  return data;
+}
+function requireString(value: unknown, field: string, max: number): string {
+  if (typeof value !== "string") throw new HttpError(400, field + " is required.");
+  const cleaned = value.trim();
+  if (!cleaned || cleaned.length > max) throw new HttpError(400, field + " must be between 1 and " + max + " characters.");
+  return cleaned;
+}
 export default {
-    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-        const url = new URL(request.url);
-        const path = url.pathname;
-        const origin = request.headers.get('Origin') || '*';
-
-        const corsHeaders = {
-            'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-        };
-
-        if (request.method === 'OPTIONS') {
-            return new Response(null, { headers: corsHeaders });
-        }
-
-        try {
-            // 1. R2 Presigned Upload Signer
-            if (path === '/api/uploads/sign' && request.method === 'POST') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-
-                const body: any = await request.json();
-                const { fileName, fileType } = body;
-
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
-                if (!allowedTypes.includes(fileType)) {
-                    return jsonResponse({ error: 'Invalid file type. Only JPEG, PNG, WEBP, and MP4 allowed.' }, 400, corsHeaders);
-                }
-
-                const uid = decoded.uid;
-                const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-                const fileKey = `uploads/${uid}/${crypto.randomUUID()}-${safeName}`;
-
-                const s3 = new S3Client({
-                    region: 'auto',
-                    endpoint: `https://${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-                    credentials: {
-                        accessKeyId: env.R2_ACCESS_KEY_ID,
-                        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-                    },
-                });
-
-                const command = new PutObjectCommand({
-                    Bucket: env.BUCKET_NAME,
-                    Key: fileKey,
-                    ContentType: fileType,
-                });
-
-                const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
-                const publicUrl = `https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev/${fileKey}`;
-
-                return jsonResponse({ uploadUrl, publicUrl }, 200, corsHeaders);
-            }
-
-            // 2. User Profile Route
-            if (path === '/api/users/profile') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-
-                if (request.method === 'GET') {
-                    const res = await supabaseQuery(env, `users?firebase_uid=eq.${decoded.uid}`);
-                    if (res && res.length > 0) return jsonResponse(res[0], 200, corsHeaders);
-                    return jsonResponse(null, 404, corsHeaders);
-                }
-
-                if (request.method === 'POST') {
-                    const body: any = await request.json();
-                    const profile = {
-                        firebase_uid: decoded.uid,
-                        email: decoded.email,
-                        name: body.name,
-                        username: body.username,
-                        tiktok_username: body.tiktok_username,
-                        category: body.category,
-                        follower_range: body.follower_range,
-                        role: body.role || 'creator'
-                    };
-                    const res = await supabaseMutation(env, 'users', 'POST', profile);
-                    return jsonResponse(res[0] || profile, 201, corsHeaders);
-                }
-            }
-
-            // 3. Applications Route
-            if (path === '/api/applications') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-
-                if (request.method === 'GET') {
-                    const res = await supabaseQuery(env, `applications?creator_uid=eq.${decoded.uid}`);
-                    return jsonResponse(res || [], 200, corsHeaders);
-                }
-
-                if (request.method === 'POST') {
-                    const body: any = await request.json();
-                    const payload = {
-                        campaign_id: body.campaign_id,
-                        campaign_title: body.campaign_title,
-                        creator_uid: decoded.uid,
-                        video_idea: body.video_idea,
-                        evidence_url: body.evidence_url,
-                        status: 'Awaiting Review'
-                    };
-                    const res = await supabaseMutation(env, 'applications', 'POST', payload);
-                    await supabaseMutation(env, 'submissions', 'POST', {
-                        application_id: res[0]?.id,
-                        campaign_id: body.campaign_id,
-                        campaign_title: body.campaign_title,
-                        creator_uid: decoded.uid,
-                        status: 'Awaiting Review'
-                    });
-                    return jsonResponse(res[0] || payload, 201, corsHeaders);
-                }
-            }
-
-            // 4. Transactions Route
-            if (path === '/api/transactions' && request.method === 'GET') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-                const res = await supabaseQuery(env, `transactions?creator_uid=eq.${decoded.uid}`);
-                return jsonResponse(res || [], 200, corsHeaders);
-            }
-
-            // 5. Notifications Route
-            if (path === '/api/notifications') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-                const res = await supabaseQuery(env, `notifications?user_uid=eq.${decoded.uid}&order=created_at.desc`);
-                return jsonResponse(res || [], 200, corsHeaders);
-            }
-
-            if (path.startsWith('/api/notifications/') && path.endsWith('/read') && request.method === 'PATCH') {
-                const decoded = await verifyAuth(request, env);
-                if (!decoded) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
-                const id = path.split('/')[3];
-                await supabaseMutation(env, `notifications?id=eq.${id}`, 'PATCH', { read: true });
-                return jsonResponse({ success: true }, 200, corsHeaders);
-            }
-
-            return jsonResponse({ error: 'Not Found' }, 404, corsHeaders);
-        } catch (err: any) {
-            return jsonResponse({ error: err.message || 'Internal Server Error' }, 500, corsHeaders);
-        }
-    },
-};
-
-async function verifyAuth(request: Request, env: Env) {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-    const token = authHeader.split('Bearer ')[1];
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const headers = corsHeaders(request, env);
+    const origin = request.headers.get("Origin");
+    if (origin && !allowedOrigins(env).includes(origin)) return json({ error: "This website origin is not allowed." }, 403, headers);
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
+    const path = new URL(request.url).pathname;
     try {
-        const auth = getFirebaseAdmin(env);
-        const decoded = await auth.verifyIdToken(token);
-        return decoded;
-    } catch (e) {
-        return null;
-    }
-}
+      if (path === "/api/health" && request.method === "GET") return json({ status: "ok", service: "hawme-worker" }, 200, headers);
 
-async function supabaseQuery(env: Env, endpoint: string) {
-    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${endpoint}`, {
-        headers: {
-            'apikey': env.SUPABASE_SECRET_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SECRET_KEY}`,
-            'Content-Type': 'application/json'
+      if (path === "/api/users/profile" && request.method === "GET") {
+        const user = await verifyAuth(request, env);
+        const rows = await supabaseRequest(env, "users?firebase_uid=eq." + encodeURIComponent(user.uid) + "&limit=1");
+        return rows?.length ? json(rows[0], 200, headers) : json({ error: "Profile not found." }, 404, headers);
+      }
+
+      if (path === "/api/users/profile" && request.method === "POST") {
+        const user = await verifyAuth(request, env);
+        const body = await readJson(request);
+        const name = requireString(body.name, "Name", 80);
+        const username = requireString(body.username, "Username", 25);
+        const tiktokUsername = requireString(body.tiktok_username, "TikTok username", 30);
+        const category = requireString(body.category, "Category", 60);
+        const followerRange = requireString(body.follower_range, "Follower range", 40);
+        if (!/^@[a-zA-Z0-9_.]{3,24}$/.test(username)) throw new HttpError(400, "Username must start with @ and contain 3–24 valid characters.");
+        if (!/^@?[a-zA-Z0-9_.]{2,24}$/.test(tiktokUsername)) throw new HttpError(400, "TikTok username is invalid.");
+        if (!user.email) throw new HttpError(400, "Your Firebase account must have an email address.");
+        const profile = {
+          firebase_uid: user.uid, email: user.email, name, username,
+          tiktok_username: tiktokUsername.startsWith("@") ? tiktokUsername : "@" + tiktokUsername,
+          category, follower_range: followerRange, role: "creator"
+        };
+        const rows = await supabaseRequest(env, "users?on_conflict=firebase_uid", "POST", profile, "resolution=merge-duplicates,return=representation");
+        return json(rows?.[0] || profile, 200, headers);
+      }
+
+      if (path === "/api/uploads/sign" && request.method === "POST") {
+        const user = await verifyAuth(request, env);
+        const body = await readJson(request);
+        const fileName = requireString(body.fileName, "File name", 180);
+        const fileType = requireString(body.fileType, "File type", 80);
+        const fileSize = Number(body.fileSize);
+        if (!["image/jpeg", "image/png", "image/webp", "video/mp4"].includes(fileType)) throw new HttpError(400, "Only JPEG, PNG, WEBP and MP4 files are allowed.");
+        if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > 50 * 1024 * 1024) throw new HttpError(400, "File must be smaller than 50 MB.");
+        if (!env.PUBLIC_R2_BASE_URL) throw new HttpError(503, "R2 public URL is not configured.");
+        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "upload";
+        const key = "uploads/" + user.uid + "/" + crypto.randomUUID() + "-" + safeName;
+        const s3 = new S3Client({
+          region: "auto",
+          endpoint: "https://" + env.CLOUDFLARE_ACCOUNT_ID + ".r2.cloudflarestorage.com",
+          credentials: { accessKeyId: env.R2_ACCESS_KEY_ID, secretAccessKey: env.R2_SECRET_ACCESS_KEY }
+        });
+        const command = new PutObjectCommand({ Bucket: env.BUCKET_NAME, Key: key, ContentType: fileType });
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 900 });
+        const publicUrl = env.PUBLIC_R2_BASE_URL.replace(/\/+$/, "") + "/" + key;
+        return json({ uploadUrl, publicUrl, key, expiresIn: 900 }, 200, headers);
+      }
+
+      if (path === "/api/applications" && request.method === "GET") {
+        const user = await verifyAuth(request, env);
+        const rows = await supabaseRequest(env, "applications?creator_uid=eq." + encodeURIComponent(user.uid) + "&order=created_at.desc");
+        return json(rows || [], 200, headers);
+      }
+
+      if (path === "/api/applications" && request.method === "POST") {
+        const user = await verifyAuth(request, env);
+        const body = await readJson(request);
+        const campaignId = requireString(body.campaign_id, "Campaign ID", 36);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(campaignId)) throw new HttpError(400, "Campaign ID is invalid.");
+        const videoIdea = typeof body.video_idea === "string" ? body.video_idea.trim().slice(0, 3000) : "";
+        const evidenceUrl = body.evidence_url == null ? null : requireString(body.evidence_url, "Evidence URL", 2048);
+        if (evidenceUrl) {
+          const prefix = env.PUBLIC_R2_BASE_URL.replace(/\/+$/, "") + "/uploads/" + user.uid + "/";
+          if (!evidenceUrl.startsWith(prefix)) throw new HttpError(400, "Evidence must be uploaded to your own HAWME upload folder.");
         }
-    });
-    if (!res.ok) return null;
-    return await res.json();
-}
+        const result = await supabaseRequest(env, "rpc/apply_to_campaign", "POST", {
+          p_creator_uid: user.uid, p_campaign_id: campaignId, p_video_idea: videoIdea, p_evidence_url: evidenceUrl
+        });
+        return json(result, 201, headers);
+      }
 
-async function supabaseMutation(env: Env, table: string, method: string, data: any) {
-    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
-        method,
-        headers: {
-            'apikey': env.SUPABASE_SECRET_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SECRET_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || res.statusText);
+      if (path === "/api/transactions" && request.method === "GET") {
+        const user = await verifyAuth(request, env);
+        const rows = await supabaseRequest(env, "transactions?creator_uid=eq." + encodeURIComponent(user.uid) + "&order=created_at.desc");
+        return json(rows || [], 200, headers);
+      }
+
+      if (path === "/api/notifications" && request.method === "GET") {
+        const user = await verifyAuth(request, env);
+        const rows = await supabaseRequest(env, "notifications?user_uid=eq." + encodeURIComponent(user.uid) + "&order=created_at.desc");
+        return json(rows || [], 200, headers);
+      }
+
+      const match = path.match(/^\/api\/notifications\/([0-9a-f-]{36})\/read$/i);
+      if (match && request.method === "PATCH") {
+        const user = await verifyAuth(request, env);
+        await supabaseRequest(env, "notifications?id=eq." + match[1] + "&user_uid=eq." + encodeURIComponent(user.uid), "PATCH", { read: true }, "return=minimal");
+        return json({ success: true }, 200, headers);
+      }
+      return json({ error: "Not found." }, 404, headers);
+    } catch (error) {
+      if (error instanceof HttpError) return json({ error: error.message }, error.status, headers);
+      return json({ error: "Unexpected server error. Check Worker logs for details." }, 500, headers);
     }
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
-}
-
-function jsonResponse(data: any, status = 200, headers = {}) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: { ...headers, 'Content-Type': 'application/json' }
-    });
-}
-```
-```toml:Wrangler Config:worker/wrangler.toml
-name = "hawme-worker"
-main = "index.ts"
-compatibility_date = "2026-03-01"
-
-[vars]
-CLOUDFLARE_ACCOUNT_ID = "149acc27c103b48358ecfa01707b081d"
-BUCKET_NAME = "hawme"
-SUPABASE_URL = "https://akoddbuemubeorwfwonv.supabase.co"
-FIREBASE_PROJECT_ID = "my-tiktok-cbd6f"
-ALLOWED_ORIGIN = "https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev"
+  }
+};
