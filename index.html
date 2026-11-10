@@ -46,6 +46,7 @@
         /* HAWME_LIGHT_THEME_TEXT_CONTRAST
            Convert Tailwind's fixed white text utilities to a readable TikTok-inspired
            blue whenever light mode is active. Dark mode remains unchanged. */
+        html:not(.dark) body.text-white,
         html:not(.dark) body .text-white {
             color: #0066CC !important;
         }
