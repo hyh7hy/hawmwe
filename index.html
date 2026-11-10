@@ -261,7 +261,7 @@
             messagingSenderId: "964441294320",
             appId: "1:964441294320:web:4c8da74a0cee8ed2644935"
         },
-        workerUrl: "https://hawme-worker.your-subdomain.workers.dev",
+        workerUrl: "http://127.0.0.1:8787", // Change to your deployed Worker URL before production.
         supabaseUrl: "https://akoddbuemubeorwfwonv.supabase.co/rest/v1/",
         supabasePublishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
         r2PublicUrl: "https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev"
@@ -276,7 +276,7 @@
     window.currentTheme = 'dark';
     window.currentView = 'home';
     window.leaderboardMode = 'creators';
-    window.selectedChallengeLeaderboardId = 'c1';
+    window.selectedChallengeLeaderboardId = 'c1000000-0000-0000-0000-000000000001';
 
     window.escapeHTML = function(str) {
         if (!str) return '';
@@ -859,7 +859,8 @@
                 // 1. Request Presigned Upload URL from Worker
                 const { data: signData, error: signError } = await window.workerRequest('/api/uploads/sign', 'POST', {
                     fileName: file.name,
-                    fileType: file.type
+                    fileType: file.type,
+                    fileSize: file.size
                 });
                 if (signError || !signData) throw new Error(signError || 'Failed to get upload signature');
 
@@ -917,9 +918,9 @@
                     <div class="flex items-center space-x-3 bg-zinc-50 dark:bg-[#111111] p-4 rounded-2xl border border-zinc-200 dark:border-[#292929]">
                         <span class="text-sm font-semibold text-zinc-400">Select Challenge:</span>
                         <select id="challenge-selector" onchange="changeChallengeLeaderboard(this.value)" class="bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm font-medium focus:outline-none">
-                            <option value="c1" ${window.selectedChallengeLeaderboardId === 'c1' ? 'selected' : ''}>Summer Glow Up Challenge (GlowRecipe)</option>
-                            <option value="c3" ${window.selectedChallengeLeaderboardId === 'c3' ? 'selected' : ''}>Energy Drink TikTok Dance Off (BlitzEnergy)</option>
-                            <option value="c6" ${window.selectedChallengeLeaderboardId === 'c6' ? 'selected' : ''}>Quick Meal Prep Speedrun (FreshBites)</option>
+                            <option value="c1000000-0000-0000-0000-000000000001" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000001' ? 'selected' : ''}>Summer Glow Up Challenge (GlowRecipe)</option>
+                            <option value="c1000000-0000-0000-0000-000000000003" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000003' ? 'selected' : ''}>Energy Drink TikTok Dance Off (BlitzEnergy)</option>
+                            <option value="c1000000-0000-0000-0000-000000000006" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000006' ? 'selected' : ''}>Quick Meal Prep Speedrun (FreshBites)</option>
                         </select>
                     </div>
                 ` : ''}
@@ -977,8 +978,8 @@
                 </div>
             `;
         } else {
-            const challengeId = window.selectedChallengeLeaderboardId || 'c1';
-            const { data, error } = await window.supabasePublicRequest('creator_leaderboard', `challenge_id=eq.${challengeId}`);
+            const challengeId = window.selectedChallengeLeaderboardId || 'c1000000-0000-0000-0000-000000000001';
+            const { data, error } = await window.supabasePublicRequest('creator_leaderboard', `campaign_id=eq.${challengeId}`);
             if (error || !data || data.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-zinc-500">No creator rankings available for this challenge yet.</div>`;
                 return;
