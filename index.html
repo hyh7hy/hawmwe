@@ -42,6 +42,20 @@
         body { font-family: 'Inter', sans-serif; }
         .glow-cyan { box-shadow: 0 0 25px rgba(37, 244, 238, 0.15); }
         .glow-coral { box-shadow: 0 0 25px rgba(254, 44, 85, 0.15); }
+
+        /* HAWME_LIGHT_THEME_TEXT_CONTRAST
+           Explicit Tailwind text-white utilities otherwise stay white when the
+           root .dark class is removed. Restore readable foregrounds in light mode. */
+        html:not(.dark) body .text-white {
+            color: #18181b !important;
+        }
+        html:not(.dark) body .text-white.bg-zinc-900,
+        html:not(.dark) body .text-white.bg-\\[\\#FE2C55\\],
+        html:not(.dark) body .text-white.bg-\\[\\#080808\\],
+        html:not(.dark) body .text-white.bg-\\[\\#111111\\],
+        html:not(.dark) body .text-white.bg-\\[\\#181818\\] {
+            color: #ffffff !important;
+        }
     </style>
 </head>
 <body class="bg-[#080808] text-white dark:bg-[#080808] dark:text-white bg-white text-[#111111] antialiased transition-colors duration-200 min-h-screen flex flex-col selection:bg-[#FE2C55] selection:text-white">
