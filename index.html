@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAWME — Where creators meet opportunity.</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        hawme: {
+                            cyan: '#25F4EE',
+                            coral: '#FE2C55',
+                            darkBg: '#080808',
+                            darkSec: '#111111',
+                            darkCard: '#181818',
+                            darkBorder: '#292929',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        html.light ::-webkit-scrollbar-thumb { background: #ccc; }
+        body { font-family: 'Inter', sans-serif; }
+        .glow-cyan { box-shadow: 0 0 25px rgba(37, 244, 238, 0.15); }
+        .glow-coral { box-shadow: 0 0 25px rgba(254, 44, 85, 0.15); }
+    </style>
+</head>
+<body class="bg-[#080808] text-white dark:bg-[#080808] dark:text-white bg-white text-[#111111] antialiased transition-colors duration-200 min-h-screen flex flex-col selection:bg-[#FE2C55] selection:text-white">
+
+   <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+<!-- Profile Completion Modal (If Google/New User lacks profile in Supabase) -->
+<div id="profile-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
+        <div class="text-center space-y-2">
+            <h2 class="text-2xl font-extrabold tracking-tight">Complete your profile</h2>
+            <p class="text-sm text-zinc-500">Please provide your TikTok and HAWME handles to finish setup.</p>
+        </div>
+        <form onsubmit="handleCompleteProfile(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">HAWME Username</label>
+                <input type="text" id="modal-hawme-user" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="@alexrivera">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">TikTok Username</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-zinc-400 text-sm">@</span>
+                    <input type="text" id="modal-tiktok" required class="w-full pl-8 pr-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="tiktok_creator">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Content Category</label>
+                    <select id="modal-category" class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none">
+                        <option value="Beauty & Skincare">Beauty & Skincare</option>
+                        <option value="Tech & Gadgets">Tech & Gadgets</option>
+                        <option value="Lifestyle & Vlog">Lifestyle & Vlog</option>
+                        <option value="Fashion & Style">Fashion & Style</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Food & Cooking">Food & Cooking</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Followers</label>
+                    <select id="modal-followers" class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none">
+                        <option value="1K - 10K followers">1K - 10K</option>
+                        <option value="10K - 50K followers">10K - 50K</option>
+                        <option value="50K - 100K followers">50K - 100K</option>
+                        <option value="100K+ followers">100K+</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black font-bold text-sm hover:opacity-95 transition-opacity">Save & Continue</button>
+        </form>
+    </div>
+</div>
+
+<!-- Main Navigation Header -->
+<header class="sticky top-0 z-40 backdrop-blur-md bg-white/80 dark:bg-[#080808]/80 border-b border-[#EAEAEA] dark:border-[#292929] transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <!-- Brand Logo -->
+        <div class="flex items-center space-x-8">
+            <a href="#" onclick="switchView('home')" class="flex items-center space-x-3 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] flex items-center justify-center p-[2px] shadow-sm group-hover:scale-105 transition-transform">
+                    <div class="w-full h-full bg-white dark:bg-[#080808] rounded-[10px] flex items-center justify-center">
+                        <span class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-lg tracking-tighter">H</span>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg tracking-tight leading-none">HAWME</span>
+                    <span class="text-[10px] text-zinc-400 font-medium tracking-widest uppercase">Marketplace</span>
+                </div>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <nav class="hidden md:flex items-center space-x-1">
+                <button onclick="switchView('discover')" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" data-view="discover">Discover</button>
+                <button onclick="switchView('promotions')" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" data-view="promotions">Promotions</button>
+                <button onclick="switchView('challenges')" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" data-view="challenges">Challenges</button>
+                <button onclick="switchView('leaderboard')" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" data-view="leaderboard">Leaderboard</button>
+            </nav>
+        </div>
+
+        <!-- Right Actions -->
+        <div class="flex items-center space-x-3">
+            <!-- Theme Toggle Button -->
+            <button onclick="toggleTheme()" class="p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" title="Toggle Theme">
+                <i data-lucide="sun" class="w-5 h-5 hidden dark:block text-yellow-400"></i>
+                <i data-lucide="moon" class="w-5 h-5 block dark:hidden text-zinc-700"></i>
+            </button>
+
+            <!-- Notifications -->
+            <button onclick="openNotificationsModal()" class="relative p-2 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors" title="Notifications">
+                <i data-lucide="bell" class="w-5 h-5"></i>
+                <span id="unread-dot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FE2C55]"></span>
+            </button>
+
+            <!-- Auth / Profile Area -->
+            <div id="auth-actions" class="flex items-center space-x-2">
+                <button onclick="switchView('login')" class="px-4 py-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors">Login</button>
+                <button onclick="switchView('signup')" class="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black hover:opacity-95 transition-opacity shadow-sm">Get Started</button>
+            </div>
+
+            <!-- User Profile Menu (Dynamic when logged in) -->
+            <div id="user-profile-menu" class="hidden relative items-center space-x-3 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+                <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 focus:outline-none">
+                    <img id="nav-user-avatar" src="https://placehold.co/40x40/25F4EE/080808?text=C" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-[#25F4EE]">
+                    <span id="nav-user-name" class="text-sm font-semibold hidden sm:inline">Creator</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+                </button>
+                <!-- Dropdown Content -->
+                <div id="user-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-[#292929] rounded-2xl shadow-xl py-2 z-50">
+                    <div class="px-4 py-2 border-b border-zinc-100 dark:border-zinc-800">
+                        <p class="text-xs text-zinc-500">Signed in as</p>
+                        <p id="dropdown-username" class="text-sm font-bold truncate">@username</p>
+                    </div>
+                    <button onclick="switchView('dashboard')" class="w-full text-left px-4 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center space-x-2">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 text-zinc-400"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <div class="border-t border-zinc-100 dark:border-zinc-800 my-1"></div>
+                    <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-[#FE2C55] hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center space-x-2">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <span>Log out</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-400">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-[#EAEAEA] dark:border-[#292929] bg-white dark:bg-[#080808] px-4 pt-2 pb-6 space-y-2">
+        <button onclick="switchView('discover'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-base font-medium">Discover</button>
+        <button onclick="switchView('promotions'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-base font-medium">Promotions</button>
+        <button onclick="switchView('challenges'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-base font-medium">Challenges</button>
+        <button onclick="switchView('leaderboard'); toggleMobileMenu();" class="block w-full text-left px-3 py-2 rounded-lg text-base font-medium">Leaderboard</button>
+    </div>
+</header>
+
+<!-- Main View Container -->
+<main id="app-container" class="flex-grow">
+    <!-- Views will be dynamically injected here -->
+</main>
+
+<!-- Footer -->
+<footer class="bg-zinc-50 dark:bg-[#111111] border-t border-[#EAEAEA] dark:border-[#292929] pt-12 pb-8 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] flex items-center justify-center p-[2px]">
+                    <div class="w-full h-full bg-white dark:bg-[#080808] rounded-[6px] flex items-center justify-center">
+                        <span class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-sm">H</span>
+                    </div>
+                </div>
+                <span class="font-bold text-lg">HAWME</span>
+            </div>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Where creators meet opportunity. Discover paid brand promotions and competitive TikTok challenges in ETB.</p>
+            <p class="text-xs text-zinc-400 dark:text-zinc-500">Not affiliated with TikTok or ByteDance Ltd.</p>
+        </div>
+        <div>
+            <h4 class="font-semibold text-sm mb-4 uppercase tracking-wider text-zinc-400">Platform</h4>
+            <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <li><a href="#" onclick="switchView('discover')" class="hover:text-black dark:hover:text-white transition-colors">Discover</a></li>
+                <li><a href="#" onclick="switchView('promotions')" class="hover:text-black dark:hover:text-white transition-colors">Paid Promotions</a></li>
+                <li><a href="#" onclick="switchView('challenges')" class="hover:text-black dark:hover:text-white transition-colors">Creator Challenges</a></li>
+                <li><a href="#" onclick="switchView('leaderboard')" class="hover:text-black dark:hover:text-white transition-colors">Leaderboard</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-semibold text-sm mb-4 uppercase tracking-wider text-zinc-400">Resources</h4>
+            <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <li><a href="#" onclick="showToast('Help Center opened', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" onclick="showToast('Safety guidelines loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Creator Safety</a></li>
+                <li><a href="#" onclick="showToast('Guidelines loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Brand Guidelines</a></li>
+                <li><a href="#" onclick="showToast('API Documentation loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">API Integration</a></li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-semibold text-sm mb-4 uppercase tracking-wider text-zinc-400">Legal</h4>
+            <ul class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <li><a href="#" onclick="showToast('Terms of service loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="#" onclick="showToast('Privacy policy loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="#" onclick="showToast('Cookie policy loaded', 'info')" class="hover:text-black dark:hover:text-white transition-colors">Cookie Policy</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-200 dark:border-zinc-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500">
+        <p>&copy; 2026 HAWME Technologies Inc. All rights reserved.</p>
+        <div class="flex space-x-6 mt-4 sm:mt-0">
+            <a href="#" class="hover:text-black dark:hover:text-white">TikTok Guidelines</a>
+            <a href="#" class="hover:text-black dark:hover:text-white">Security</a>
+            <a href="#" class="hover:text-black dark:hover:text-white">Status</a>
+        </div>
+    </div>
+</footer>
+
+<!-- JavaScript Application Logic with Firebase Auth, Cloudflare Worker & Supabase DB -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+        getAuth, 
+        signInWithEmailAndPassword, 
+        createUserWithEmailAndPassword, 
+        signInWithPopup, 
+        GoogleAuthProvider, 
+        signOut, 
+        onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+    // Public Configuration Object
+    const CONFIG = {
+        firebase: {
+            apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
+            authDomain: "my-tiktok-cbd6f.firebaseapp.com",
+            projectId: "my-tiktok-cbd6f",
+            storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
+            messagingSenderId: "964441294320",
+            appId: "1:964441294320:web:4c8da74a0cee8ed2644935"
+        },
+        workerUrl: "https://hawme-worker.your-subdomain.workers.dev",
+        supabaseUrl: "https://akoddbuemubeorwfwonv.supabase.co/rest/v1/",
+        supabasePublishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
+        r2PublicUrl: "https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev"
+    };
+
+    const app = initializeApp(CONFIG.firebase);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    window.hawmeAuth = auth;
+    window.currentUser = null;
+    window.currentTheme = 'dark';
+    window.currentView = 'home';
+    window.leaderboardMode = 'creators';
+    window.selectedChallengeLeaderboardId = 'c1';
+
+    window.escapeHTML = function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    // Secure Worker API Proxy Request
+    window.workerRequest = async function(endpoint, method = 'GET', data = null) {
+        let headers = { 'Content-Type': 'application/json' };
+        if (auth.currentUser) {
+            const token = await auth.currentUser.getIdToken();
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const options = { method, headers };
+        if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        try {
+            const res = await fetch(`${CONFIG.workerUrl}${endpoint}`, options);
+            const text = await res.text();
+            const json = text ? JSON.parse(text) : null;
+            if (!res.ok) throw new Error(json?.error || res.statusText);
+            return { data: json, error: null };
+        } catch (err) {
+            return { data: null, error: err.message };
+        }
+    };
+
+    // Public Supabase Read Request (for Campaigns & Leaderboards)
+    window.supabasePublicRequest = async function(table, queryParams = '') {
+        try {
+            const url = `${CONFIG.supabaseUrl}${table}${queryParams ? '?' + queryParams : ''}`;
+            const res = await fetch(url, {
+                headers: {
+                    'apikey': CONFIG.supabasePublishableKey,
+                    'Authorization': `Bearer ${CONFIG.supabasePublishableKey}`
+                }
+            });
+            if (!res.ok) throw new Error(res.statusText);
+            const text = await res.text();
+            return { data: text ? JSON.parse(text) : [], error: null };
+        } catch (err) {
+            return { data: null, error: err.message };
+        }
+    };
+
+    // Single Source of Truth for Session via onAuthStateChanged
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const { data, error } = await window.workerRequest(`/api/users/profile`);
+            if (data && !error) {
+                window.currentUser = data;
+                localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
+                updateAuthUI();
+                loadUnreadNotifications();
+            } else {
+                // Profile does not exist yet in Supabase -> Prompt modal completion
+                window.pendingGoogleUser = user;
+                document.getElementById('profile-modal').classList.remove('hidden');
+            }
+        } else {
+            window.currentUser = null;
+            localStorage.removeItem('hawme_user');
+            updateAuthUI();
+        }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('hawme_theme') || 'dark';
+        window.currentTheme = savedTheme;
+        document.documentElement.classList.toggle('dark', window.currentTheme === 'dark');
+
+        const savedUser = localStorage.getItem('hawme_user');
+        if (savedUser) {
+            window.currentUser = JSON.parse(savedUser);
+            updateAuthUI();
+        }
+
+        switchView('home');
+        lucide.createIcons();
+    });
+
+    window.toggleTheme = function() {
+        window.currentTheme = window.currentTheme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('hawme_theme', window.currentTheme);
+        document.documentElement.classList.toggle('dark', window.currentTheme === 'dark');
+        lucide.createIcons();
+    };
+
+    window.showToast = function(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const bgCol = type === 'success' ? 'bg-[#25F4EE] text-black' : (type === 'error' ? 'bg-[#FE2C55] text-white' : 'bg-zinc-900 text-white border border-zinc-700');
+        toast.className = `${bgCol} px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+        toast.innerHTML = `
+            <i data-lucide="${type === 'success' ? 'check-circle' : 'info'}" class="w-4 h-4 shrink-0"></i>
+            <span>${window.escapeHTML(message)}</span>
+        `;
+        container.appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+        setTimeout(() => {
+            toast.classList.add('translate-y-2', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3500);
+    };
+
+    window.switchView = function(viewName, param = null) {
+        window.currentView = viewName;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        renderView(param);
+        updateNavActiveStates();
+        lucide.createIcons();
+    };
+
+    function updateNavActiveStates() {
+        document.querySelectorAll('.nav-link').forEach(btn => {
+            if (btn.getAttribute('data-view') === window.currentView) {
+                btn.classList.add('text-black', 'dark:text-white', 'bg-zinc-100', 'dark:bg-zinc-900');
+            } else {
+                btn.classList.remove('text-black', 'dark:text-white', 'bg-zinc-100', 'dark:bg-zinc-900');
+            }
+        });
+    }
+
+    async function renderView(param) {
+        const container = document.getElementById('app-container');
+        switch(window.currentView) {
+            case 'home':
+                container.innerHTML = renderHomeHTML();
+                await loadCampaignsIntoGrid('home-campaign-grid', 3);
+                break;
+            case 'discover':
+                container.innerHTML = renderDiscoverHTML();
+                await loadCampaignsIntoGrid('campaign-grid');
+                break;
+            case 'promotions':
+                container.innerHTML = renderPromotionsHTML();
+                await loadCampaignsIntoGrid('campaign-grid', null, 'PROMOTION');
+                break;
+            case 'challenges':
+                container.innerHTML = renderChallengesHTML();
+                await loadCampaignsIntoGrid('campaign-grid', null, 'CHALLENGE');
+                break;
+            case 'leaderboard':
+                container.innerHTML = renderLeaderboardHTML();
+                await loadLeaderboardData();
+                break;
+            case 'login':
+                container.innerHTML = renderLoginHTML();
+                break;
+            case 'signup':
+                container.innerHTML = renderSignupHTML();
+                break;
+            case 'details':
+                container.innerHTML = renderDetailsHTML(param);
+                await loadCampaignDetails(param);
+                break;
+            case 'dashboard':
+                container.innerHTML = renderDashboardHTML();
+                await loadDashboardData();
+                break;
+            default:
+                container.innerHTML = renderHomeHTML();
+        }
+    }
+
+    // Google Auth Handler
+    window.handleGoogleAuth = async function() {
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            // onAuthStateChanged will handle profile verification or prompt completion modal
+        } catch (err) {
+            if (err.code === 'auth/popup-closed-by-user') {
+                window.showToast('Google sign-in cancelled', 'info');
+            } else if (err.code === 'auth/popup-blocked') {
+                window.showToast('Popup blocked by browser. Please allow popups.', 'error');
+            } else {
+                window.showToast('Google Authentication failed: ' + err.message, 'error');
+            }
+        }
+    };
+
+    window.handleCompleteProfile = async function(event) {
+        event.preventDefault();
+        const hawmeUser = document.getElementById('modal-hawme-user').value.trim();
+        const tiktokUser = '@' + document.getElementById('modal-tiktok').value.replace('@','').trim();
+        const category = document.getElementById('modal-category').value;
+        const followers = document.getElementById('modal-followers').value;
+
+        const usernameRegex = /^[a-zA-Z0-9_.]{3,24}$/;
+        if (!hawmeUser.startsWith('@') || !usernameRegex.test(hawmeUser.substring(1))) {
+            window.showToast('Invalid HAWME username (3-24 chars, letters, numbers, _, .)', 'error');
+            return;
+        }
+
+        const profileData = {
+            name: window.pendingGoogleUser?.displayName || 'Creator',
+            username: hawmeUser,
+            tiktok_username: tiktokUser,
+            category: category,
+            follower_range: followers,
+            role: 'creator'
+        };
+
+        const { data, error } = await window.workerRequest('/api/users/profile', 'POST', profileData);
+        if (error) {
+            window.showToast('Failed to save profile: ' + error, 'error');
+            return;
+        }
+
+        window.currentUser = data;
+        localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
+        document.getElementById('profile-modal').classList.add('hidden');
+        window.pendingGoogleUser = null;
+        updateAuthUI();
+        window.showToast('Profile completed successfully!', 'success');
+        switchView('dashboard');
+    };
+
+    window.handleLogin = async function(event) {
+        event.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            window.showToast('Welcome back!', 'success');
+            switchView('dashboard');
+        } catch (err) {
+            let msg = 'Invalid email or password';
+            if (err.code === 'auth/wrong-password') msg = 'Incorrect password';
+            if (err.code === 'auth/user-not-found') msg = 'No account found with this email';
+            window.showToast(msg, 'error');
+        }
+    };
+
+    window.handleSignup = async function(event) {
+        event.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const pass = document.getElementById('signup-password').value;
+        const name = document.getElementById('signup-name').value;
+        const hawmeUser = document.getElementById('signup-hawme-user').value.trim();
+        const tiktokUser = '@' + document.getElementById('signup-tiktok').value.replace('@','').trim();
+        const category = document.getElementById('signup-category').value;
+        const followers = document.getElementById('signup-followers').value;
+
+        const usernameRegex = /^[a-zA-Z0-9_.]{3,24}$/;
+        if (!hawmeUser.startsWith('@') || !usernameRegex.test(hawmeUser.substring(1))) {
+            window.showToast('Invalid HAWME username (3-24 chars, letters, numbers, _, .)', 'error');
+            return;
+        }
+
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            const profileData = {
+                name,
+                username: hawmeUser,
+                tiktok_username: tiktokUser,
+                category,
+                follower_range: followers,
+                role: 'creator'
+            };
+
+            const { data, error } = await window.workerRequest('/api/users/profile', 'POST', profileData);
+            if (error) {
+                window.showToast('Signup profile save failed: ' + error, 'error');
+                return;
+            }
+
+            window.currentUser = data;
+            localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
+            updateAuthUI();
+            window.showToast('Account created successfully!', 'success');
+            switchView('dashboard');
+        } catch (err) {
+            let msg = err.message;
+            if (err.code === 'auth/email-already-in-use') msg = 'Email already in use';
+            if (err.code === 'auth/weak-password') msg = 'Password should be at least 6 characters';
+            window.showToast('Signup failed: ' + msg, 'error');
+        }
+    };
+
+    window.logout = async function() {
+        try { await signOut(auth); } catch(e) {}
+        window.currentUser = null;
+        localStorage.removeItem('hawme_user');
+        updateAuthUI();
+        switchView('home');
+        window.showToast('Logged out successfully', 'info');
+    };
+
+    function updateAuthUI() {
+        const authActions = document.getElementById('auth-actions');
+        const profileMenu = document.getElementById('user-profile-menu');
+        if (window.currentUser) {
+            authActions.classList.add('hidden');
+            profileMenu.classList.remove('hidden');
+            profileMenu.classList.add('flex');
+            document.getElementById('nav-user-name').innerText = window.currentUser.name;
+            document.getElementById('dropdown-username').innerText = window.currentUser.username;
+        } else {
+            authActions.classList.remove('hidden');
+            profileMenu.classList.add('hidden');
+            profileMenu.classList.remove('flex');
+        }
+    }
+
+    function toggleUserDropdown() {
+        document.getElementById('user-dropdown').classList.toggle('hidden');
+    }
+
+    // --- HOMEPAGE ---
+    function renderHomeHTML() {
+        return `
+            <section class="relative overflow-hidden pt-16 pb-24 lg:pt-24 lg:pb-32 border-b border-zinc-200 dark:border-[#292929]">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div class="text-center max-w-3xl mx-auto space-y-6">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-[#25F4EE]"></span>
+                            <span class="text-zinc-600 dark:text-zinc-300">TikTok Creator Marketplace (ETB)</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight">
+                            Create. Compete. <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#FE2C55] to-[#25F4EE]">Get rewarded.</span>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 font-normal">
+                            Discover paid brand promotions and creator challenges in Ethiopian Birr (ETB). Turn your TikTok creativity into real opportunities.
+                        </p>
+                        <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 pt-4">
+                            <button onclick="switchView('discover')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black font-bold text-base hover:opacity-95 transition-all shadow-lg glow-coral">
+                                Explore opportunities
+                            </button>
+                            <button onclick="switchView('signup')" class="w-full sm:w-auto px-8 py-4 rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-base hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                                Join as a creator
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight">Featured Opportunities</h2>
+                        <p class="text-sm text-zinc-500">Active promotions and challenges ready for creator submissions.</p>
+                    </div>
+                    <button onclick="switchView('discover')" class="text-sm font-semibold text-[#25F4EE] hover:underline flex items-center space-x-1">
+                        <span>View all</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="home-campaign-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </section>
+        `;
+    }
+
+    // --- DISCOVER PAGE ---
+    function renderDiscoverHTML() {
+        return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">Discover opportunities</h1>
+                    <p class="text-sm text-zinc-500 mt-1">Browse and filter all available brand promotions and creator challenges.</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-zinc-50 dark:bg-[#111111] p-4 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                    <div class="relative w-full md:w-96">
+                        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-zinc-400"></i>
+                        <input type="text" id="search-input" oninput="loadCampaignsIntoGrid('campaign-grid')" placeholder="Search brands, titles..." class="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]">
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <select id="filter-type" onchange="loadCampaignsIntoGrid('campaign-grid')" class="bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            <option value="ALL">All Types</option>
+                            <option value="PROMOTION">Promotions</option>
+                            <option value="CHALLENGE">Challenges</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="campaign-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+    }
+
+    function renderPromotionsHTML() {
+        return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">Paid promotions</h1>
+                    <p class="text-sm text-zinc-500 mt-1">Find brands looking for creators like you for 1-to-1 paid videos in ETB.</p>
+                </div>
+                <div id="campaign-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+    }
+
+    function renderChallengesHTML() {
+        return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">Creator challenges</h1>
+                    <p class="text-sm text-zinc-500 mt-1">Show your creativity, compete for generous ETB prize pools, and climb the leaderboard.</p>
+                </div>
+                <div id="campaign-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        `;
+    }
+
+    async function loadCampaignsIntoGrid(gridId, limit = null, typeOverride = null) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+
+        grid.innerHTML = Array(3).fill(0).map(() => `
+            <div class="bg-zinc-100 dark:bg-[#111111] h-72 rounded-2xl animate-pulse p-6 border border-zinc-200 dark:border-zinc-800"></div>
+        `).join('');
+
+        const { data, error } = await window.supabasePublicRequest('campaigns');
+        if (error || !data) {
+            grid.innerHTML = `<div class="col-span-3 text-center py-12 text-zinc-500">Failed to load campaigns from Supabase: ${window.escapeHTML(error)}</div>`;
+            return;
+        }
+
+        let campaigns = data;
+        const typeSelect = document.getElementById('filter-type');
+        const activeType = typeOverride || (typeSelect ? typeSelect.value : 'ALL');
+
+        if (activeType && activeType !== 'ALL') {
+            campaigns = campaigns.filter(c => c.type === activeType);
+        }
+
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            const q = searchInput.value.toLowerCase();
+            campaigns = campaigns.filter(c => c.title.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q));
+        }
+
+        if (limit) {
+            campaigns = campaigns.slice(0, limit);
+        }
+
+        if (campaigns.length === 0) {
+            grid.innerHTML = `<div class="col-span-3 text-center py-12 text-zinc-500">No campaigns found.</div>`;
+            return;
+        }
+
+        grid.innerHTML = campaigns.map(c => renderCampaignCardHTML(c)).join('');
+        lucide.createIcons();
+    }
+
+    function renderCampaignCardHTML(c) {
+        const imgUrl = c.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400';
+        return `
+            <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden group hover:border-[#25F4EE] transition-all flex flex-col justify-between">
+                <div>
+                    <div class="h-40 bg-zinc-200 dark:bg-zinc-800 relative overflow-hidden">
+                        <img src="${window.escapeHTML(imgUrl)}" alt="Campaign" onerror="this.src='https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <span class="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold ${c.type === 'PROMOTION' ? 'bg-[#FE2C55] text-white' : 'bg-[#25F4EE] text-black'}">${window.escapeHTML(c.type)}</span>
+                        <span class="absolute bottom-3 right-3 px-2 py-1 rounded-md text-xs font-bold bg-black/70 backdrop-blur-md text-white">${window.escapeHTML(c.reward)}</span>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <div class="flex items-center justify-between text-xs text-zinc-500">
+                            <span>${window.escapeHTML(c.brand)} ${c.verified ? '✓' : ''}</span>
+                            <span>${window.escapeHTML(c.deadline)}</span>
+                        </div>
+                        <h3 class="font-bold text-lg leading-snug group-hover:text-[#25F4EE] transition-colors">${window.escapeHTML(c.title)}</h3>
+                        <p class="text-xs text-zinc-400">${window.escapeHTML(c.requirements)}</p>
+                    </div>
+                </div>
+                <div class="p-6 pt-0">
+                    <button onclick="switchView('details', '${window.escapeHTML(c.id)}')" class="w-full py-2.5 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-xs font-bold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors">
+                        View details & apply
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- CAMPAIGN DETAILS & APPLICATION ---
+    function renderDetailsHTML(campaignId) {
+        return `
+            <div id="details-container" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div class="text-center py-16 text-zinc-500">Loading campaign details from Supabase...</div>
+            </div>
+        `;
+    }
+
+    async function loadCampaignDetails(campaignId) {
+        const container = document.getElementById('details-container');
+        if (!container) return;
+
+        const { data, error } = await window.supabasePublicRequest('campaigns', `id=eq.${campaignId}`);
+        if (error || !data || data.length === 0) {
+            container.innerHTML = `<div class="text-center py-12 text-zinc-500">Campaign not found.</div>`;
+            return;
+        }
+
+        const campaign = data[0];
+        const imgUrl = campaign.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400';
+
+        container.innerHTML = `
+            <button onclick="switchView('discover')" class="text-xs font-semibold text-zinc-400 hover:text-black dark:hover:text-white flex items-center space-x-1">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Back to opportunities</span>
+            </button>
+
+            <div class="bg-zinc-50 dark:bg-[#111111] p-8 rounded-3xl border border-zinc-200 dark:border-[#292929] space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="px-2.5 py-1 rounded-md text-xs font-bold ${campaign.type === 'PROMOTION' ? 'bg-[#FE2C55]/10 text-[#FE2C55]' : 'bg-[#25F4EE]/10 text-[#25F4EE]'}">${window.escapeHTML(campaign.type)}</span>
+                        </div>
+                        <h1 class="text-3xl font-extrabold">${window.escapeHTML(campaign.title)}</h1>
+                        <p class="text-sm text-zinc-500 mt-1">Hosted by <strong class="text-zinc-700 dark:text-zinc-300">${window.escapeHTML(campaign.brand)}</strong></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-zinc-400">Reward / Prize</p>
+                        <p class="text-2xl font-extrabold text-[#25F4EE]">${window.escapeHTML(campaign.reward)}</p>
+                    </div>
+                </div>
+
+                <div class="w-full h-64 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 relative">
+                    <img src="${window.escapeHTML(imgUrl)}" alt="Campaign" onerror="this.src='https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'" class="w-full h-full object-cover">
+                </div>
+
+                <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6 space-y-4">
+                    <h3 class="font-bold text-lg">Campaign Brief</h3>
+                    <p class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">${window.escapeHTML(campaign.description || 'Create an engaging TikTok video showcasing the brand guidelines and official hashtags.')}</p>
+                </div>
+
+                <!-- Video Idea Pitch & Cloudflare R2 Presigned Upload -->
+                <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6 space-y-4">
+                    <div>
+                        <label class="block font-bold text-sm mb-1">Pitch Your Video Idea</label>
+                        <textarea id="creator-video-idea" rows="3" class="w-full p-4 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="Describe your hook, concept, or script..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-sm mb-1">Upload Evidence / Storyboard (Cloudflare R2)</label>
+                        <input type="file" id="r2-evidence-file" accept="image/jpeg,image/png,image/webp,video/mp4" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#25F4EE] file:text-black hover:file:opacity-90">
+                        <div id="upload-progress" class="hidden mt-2 text-xs text-[#25F4EE]">Uploading file securely to Cloudflare R2...</div>
+                    </div>
+                </div>
+
+                <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-zinc-400">Deadline: <strong class="text-white">${window.escapeHTML(campaign.deadline)}</strong></p>
+                    </div>
+                    <button onclick="applyForCampaign('${window.escapeHTML(campaign.title)}', '${window.escapeHTML(campaign.id)}')" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black font-bold text-sm hover:opacity-95 transition-opacity">
+                        Apply & Submit
+                    </button>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    window.applyForCampaign = async function(title, campaignId) {
+        if (!window.currentUser) {
+            window.showToast('Please log in to apply for campaigns', 'error');
+            switchView('login');
+            return;
+        }
+
+        const idea = document.getElementById('creator-video-idea')?.value || '';
+        const fileInput = document.getElementById('r2-evidence-file');
+        let publicFileUrl = null;
+
+        if (fileInput && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            if (file.size > 50 * 1024 * 1024) {
+                window.showToast('File size exceeds 50MB limit', 'error');
+                return;
+            }
+
+            document.getElementById('upload-progress').classList.remove('hidden');
+
+            try {
+                // 1. Request Presigned Upload URL from Worker
+                const { data: signData, error: signError } = await window.workerRequest('/api/uploads/sign', 'POST', {
+                    fileName: file.name,
+                    fileType: file.type
+                });
+                if (signError || !signData) throw new Error(signError || 'Failed to get upload signature');
+
+                // 2. PUT file directly to Cloudflare R2 Presigned URL
+                const putRes = await fetch(signData.uploadUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': file.type },
+                    body: file
+                });
+                if (!putRes.ok) throw new Error('R2 storage upload failed');
+
+                publicFileUrl = signData.publicUrl;
+            } catch (err) {
+                window.showToast('Upload failed: ' + err.message, 'error');
+                document.getElementById('upload-progress').classList.add('hidden');
+                return;
+            }
+            document.getElementById('upload-progress').classList.add('hidden');
+        }
+
+        const applicationPayload = {
+            campaign_id: campaignId,
+            campaign_title: title,
+            video_idea: idea,
+            evidence_url: publicFileUrl
+        };
+
+        const { error } = await window.workerRequest('/api/applications', 'POST', applicationPayload);
+        if (error) {
+            window.showToast('Application failed: ' + error, 'error');
+            return;
+        }
+
+        window.showToast(`Successfully applied for "${title}"!`, 'success');
+        switchView('dashboard');
+    };
+
+    // --- LEADERBOARD PAGE ---
+    function renderLeaderboardHTML() {
+        const isGivers = window.leaderboardMode === 'givers';
+        return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-extrabold tracking-tight">Creator leaderboard</h1>
+                        <p class="text-sm text-zinc-500 mt-1">Track top performing creators or challenge givers ranked by prize money in ETB.</p>
+                    </div>
+                    <div class="flex items-center bg-zinc-100 dark:bg-[#111111] p-1 rounded-xl border border-zinc-200 dark:border-[#292929]">
+                        <button onclick="setLeaderboardMode('creators')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all ${!isGivers ? 'bg-white dark:bg-[#181818] shadow-sm text-black dark:text-white' : 'text-zinc-500'}">Top Creators</button>
+                        <button onclick="setLeaderboardMode('givers')" class="px-4 py-2 rounded-lg text-xs font-bold transition-all ${isGivers ? 'bg-white dark:bg-[#181818] shadow-sm text-black dark:text-white' : 'text-zinc-500'}">Challenge Givers</button>
+                    </div>
+                </div>
+
+                ${!isGivers ? `
+                    <div class="flex items-center space-x-3 bg-zinc-50 dark:bg-[#111111] p-4 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                        <span class="text-sm font-semibold text-zinc-400">Select Challenge:</span>
+                        <select id="challenge-selector" onchange="changeChallengeLeaderboard(this.value)" class="bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm font-medium focus:outline-none">
+                            <option value="c1" ${window.selectedChallengeLeaderboardId === 'c1' ? 'selected' : ''}>Summer Glow Up Challenge (GlowRecipe)</option>
+                            <option value="c3" ${window.selectedChallengeLeaderboardId === 'c3' ? 'selected' : ''}>Energy Drink TikTok Dance Off (BlitzEnergy)</option>
+                            <option value="c6" ${window.selectedChallengeLeaderboardId === 'c6' ? 'selected' : ''}>Quick Meal Prep Speedrun (FreshBites)</option>
+                        </select>
+                    </div>
+                ` : ''}
+
+                <div id="leaderboard-content" class="space-y-6">
+                    <div class="text-center py-12 text-zinc-500">Loading leaderboard from Supabase...</div>
+                </div>
+            </div>
+        `;
+    }
+
+    window.setLeaderboardMode = function(mode) {
+        window.leaderboardMode = mode;
+        renderView();
+    };
+
+    window.changeChallengeLeaderboard = function(id) {
+        window.selectedChallengeLeaderboardId = id;
+        loadLeaderboardData();
+    };
+
+    async function loadLeaderboardData() {
+        const container = document.getElementById('leaderboard-content');
+        if (!container) return;
+
+        const isGivers = window.leaderboardMode === 'givers';
+        if (isGivers) {
+            const { data, error } = await window.supabasePublicRequest('challenge_givers_leaderboard');
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-zinc-500">No challenge givers ranked yet.</div>`;
+                return;
+            }
+            container.innerHTML = `
+                <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h3 class="font-bold text-base">Top Challenge Givers (Ranked by Prize Pool)</h3>
+                    </div>
+                    <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        ${data.map((giver, idx) => `
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <span class="font-bold text-sm w-6 text-zinc-400">#${idx + 1}</span>
+                                    <div>
+                                        <h4 class="font-bold text-base">${window.escapeHTML(giver.name)}</h4>
+                                        <p class="text-xs text-zinc-400">${window.escapeHTML(giver.active_challenges || 0)} Active Challenges</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-zinc-400">Total Prize Pool</p>
+                                    <p class="font-extrabold text-lg text-emerald-400">${window.escapeHTML(giver.total_prize_pool)}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            const challengeId = window.selectedChallengeLeaderboardId || 'c1';
+            const { data, error } = await window.supabasePublicRequest('creator_leaderboard', `challenge_id=eq.${challengeId}`);
+            if (error || !data || data.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-zinc-500">No creator rankings available for this challenge yet.</div>`;
+                return;
+            }
+            container.innerHTML = `
+                <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                        <h3 class="font-bold text-base">Top Creators Leaderboard (Challenge Participants)</h3>
+                    </div>
+                    <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        ${data.map((c, idx) => `
+                            <div class="px-6 py-4 flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <span class="font-bold text-sm w-6 text-zinc-400">#${idx + 1}</span>
+                                    <div>
+                                        <h4 class="font-bold text-sm">${window.escapeHTML(c.name)}</h4>
+                                        <p class="text-xs text-zinc-400">${window.escapeHTML(c.username)}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-6 text-sm">
+                                    <span class="text-zinc-400">Score: <strong class="text-[#25F4EE]">ETB ${Number(c.score || 0).toLocaleString()}</strong></span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // --- AUTHENTICATION PAGES ---
+    function renderLoginHTML() {
+        return `
+            <div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+                <div class="w-full max-w-md bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 shadow-2xl space-y-6">
+                    <div class="text-center space-y-2">
+                        <h1 class="text-2xl font-extrabold tracking-tight">Welcome back to HAWME</h1>
+                        <p class="text-sm text-zinc-500">Sign in with Firebase Auth & Supabase DB</p>
+                    </div>
+                    <button onclick="handleGoogleAuth()" class="w-full py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm flex items-center justify-center space-x-3 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.14v3.15C3.12 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.49-.38-2.25s.13-1.53.38-2.25V6.6H1.14C.41 8.09 0 9.77 0 12s.41 3.91 1.14 5.4l4.14-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.12 2.64 1.14 6.6l4.14 3.15c.95-2.84 3.6-4.95 6.72-4.95z"/></svg>
+                        <span>Continue with Google</span>
+                    </button>
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+                        <span class="flex-shrink mx-4 text-xs text-zinc-500 uppercase tracking-widest">or email</span>
+                        <div class="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+                    </div>
+                    <form onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Email Address</label>
+                            <input type="email" id="login-email" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="creator@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Password</label>
+                            <input type="password" id="login-password" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black font-bold text-sm hover:opacity-95 transition-opacity">Sign In</button>
+                    </form>
+                    <p class="text-center text-xs text-zinc-500">Don't have an account? <a href="#" onclick="switchView('signup')" class="text-[#25F4EE] font-semibold hover:underline">Sign up</a></p>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderSignupHTML() {
+        return `
+            <div class="min-h-[85vh] flex items-center justify-center px-4 py-12">
+                <div class="w-full max-w-lg bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 shadow-2xl space-y-6">
+                    <div class="text-center space-y-2">
+                        <h1 class="text-2xl font-extrabold tracking-tight">Join HAWME</h1>
+                        <p class="text-sm text-zinc-500">Connect your TikTok account and sync with Supabase</p>
+                    </div>
+                    <button onclick="handleGoogleAuth()" class="w-full py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm flex items-center justify-center space-x-3 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.14v3.15C3.12 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.49-.38-2.25s.13-1.53.38-2.25V6.6H1.14C.41 8.09 0 9.77 0 12s.41 3.91 1.14 5.4l4.14-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.12 2.64 1.14 6.6l4.14 3.15c.95-2.84 3.6-4.95 6.72-4.95z"/></svg>
+                        <span>Continue with Google</span>
+                    </button>
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+                        <span class="flex-shrink mx-4 text-xs text-zinc-500 uppercase tracking-widest">or sign up with email</span>
+                        <div class="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
+                    </div>
+                    <form onsubmit="handleSignup(event)" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Full Name</label>
+                                <input type="text" id="signup-name" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="Alex Rivera">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">HAWME Username</label>
+                                <input type="text" id="signup-hawme-user" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="@alexrivera">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">TikTok Username</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-3 text-zinc-400 text-sm">@</span>
+                                <input type="text" id="signup-tiktok" required class="w-full pl-8 pr-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="tiktok_creator">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Email Address</label>
+                                <input type="email" id="signup-email" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="alex@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Password</label>
+                                <input type="password" id="signup-password" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="••••••••">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Category</label>
+                                <select id="signup-category" class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none">
+                                    <option value="Beauty & Skincare">Beauty & Skincare</option>
+                                    <option value="Tech & Gadgets">Tech & Gadgets</option>
+                                    <option value="Lifestyle & Vlog">Lifestyle & Vlog</option>
+                                    <option value="Fashion & Style">Fashion & Style</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Followers</label>
+                                <select id="signup-followers" class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none">
+                                    <option value="1K - 10K followers">1K - 10K</option>
+                                    <option value="10K - 50K followers">10K - 50K</option>
+                                    <option value="50K - 100K followers">50K - 100K</option>
+                                    <option value="100K+ followers">100K+</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-black font-bold text-sm hover:opacity-95 transition-opacity mt-2">Create Account</button>
+                    </form>
+                    <p class="text-center text-xs text-zinc-500">Already have an account? <a href="#" onclick="switchView('login')" class="text-[#25F4EE] font-semibold hover:underline">Log in</a></p>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- DASHBOARD PAGE ---
+    function renderDashboardHTML() {
+        return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-extrabold tracking-tight">Creator Dashboard</h1>
+                        <p class="text-sm text-zinc-500 mt-1">Logged in as ${window.currentUser ? window.escapeHTML(window.currentUser.email || window.currentUser.username) : ''}</p>
+                    </div>
+                    <button onclick="switchView('discover')" class="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] text-xs font-bold hover:bg-zinc-200 transition-colors">Find new campaigns</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div class="bg-zinc-50 dark:bg-[#111111] p-6 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                        <p class="text-xs text-zinc-400 mb-1">Active Applications</p>
+                        <p id="stat-active" class="text-2xl font-extrabold">-</p>
+                    </div>
+                    <div class="bg-zinc-50 dark:bg-[#111111] p-6 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                        <p class="text-xs text-zinc-400 mb-1">Pending Reviews</p>
+                        <p id="stat-pending" class="text-2xl font-extrabold text-amber-400">-</p>
+                    </div>
+                    <div class="bg-zinc-50 dark:bg-[#111111] p-6 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                        <p class="text-xs text-zinc-400 mb-1">Completed Submissions</p>
+                        <p id="stat-completed" class="text-2xl font-extrabold">-</p>
+                    </div>
+                    <div class="bg-zinc-50 dark:bg-[#111111] p-6 rounded-2xl border border-zinc-200 dark:border-[#292929]">
+                        <p class="text-xs text-zinc-400 mb-1">Total Earnings</p>
+                        <p id="stat-earnings" class="text-2xl font-extrabold text-[#25F4EE]">ETB 0</p>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
+                    <div class="px-6 py-4 border-b border-zinc-200 dark:border-[#292929]">
+                        <h3 class="font-bold text-base">Your Supabase Submissions & Transactions</h3>
+                    </div>
+                    <div id="dashboard-submissions-list" class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        <div class="px-6 py-6 text-center text-zinc-500">Loading submissions...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadDashboardData() {
+        if (!window.currentUser) return;
+
+        const { data: apps, error: appErr } = await window.workerRequest('/api/applications');
+        const { data: txs, error: txErr } = await window.workerRequest('/api/transactions');
+
+        let totalEarned = 0;
+        if (txs && !txErr) {
+            txs.forEach(t => totalEarned += Number(t.amount_etb || 0));
+        }
+
+        const activeApps = apps && !appErr ? apps : [];
+        document.getElementById('stat-active').innerText = activeApps.length;
+        document.getElementById('stat-pending').innerText = activeApps.filter(a => a.status === 'Awaiting Review').length;
+        document.getElementById('stat-completed').innerText = activeApps.filter(a => a.status === 'Completed').length;
+        document.getElementById('stat-earnings').innerText = `ETB ${totalEarned.toLocaleString()}`;
+
+        const listContainer = document.getElementById('dashboard-submissions-list');
+        if (activeApps.length === 0) {
+            listContainer.innerHTML = `<div class="px-6 py-8 text-center text-zinc-500">No applications found. Discover campaigns to apply!</div>`;
+            return;
+        }
+
+        listContainer.innerHTML = activeApps.map(app => `
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-sm">${window.escapeHTML(app.campaign_title || 'Campaign Application')}</h4>
+                    <p class="text-xs text-zinc-400">Idea: ${window.escapeHTML(app.video_idea || 'None')} ${app.evidence_url ? '• Evidence: <a href="' + window.escapeHTML(app.evidence_url) + '" target="_blank" class="text-[#25F4EE] hover:underline">View File</a>' : ''}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${app.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${window.escapeHTML(app.status)}</span>
+            </div>
+        `).join('');
+    }
+
+    async function loadUnreadNotifications() {
+        if (!window.currentUser) return;
+        const { data } = await window.workerRequest('/api/notifications');
+        if (data && data.some(n => !n.read)) {
+            document.getElementById('unread-dot').classList.remove('hidden');
+        }
+    }
+
+    window.openNotificationsModal = async function() {
+        if (!window.currentUser) {
+            window.showToast('Please login to view notifications', 'info');
+            return;
+        }
+        const { data } = await window.workerRequest('/api/notifications');
+        if (!data || data.length === 0) {
+            window.showToast('No new notifications', 'info');
+            return;
+        }
+        window.showToast(data[0].message, 'info');
+        await window.workerRequest(`/api/notifications/${data[0].id}/read`, 'PATCH');
+        document.getElementById('unread-dot').classList.add('hidden');
+    };
+</script>
+</body>
+</html>           
