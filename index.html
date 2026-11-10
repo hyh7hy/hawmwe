@@ -44,17 +44,10 @@
         .glow-coral { box-shadow: 0 0 25px rgba(254, 44, 85, 0.15); }
 
         /* HAWME_LIGHT_THEME_TEXT_CONTRAST
-           Explicit Tailwind text-white utilities otherwise stay white when the
-           root .dark class is removed. Restore readable foregrounds in light mode. */
+           Convert Tailwind's fixed white text utilities to a readable TikTok-inspired
+           blue whenever light mode is active. Dark mode remains unchanged. */
         html:not(.dark) body .text-white {
-            color: #18181b !important;
-        }
-        html:not(.dark) body .text-white.bg-zinc-900,
-        html:not(.dark) body .text-white.bg-\\[\\#FE2C55\\],
-        html:not(.dark) body .text-white.bg-\\[\\#080808\\],
-        html:not(.dark) body .text-white.bg-\\[\\#111111\\],
-        html:not(.dark) body .text-white.bg-\\[\\#181818\\] {
-            color: #ffffff !important;
+            color: #0066CC !important;
         }
     </style>
 </head>
