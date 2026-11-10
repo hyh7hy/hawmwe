@@ -64,6 +64,10 @@
                 </div>
             </div>
             <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Profile Picture (Supabase)</label>
+                <input type="file" id="modal-avatar" accept="image/*" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#25F4EE] file:text-black hover:file:opacity-90">
+            </div>
+            <div>
                 <label id="modal-name-label" class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Display Name</label>
                 <input type="text" id="modal-name" required class="w-full px-4 py-3 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="Alex Rivera">
             </div>
@@ -144,6 +148,7 @@
             <!-- Profile Dropdown (Logged In) -->
             <div id="user-profile-menu" class="hidden relative items-center space-x-3 pl-2 border-l border-zinc-200 dark:border-zinc-800">
                 <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 focus:outline-none">
+                    <img id="nav-user-avatar" src="" alt="Avatar" class="hidden w-8 h-8 rounded-full object-cover border border-[#25F4EE]">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] flex items-center justify-center text-black font-bold text-xs" id="nav-user-initial">C</div>
                     <span id="nav-user-name" class="text-sm font-semibold hidden sm:inline">Account</span>
                     <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
@@ -271,7 +276,7 @@
         measurementId: "G-RYBWW6XB10"
     };
 
-    // Supabase Storage Bucket for Campaign Front Images & Logos
+    // Supabase Storage Configuration
     const SUPABASE_CONFIG = {
         storageUrl: "https://akoddbuemubeorwfwonv.supabase.co/storage/v1",
         publishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
@@ -302,29 +307,58 @@
             .replace(/'/g, '&#039;');
     };
 
-    // Helper: Upload Front/Logo Image to Supabase Storage
+    // Direct binary upload to Supabase Storage
     window.uploadImageToSupabase = async function(file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-        const uploadPath = `offers/${fileName}`;
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const cleanFileName = `offer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const uploadPath = `offers/${cleanFileName}`;
 
-        const uploadUrl = `${SUPABASE_CONFIG.storageUrl}/object/${SUPABASE_CONFIG.bucket}/${uploadPath}`;
+        const uploadUrl = `https://akoddbuemubeorwfwonv.supabase.co/storage/v1/object/campaign-images/${uploadPath}`;
+
         const response = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
-                'apikey': SUPABASE_CONFIG.publishableKey,
-                'Authorization': `Bearer ${SUPABASE_CONFIG.publishableKey}`,
-                'Content-Type': file.type
+                'apikey': 'sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f',
+                'Authorization': 'Bearer sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f',
+                'Content-Type': file.type || 'image/jpeg',
+                'x-upsert': 'true'
             },
             body: file
         });
 
         if (!response.ok) {
-            const errBody = await response.text();
-            throw new Error(`Image upload failed: ${response.statusText} (${errBody})`);
+            const errorText = await response.text();
+            throw new Error(`Upload failed (${response.status}): ${errorText}`);
         }
 
-        return `${SUPABASE_CONFIG.storageUrl}/object/public/${SUPABASE_CONFIG.bucket}/${uploadPath}`;
+        return `https://akoddbuemubeorwfwonv.supabase.co/storage/v1/object/public/campaign-images/${uploadPath}`;
+    };
+
+    // Dedicated upload for Profile Pictures
+    window.uploadProfileImageToSupabase = async function(file) {
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const cleanFileName = `avatar_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const uploadPath = `avatars/${cleanFileName}`;
+
+        const uploadUrl = `https://akoddbuemubeorwfwonv.supabase.co/storage/v1/object/campaign-images/${uploadPath}`;
+
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'apikey': 'sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f',
+                'Authorization': 'Bearer sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f',
+                'Content-Type': file.type || 'image/jpeg',
+                'x-upsert': 'true'
+            },
+            body: file
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Avatar upload failed (${response.status}): ${errorText}`);
+        }
+
+        return `https://akoddbuemubeorwfwonv.supabase.co/storage/v1/object/public/campaign-images/${uploadPath}`;
     };
 
     // Auth State Tracker
@@ -525,9 +559,19 @@
         const tiktok = '@' + document.getElementById('modal-tiktok').value.replace('@','').trim();
         const followers = role === 'creator' ? Number(document.getElementById('modal-followers').value || 0) : 0;
         const category = role === 'creator' ? document.getElementById('modal-category').value : 'Brand';
+        const avatarFile = document.getElementById('modal-avatar')?.files[0];
 
         const user = window.pendingGoogleUser || auth.currentUser;
         if (!user) return;
+
+        let avatarUrl = '';
+        if (avatarFile) {
+            try {
+                avatarUrl = await window.uploadProfileImageToSupabase(avatarFile);
+            } catch (e) {
+                window.showToast('Profile image upload failed: ' + e.message, 'error');
+            }
+        }
 
         const profileData = {
             role,
@@ -536,6 +580,7 @@
             tiktok_username: tiktok,
             followers: followers,
             category: category,
+            avatar_url: avatarUrl,
             created_at: new Date().toISOString()
         };
 
@@ -575,6 +620,16 @@
         const tiktok = '@' + document.getElementById('signup-tiktok').value.replace('@','').trim();
         const followers = role === 'creator' ? Number(document.getElementById('signup-followers')?.value || 0) : 0;
         const category = role === 'creator' ? document.getElementById('signup-category')?.value : 'Brand';
+        const avatarFile = document.getElementById('signup-avatar')?.files[0];
+
+        let avatarUrl = '';
+        if (avatarFile) {
+            try {
+                avatarUrl = await window.uploadProfileImageToSupabase(avatarFile);
+            } catch (e) {
+                window.showToast('Avatar upload failed: ' + e.message, 'error');
+            }
+        }
 
         try {
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
@@ -585,6 +640,7 @@
                 tiktok_username: tiktok,
                 followers: followers,
                 category,
+                avatar_url: avatarUrl,
                 created_at: new Date().toISOString()
             };
 
@@ -617,8 +673,20 @@
             profileMenu.classList.add('flex');
             document.getElementById('nav-user-name').innerText = window.currentUser.name || 'Account';
             document.getElementById('dropdown-username').innerText = window.currentUser.tiktok_username || window.currentUser.email;
-            document.getElementById('nav-user-initial').innerText = (window.currentUser.name || 'H').charAt(0).toUpperCase();
-            
+
+            const avatarImg = document.getElementById('nav-user-avatar');
+            const initialDiv = document.getElementById('nav-user-initial');
+
+            if (window.currentUser.avatar_url) {
+                avatarImg.src = window.currentUser.avatar_url;
+                avatarImg.classList.remove('hidden');
+                initialDiv.classList.add('hidden');
+            } else {
+                avatarImg.classList.add('hidden');
+                initialDiv.classList.remove('hidden');
+                initialDiv.innerText = (window.currentUser.name || 'H').charAt(0).toUpperCase();
+            }
+
             const badge = document.getElementById('dropdown-role-badge');
             if (badge) {
                 badge.innerText = window.currentUser.role === 'company' ? 'Company' : 'Creator';
@@ -776,7 +844,7 @@
         `;
     }
 
-    // Helper: Fetch live campaigns from Firestore
+    // Fetch live campaigns from Firestore
     async function getCampaignsFromFirebase() {
         try {
             const snap = await getDocs(collection(db, "campaigns"));
@@ -1162,7 +1230,7 @@
 
         let frontImageUrl = '';
         try {
-            // Upload to Supabase Storage
+            // Upload to Supabase Storage using direct fetch
             frontImageUrl = await window.uploadImageToSupabase(imageFile);
         } catch (err) {
             window.showToast('Image upload to Supabase failed: ' + err.message, 'error');
@@ -1462,6 +1530,10 @@
                     </div>
 
                     <form onsubmit="handleSignup(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">Profile Picture (Supabase)</label>
+                            <input type="file" id="signup-avatar" accept="image/*" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#25F4EE] file:text-black hover:file:opacity-90">
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">${isCreator ? 'Your Name' : 'Company Name'}</label>
