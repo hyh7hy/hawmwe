@@ -48,7 +48,7 @@
 
    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
 
-<!-- Profile Completion Modal (If Google/New User lacks profile in Supabase) -->
+<!-- Profile Completion Modal (If Google/New User lacks profile in Firestore) -->
 <div id="profile-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
         <div class="text-center space-y-2">
@@ -183,7 +183,7 @@
 
 <!-- Main View Container -->
 <main id="app-container" class="flex-grow">
-    <!-- Views will be dynamically injected here -->
+    <!-- Views dynamically rendered -->
 </main>
 
 <!-- Footer -->
@@ -238,7 +238,7 @@
     </div>
 </footer>
 
-<!-- JavaScript Application Logic with Firebase Auth, Cloudflare Worker & Supabase DB -->
+<!-- JavaScript Application Logic -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { 
@@ -250,39 +250,87 @@
         signOut, 
         onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+        getFirestore, 
+        doc, 
+        getDoc, 
+        setDoc, 
+        collection, 
+        getDocs, 
+        addDoc, 
+        query, 
+        where, 
+        updateDoc 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Public Configuration Object
-    const CONFIG = {
-        firebase: {
-            apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
-            authDomain: "my-tiktok-cbd6f.firebaseapp.com",
-            projectId: "my-tiktok-cbd6f",
-            storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
-            messagingSenderId: "964441294320",
-            appId: "1:964441294320:web:4c8da74a0cee8ed2644935"
-        },
-        // Local development uses Wrangler. On GitHub Pages, set window.HAWME_WORKER_URL
-        // to the deployed Worker URL in a script before this module is loaded.
-        workerUrl: window.HAWME_WORKER_URL || (
-            ["localhost", "127.0.0.1"].includes(window.location.hostname)
-                ? "http://127.0.0.1:8787"
-                : ""
-        ),
-        supabaseUrl: "https://akoddbuemubeorwfwonv.supabase.co/rest/v1/",
-        supabasePublishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
-        r2PublicUrl: "https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev"
+    // App Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
+        authDomain: "my-tiktok-cbd6f.firebaseapp.com",
+        databaseURL: "https://my-tiktok-cbd6f-default-rtdb.firebaseio.com",
+        projectId: "my-tiktok-cbd6f",
+        storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
+        messagingSenderId: "964441294320",
+        appId: "1:964441294320:web:4c8da74a0cee8ed2644935",
+        measurementId: "G-RYBWW6XB10"
     };
 
-    const app = initializeApp(CONFIG.firebase);
+    const SUPABASE_CONFIG = {
+        storageUrl: "https://akoddbuemubeorwfwonv.supabase.co/storage/v1",
+        publishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
+        bucket: "evidence"
+    };
+
+    // Initialize Firebase Services
+    const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
 
     window.hawmeAuth = auth;
+    window.hawmeDb = db;
     window.currentUser = null;
     window.currentTheme = 'dark';
     window.currentView = 'home';
     window.leaderboardMode = 'creators';
-    window.selectedChallengeLeaderboardId = 'c1000000-0000-0000-0000-000000000001';
+    window.selectedChallengeLeaderboardId = 'c1';
+
+    // Fallback Initial Campaigns for Firestore
+    const INITIAL_CAMPAIGNS = [
+        {
+            id: 'c1',
+            title: "Summer Glow Up Challenge",
+            brand: "GlowRecipe",
+            reward: "ETB 25,000",
+            deadline: "Dec 15, 2026",
+            type: "CHALLENGE",
+            requirements: "Min 5K followers, beauty/lifestyle niche",
+            description: "Show off your skincare transformation with our Glow Up kit using the official sound and hashtag #HawmeGlow.",
+            image_url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600"
+        },
+        {
+            id: 'c2',
+            title: "Pro Earbuds Video Review",
+            brand: "SoundWave",
+            reward: "ETB 14,000",
+            deadline: "Nov 30, 2026",
+            type: "PROMOTION",
+            requirements: "Tech niche, high quality audio recording",
+            description: "Unbox and deliver a 60-second review highlighting noise cancellation and battery life.",
+            image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600"
+        },
+        {
+            id: 'c3',
+            title: "Energy Drink Dance Off",
+            brand: "BlitzEnergy",
+            reward: "ETB 30,000",
+            deadline: "Dec 20, 2026",
+            type: "CHALLENGE",
+            requirements: "High energy, choreography, dance creators",
+            description: "Create an energetic 15-second routine holding Blitz Energy with the official beat.",
+            image_url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600"
+        }
+    ];
 
     window.escapeHTML = function(str) {
         if (!str) return '';
@@ -294,62 +342,48 @@
             .replace(/'/g, '&#039;');
     };
 
-    // Secure Worker API Proxy Request
-    window.workerRequest = async function(endpoint, method = 'GET', data = null) {
-        let headers = { 'Content-Type': 'application/json' };
-        if (auth.currentUser) {
-            const token = await auth.currentUser.getIdToken();
-            headers['Authorization'] = `Bearer ${token}`;
+    // Upload files directly to Supabase Storage Bucket
+    window.uploadFileToSupabase = async function(file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const uploadPath = `submissions/${fileName}`;
+
+        const uploadUrl = `${SUPABASE_CONFIG.storageUrl}/object/${SUPABASE_CONFIG.bucket}/${uploadPath}`;
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_CONFIG.publishableKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.publishableKey}`,
+                'Content-Type': file.type
+            },
+            body: file
+        });
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`Supabase upload failed: ${response.statusText} (${errBody})`);
         }
-        const options = { method, headers };
-        if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
-            options.body = JSON.stringify(data);
-        }
-        try {
-            if (!CONFIG.workerUrl) {
-                throw new Error("HAWME backend is not configured. Set window.HAWME_WORKER_URL to your deployed Cloudflare Worker URL.");
-            }
-            const res = await fetch(`${CONFIG.workerUrl}${endpoint}`, options);
-            const text = await res.text();
-            const json = text ? JSON.parse(text) : null;
-            if (!res.ok) throw new Error(json?.error || res.statusText);
-            return { data: json, error: null };
-        } catch (err) {
-            return { data: null, error: err.message };
-        }
+
+        return `${SUPABASE_CONFIG.storageUrl}/object/public/${SUPABASE_CONFIG.bucket}/${uploadPath}`;
     };
 
-    // Public Supabase Read Request (for Campaigns & Leaderboards)
-    window.supabasePublicRequest = async function(table, queryParams = '') {
-        try {
-            const url = `${CONFIG.supabaseUrl}${table}${queryParams ? '?' + queryParams : ''}`;
-            const res = await fetch(url, {
-                headers: {
-                    'apikey': CONFIG.supabasePublishableKey,
-                    'Authorization': `Bearer ${CONFIG.supabasePublishableKey}`
-                }
-            });
-            if (!res.ok) throw new Error(res.statusText);
-            const text = await res.text();
-            return { data: text ? JSON.parse(text) : [], error: null };
-        } catch (err) {
-            return { data: null, error: err.message };
-        }
-    };
-
-    // Single Source of Truth for Session via onAuthStateChanged
+    // Firebase Auth State Tracker
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const { data, error } = await window.workerRequest(`/api/users/profile`);
-            if (data && !error) {
-                window.currentUser = data;
-                localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
-                updateAuthUI();
-                loadUnreadNotifications();
-            } else {
-                // Profile does not exist yet in Supabase -> Prompt modal completion
-                window.pendingGoogleUser = user;
-                document.getElementById('profile-modal').classList.remove('hidden');
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userDocRef);
+                if (userSnap.exists()) {
+                    window.currentUser = { uid: user.uid, email: user.email, ...userSnap.data() };
+                    localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
+                    updateAuthUI();
+                    loadUnreadNotifications();
+                } else {
+                    window.pendingGoogleUser = user;
+                    document.getElementById('profile-modal').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error reading profile:", err);
             }
         } else {
             window.currentUser = null;
@@ -365,8 +399,10 @@
 
         const savedUser = localStorage.getItem('hawme_user');
         if (savedUser) {
-            window.currentUser = JSON.parse(savedUser);
-            updateAuthUI();
+            try {
+                window.currentUser = JSON.parse(savedUser);
+                updateAuthUI();
+            } catch(e) {}
         }
 
         switchView('home');
@@ -378,6 +414,10 @@
         localStorage.setItem('hawme_theme', window.currentTheme);
         document.documentElement.classList.toggle('dark', window.currentTheme === 'dark');
         lucide.createIcons();
+    };
+
+    window.toggleMobileMenu = function() {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
     };
 
     window.showToast = function(message, type = 'success') {
@@ -459,18 +499,17 @@
         }
     }
 
-    // Google Auth Handler
+    // Google Sign-in Handler
     window.handleGoogleAuth = async function() {
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            // onAuthStateChanged will handle profile verification or prompt completion modal
+            await signInWithPopup(auth, googleProvider);
         } catch (err) {
             if (err.code === 'auth/popup-closed-by-user') {
                 window.showToast('Google sign-in cancelled', 'info');
             } else if (err.code === 'auth/popup-blocked') {
                 window.showToast('Popup blocked by browser. Please allow popups.', 'error');
             } else {
-                window.showToast('Google Authentication failed: ' + err.message, 'error');
+                window.showToast('Google Auth failed: ' + err.message, 'error');
             }
         }
     };
@@ -482,36 +521,35 @@
         const category = document.getElementById('modal-category').value;
         const followers = document.getElementById('modal-followers').value;
 
-        const usernameRegex = /^[a-zA-Z0-9_.]{3,24}$/;
-        if (!hawmeUser.startsWith('@') || !usernameRegex.test(hawmeUser.substring(1))) {
-            window.showToast('Invalid HAWME username (3-24 chars, letters, numbers, _, .)', 'error');
-            return;
-        }
+        const user = window.pendingGoogleUser || auth.currentUser;
+        if (!user) return;
 
         const profileData = {
-            name: window.pendingGoogleUser?.displayName || 'Creator',
+            name: user.displayName || 'Creator',
+            email: user.email,
             username: hawmeUser,
             tiktok_username: tiktokUser,
             category: category,
             follower_range: followers,
-            role: 'creator'
+            role: 'creator',
+            created_at: new Date().toISOString()
         };
 
-        const { data, error } = await window.workerRequest('/api/users/profile', 'POST', profileData);
-        if (error) {
-            window.showToast('Failed to save profile: ' + error, 'error');
-            return;
+        try {
+            await setDoc(doc(db, "users", user.uid), profileData);
+            window.currentUser = { uid: user.uid, ...profileData };
+            localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
+            document.getElementById('profile-modal').classList.add('hidden');
+            window.pendingGoogleUser = null;
+            updateAuthUI();
+            window.showToast('Profile completed successfully!', 'success');
+            switchView('dashboard');
+        } catch (err) {
+            window.showToast('Failed to save profile: ' + err.message, 'error');
         }
-
-        window.currentUser = data;
-        localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
-        document.getElementById('profile-modal').classList.add('hidden');
-        window.pendingGoogleUser = null;
-        updateAuthUI();
-        window.showToast('Profile completed successfully!', 'success');
-        switchView('dashboard');
     };
 
+    // Email / Password Login Handler
     window.handleLogin = async function(event) {
         event.preventDefault();
         const email = document.getElementById('login-email').value;
@@ -528,6 +566,7 @@
         }
     };
 
+    // Signup Handler
     window.handleSignup = async function(event) {
         event.preventDefault();
         const email = document.getElementById('signup-email').value;
@@ -538,30 +577,21 @@
         const category = document.getElementById('signup-category').value;
         const followers = document.getElementById('signup-followers').value;
 
-        const usernameRegex = /^[a-zA-Z0-9_.]{3,24}$/;
-        if (!hawmeUser.startsWith('@') || !usernameRegex.test(hawmeUser.substring(1))) {
-            window.showToast('Invalid HAWME username (3-24 chars, letters, numbers, _, .)', 'error');
-            return;
-        }
-
         try {
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
             const profileData = {
                 name,
+                email,
                 username: hawmeUser,
                 tiktok_username: tiktokUser,
                 category,
                 follower_range: followers,
-                role: 'creator'
+                role: 'creator',
+                created_at: new Date().toISOString()
             };
 
-            const { data, error } = await window.workerRequest('/api/users/profile', 'POST', profileData);
-            if (error) {
-                window.showToast('Signup profile save failed: ' + error, 'error');
-                return;
-            }
-
-            window.currentUser = data;
+            await setDoc(doc(db, "users", cred.user.uid), profileData);
+            window.currentUser = { uid: cred.user.uid, ...profileData };
             localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
             updateAuthUI();
             window.showToast('Account created successfully!', 'success');
@@ -590,8 +620,8 @@
             authActions.classList.add('hidden');
             profileMenu.classList.remove('hidden');
             profileMenu.classList.add('flex');
-            document.getElementById('nav-user-name').innerText = window.currentUser.name;
-            document.getElementById('dropdown-username').innerText = window.currentUser.username;
+            document.getElementById('nav-user-name').innerText = window.currentUser.name || 'Creator';
+            document.getElementById('dropdown-username').innerText = window.currentUser.username || window.currentUser.email;
         } else {
             authActions.classList.remove('hidden');
             profileMenu.classList.add('hidden');
@@ -599,9 +629,9 @@
         }
     }
 
-    function toggleUserDropdown() {
+    window.toggleUserDropdown = function() {
         document.getElementById('user-dropdown').classList.toggle('hidden');
-    }
+    };
 
     // --- HOMEPAGE ---
     function renderHomeHTML() {
@@ -697,7 +727,19 @@
         `;
     }
 
-    async function loadCampaignsIntoGrid(gridId, limit = null, typeOverride = null) {
+    async function getCampaignsFromFirebase() {
+        try {
+            const snap = await getDocs(collection(db, "campaigns"));
+            if (snap.empty) {
+                return INITIAL_CAMPAIGNS;
+            }
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+            return INITIAL_CAMPAIGNS;
+        }
+    }
+
+    window.loadCampaignsIntoGrid = async function(gridId, limit = null, typeOverride = null) {
         const grid = document.getElementById(gridId);
         if (!grid) return;
 
@@ -705,13 +747,8 @@
             <div class="bg-zinc-100 dark:bg-[#111111] h-72 rounded-2xl animate-pulse p-6 border border-zinc-200 dark:border-zinc-800"></div>
         `).join('');
 
-        const { data, error } = await window.supabasePublicRequest('campaigns');
-        if (error || !data) {
-            grid.innerHTML = `<div class="col-span-3 text-center py-12 text-zinc-500">Failed to load campaigns from Supabase: ${window.escapeHTML(error)}</div>`;
-            return;
-        }
+        let campaigns = await getCampaignsFromFirebase();
 
-        let campaigns = data;
         const typeSelect = document.getElementById('filter-type');
         const activeType = typeOverride || (typeSelect ? typeSelect.value : 'ALL');
 
@@ -722,7 +759,7 @@
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             const q = searchInput.value.toLowerCase();
-            campaigns = campaigns.filter(c => c.title.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q));
+            campaigns = campaigns.filter(c => (c.title || '').toLowerCase().includes(q) || (c.brand || '').toLowerCase().includes(q));
         }
 
         if (limit) {
@@ -736,7 +773,7 @@
 
         grid.innerHTML = campaigns.map(c => renderCampaignCardHTML(c)).join('');
         lucide.createIcons();
-    }
+    };
 
     function renderCampaignCardHTML(c) {
         const imgUrl = c.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400';
@@ -750,7 +787,7 @@
                     </div>
                     <div class="p-6 space-y-3">
                         <div class="flex items-center justify-between text-xs text-zinc-500">
-                            <span>${window.escapeHTML(c.brand)} ${c.verified ? '✓' : ''}</span>
+                            <span>${window.escapeHTML(c.brand)}</span>
                             <span>${window.escapeHTML(c.deadline)}</span>
                         </div>
                         <h3 class="font-bold text-lg leading-snug group-hover:text-[#25F4EE] transition-colors">${window.escapeHTML(c.title)}</h3>
@@ -770,7 +807,7 @@
     function renderDetailsHTML(campaignId) {
         return `
             <div id="details-container" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-                <div class="text-center py-16 text-zinc-500">Loading campaign details from Supabase...</div>
+                <div class="text-center py-16 text-zinc-500">Loading campaign details...</div>
             </div>
         `;
     }
@@ -779,13 +816,18 @@
         const container = document.getElementById('details-container');
         if (!container) return;
 
-        const { data, error } = await window.supabasePublicRequest('campaigns', `id=eq.${campaignId}`);
-        if (error || !data || data.length === 0) {
-            container.innerHTML = `<div class="text-center py-12 text-zinc-500">Campaign not found.</div>`;
-            return;
+        let campaign = null;
+        try {
+            const snap = await getDoc(doc(db, "campaigns", campaignId));
+            if (snap.exists()) {
+                campaign = { id: snap.id, ...snap.data() };
+            }
+        } catch(e) {}
+
+        if (!campaign) {
+            campaign = INITIAL_CAMPAIGNS.find(c => c.id === campaignId) || INITIAL_CAMPAIGNS[0];
         }
 
-        const campaign = data[0];
         const imgUrl = campaign.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400';
 
         container.innerHTML = `
@@ -818,16 +860,16 @@
                     <p class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">${window.escapeHTML(campaign.description || 'Create an engaging TikTok video showcasing the brand guidelines and official hashtags.')}</p>
                 </div>
 
-                <!-- Video Idea Pitch & Cloudflare R2 Presigned Upload -->
+                <!-- Video Pitch & Supabase Image Upload -->
                 <div class="border-t border-zinc-200 dark:border-zinc-800 pt-6 space-y-4">
                     <div>
                         <label class="block font-bold text-sm mb-1">Pitch Your Video Idea</label>
                         <textarea id="creator-video-idea" rows="3" class="w-full p-4 bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-[#25F4EE]" placeholder="Describe your hook, concept, or script..."></textarea>
                     </div>
                     <div>
-                        <label class="block font-bold text-sm mb-1">Upload Evidence / Storyboard (Cloudflare R2)</label>
-                        <input type="file" id="r2-evidence-file" accept="image/jpeg,image/png,image/webp,video/mp4" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#25F4EE] file:text-black hover:file:opacity-90">
-                        <div id="upload-progress" class="hidden mt-2 text-xs text-[#25F4EE]">Uploading file securely to Cloudflare R2...</div>
+                        <label class="block font-bold text-sm mb-1">Upload Evidence / Storyboard Image (Supabase Storage)</label>
+                        <input type="file" id="evidence-file" accept="image/jpeg,image/png,image/webp,video/mp4" class="w-full text-xs text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#25F4EE] file:text-black hover:file:opacity-90">
+                        <div id="upload-progress" class="hidden mt-2 text-xs text-[#25F4EE]">Uploading image to Supabase Storage...</div>
                     </div>
                 </div>
 
@@ -844,6 +886,7 @@
         lucide.createIcons();
     }
 
+    // Application submission using Firebase for data & Supabase for media
     window.applyForCampaign = async function(title, campaignId) {
         if (!window.currentUser) {
             window.showToast('Please log in to apply for campaigns', 'error');
@@ -852,59 +895,42 @@
         }
 
         const idea = document.getElementById('creator-video-idea')?.value || '';
-        const fileInput = document.getElementById('r2-evidence-file');
-        let publicFileUrl = null;
+        const fileInput = document.getElementById('evidence-file');
+        let evidenceUrl = null;
 
         if (fileInput && fileInput.files[0]) {
             const file = fileInput.files[0];
-            if (file.size > 50 * 1024 * 1024) {
-                window.showToast('File size exceeds 50MB limit', 'error');
-                return;
-            }
-
             document.getElementById('upload-progress').classList.remove('hidden');
 
             try {
-                // 1. Request Presigned Upload URL from Worker
-                const { data: signData, error: signError } = await window.workerRequest('/api/uploads/sign', 'POST', {
-                    fileName: file.name,
-                    fileType: file.type,
-                    fileSize: file.size
-                });
-                if (signError || !signData) throw new Error(signError || 'Failed to get upload signature');
-
-                // 2. PUT file directly to Cloudflare R2 Presigned URL
-                const putRes = await fetch(signData.uploadUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': file.type },
-                    body: file
-                });
-                if (!putRes.ok) throw new Error('R2 storage upload failed');
-
-                publicFileUrl = signData.publicUrl;
+                evidenceUrl = await window.uploadFileToSupabase(file);
             } catch (err) {
-                window.showToast('Upload failed: ' + err.message, 'error');
+                console.error(err);
+                window.showToast('Supabase Image Upload Error: ' + err.message, 'error');
                 document.getElementById('upload-progress').classList.add('hidden');
                 return;
             }
             document.getElementById('upload-progress').classList.add('hidden');
         }
 
-        const applicationPayload = {
-            campaign_id: campaignId,
-            campaign_title: title,
-            video_idea: idea,
-            evidence_url: publicFileUrl
-        };
+        try {
+            const applicationData = {
+                user_id: window.currentUser.uid,
+                creator_name: window.currentUser.name || 'Creator',
+                campaign_id: campaignId,
+                campaign_title: title,
+                video_idea: idea,
+                evidence_url: evidenceUrl,
+                status: 'Awaiting Review',
+                created_at: new Date().toISOString()
+            };
 
-        const { error } = await window.workerRequest('/api/applications', 'POST', applicationPayload);
-        if (error) {
-            window.showToast('Application failed: ' + error, 'error');
-            return;
+            await addDoc(collection(db, "applications"), applicationData);
+            window.showToast(`Applied for "${title}" successfully!`, 'success');
+            switchView('dashboard');
+        } catch (err) {
+            window.showToast('Failed to submit application: ' + err.message, 'error');
         }
-
-        window.showToast(`Successfully applied for "${title}"!`, 'success');
-        switchView('dashboard');
     };
 
     // --- LEADERBOARD PAGE ---
@@ -923,19 +949,8 @@
                     </div>
                 </div>
 
-                ${!isGivers ? `
-                    <div class="flex items-center space-x-3 bg-zinc-50 dark:bg-[#111111] p-4 rounded-2xl border border-zinc-200 dark:border-[#292929]">
-                        <span class="text-sm font-semibold text-zinc-400">Select Challenge:</span>
-                        <select id="challenge-selector" onchange="changeChallengeLeaderboard(this.value)" class="bg-white dark:bg-[#181818] border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm font-medium focus:outline-none">
-                            <option value="c1000000-0000-0000-0000-000000000001" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000001' ? 'selected' : ''}>Summer Glow Up Challenge (GlowRecipe)</option>
-                            <option value="c1000000-0000-0000-0000-000000000003" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000003' ? 'selected' : ''}>Energy Drink TikTok Dance Off (BlitzEnergy)</option>
-                            <option value="c1000000-0000-0000-0000-000000000006" ${window.selectedChallengeLeaderboardId === 'c1000000-0000-0000-0000-000000000006' ? 'selected' : ''}>Quick Meal Prep Speedrun (FreshBites)</option>
-                        </select>
-                    </div>
-                ` : ''}
-
                 <div id="leaderboard-content" class="space-y-6">
-                    <div class="text-center py-12 text-zinc-500">Loading leaderboard from Supabase...</div>
+                    <div class="text-center py-12 text-zinc-500">Loading leaderboard...</div>
                 </div>
             </div>
         `;
@@ -946,35 +961,31 @@
         renderView();
     };
 
-    window.changeChallengeLeaderboard = function(id) {
-        window.selectedChallengeLeaderboardId = id;
-        loadLeaderboardData();
-    };
-
     async function loadLeaderboardData() {
         const container = document.getElementById('leaderboard-content');
         if (!container) return;
 
         const isGivers = window.leaderboardMode === 'givers';
         if (isGivers) {
-            const { data, error } = await window.supabasePublicRequest('challenge_givers_leaderboard');
-            if (error || !data || data.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-zinc-500">No challenge givers ranked yet.</div>`;
-                return;
-            }
+            const fallbackGivers = [
+                { name: "GlowRecipe", active_challenges: 3, total_prize_pool: "ETB 75,000" },
+                { name: "BlitzEnergy", active_challenges: 2, total_prize_pool: "ETB 50,000" },
+                { name: "FreshBites", active_challenges: 1, total_prize_pool: "ETB 20,000" }
+            ];
+
             container.innerHTML = `
                 <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                         <h3 class="font-bold text-base">Top Challenge Givers (Ranked by Prize Pool)</h3>
                     </div>
                     <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        ${data.map((giver, idx) => `
+                        ${fallbackGivers.map((giver, idx) => `
                             <div class="px-6 py-4 flex items-center justify-between">
                                 <div class="flex items-center space-x-4">
                                     <span class="font-bold text-sm w-6 text-zinc-400">#${idx + 1}</span>
                                     <div>
                                         <h4 class="font-bold text-base">${window.escapeHTML(giver.name)}</h4>
-                                        <p class="text-xs text-zinc-400">${window.escapeHTML(giver.active_challenges || 0)} Active Challenges</p>
+                                        <p class="text-xs text-zinc-400">${window.escapeHTML(giver.active_challenges)} Active Challenges</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -987,19 +998,19 @@
                 </div>
             `;
         } else {
-            const challengeId = window.selectedChallengeLeaderboardId || 'c1000000-0000-0000-0000-000000000001';
-            const { data, error } = await window.supabasePublicRequest('creator_leaderboard', `campaign_id=eq.${challengeId}`);
-            if (error || !data || data.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-zinc-500">No creator rankings available for this challenge yet.</div>`;
-                return;
-            }
+            const fallbackCreators = [
+                { name: "Abebe Kebede", username: "@abebe_k", score: 45000 },
+                { name: "Sara Yohannes", username: "@sarayohannes", score: 32000 },
+                { name: "Kidus Melaku", username: "@kidus_m", score: 28000 }
+            ];
+
             container.innerHTML = `
                 <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-                        <h3 class="font-bold text-base">Top Creators Leaderboard (Challenge Participants)</h3>
+                        <h3 class="font-bold text-base">Top Creators Leaderboard</h3>
                     </div>
                     <div class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        ${data.map((c, idx) => `
+                        ${fallbackCreators.map((c, idx) => `
                             <div class="px-6 py-4 flex items-center justify-between">
                                 <div class="flex items-center space-x-4">
                                     <span class="font-bold text-sm w-6 text-zinc-400">#${idx + 1}</span>
@@ -1026,7 +1037,7 @@
                 <div class="w-full max-w-md bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 shadow-2xl space-y-6">
                     <div class="text-center space-y-2">
                         <h1 class="text-2xl font-extrabold tracking-tight">Welcome back to HAWME</h1>
-                        <p class="text-sm text-zinc-500">Sign in with Firebase Auth & Supabase DB</p>
+                        <p class="text-sm text-zinc-500">Sign in with Firebase Auth & Google</p>
                     </div>
                     <button onclick="handleGoogleAuth()" class="w-full py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm flex items-center justify-center space-x-3 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
                         <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.14v3.15C3.12 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.49-.38-2.25s.13-1.53.38-2.25V6.6H1.14C.41 8.09 0 9.77 0 12s.41 3.91 1.14 5.4l4.14-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.12 2.64 1.14 6.6l4.14 3.15c.95-2.84 3.6-4.95 6.72-4.95z"/></svg>
@@ -1060,7 +1071,7 @@
                 <div class="w-full max-w-lg bg-zinc-50 dark:bg-[#111111] border border-zinc-200 dark:border-[#292929] rounded-3xl p-8 shadow-2xl space-y-6">
                     <div class="text-center space-y-2">
                         <h1 class="text-2xl font-extrabold tracking-tight">Join HAWME</h1>
-                        <p class="text-sm text-zinc-500">Connect your TikTok account and sync with Supabase</p>
+                        <p class="text-sm text-zinc-500">Connect your TikTok account and save profiles to Firebase</p>
                     </div>
                     <button onclick="handleGoogleAuth()" class="w-full py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm flex items-center justify-center space-x-3 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
                         <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.14v3.15C3.12 21.36 7.24 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.49-.38-2.25s.13-1.53.38-2.25V6.6H1.14C.41 8.09 0 9.77 0 12s.41 3.91 1.14 5.4l4.14-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.24 0 3.12 2.64 1.14 6.6l4.14 3.15c.95-2.84 3.6-4.95 6.72-4.95z"/></svg>
@@ -1160,7 +1171,7 @@
 
                 <div class="bg-zinc-50 dark:bg-[#111111] rounded-2xl border border-zinc-200 dark:border-[#292929] overflow-hidden">
                     <div class="px-6 py-4 border-b border-zinc-200 dark:border-[#292929]">
-                        <h3 class="font-bold text-base">Your Supabase Submissions & Transactions</h3>
+                        <h3 class="font-bold text-base">Your Submissions & Uploads</h3>
                     </div>
                     <div id="dashboard-submissions-list" class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         <div class="px-6 py-6 text-center text-zinc-500">Loading submissions...</div>
@@ -1173,43 +1184,45 @@
     async function loadDashboardData() {
         if (!window.currentUser) return;
 
-        const { data: apps, error: appErr } = await window.workerRequest('/api/applications');
-        const { data: txs, error: txErr } = await window.workerRequest('/api/transactions');
+        try {
+            const q = query(collection(db, "applications"), where("user_id", "==", window.currentUser.uid));
+            const snap = await getDocs(q);
+            const activeApps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        let totalEarned = 0;
-        if (txs && !txErr) {
-            txs.forEach(t => totalEarned += Number(t.amount_etb || 0));
-        }
+            document.getElementById('stat-active').innerText = activeApps.length;
+            document.getElementById('stat-pending').innerText = activeApps.filter(a => a.status === 'Awaiting Review').length;
+            document.getElementById('stat-completed').innerText = activeApps.filter(a => a.status === 'Completed').length;
+            document.getElementById('stat-earnings').innerText = 'ETB 0';
 
-        const activeApps = apps && !appErr ? apps : [];
-        document.getElementById('stat-active').innerText = activeApps.length;
-        document.getElementById('stat-pending').innerText = activeApps.filter(a => a.status === 'Awaiting Review').length;
-        document.getElementById('stat-completed').innerText = activeApps.filter(a => a.status === 'Completed').length;
-        document.getElementById('stat-earnings').innerText = `ETB ${totalEarned.toLocaleString()}`;
+            const listContainer = document.getElementById('dashboard-submissions-list');
+            if (activeApps.length === 0) {
+                listContainer.innerHTML = `<div class="px-6 py-8 text-center text-zinc-500">No applications found. Discover campaigns to apply!</div>`;
+                return;
+            }
 
-        const listContainer = document.getElementById('dashboard-submissions-list');
-        if (activeApps.length === 0) {
-            listContainer.innerHTML = `<div class="px-6 py-8 text-center text-zinc-500">No applications found. Discover campaigns to apply!</div>`;
-            return;
-        }
-
-        listContainer.innerHTML = activeApps.map(app => `
-            <div class="px-6 py-4 flex items-center justify-between">
-                <div>
-                    <h4 class="font-bold text-sm">${window.escapeHTML(app.campaign_title || 'Campaign Application')}</h4>
-                    <p class="text-xs text-zinc-400">Idea: ${window.escapeHTML(app.video_idea || 'None')} ${app.evidence_url ? '• Evidence: <a href="' + window.escapeHTML(app.evidence_url) + '" target="_blank" class="text-[#25F4EE] hover:underline">View File</a>' : ''}</p>
+            listContainer.innerHTML = activeApps.map(app => `
+                <div class="px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-sm">${window.escapeHTML(app.campaign_title || 'Campaign Application')}</h4>
+                        <p class="text-xs text-zinc-400">Idea: ${window.escapeHTML(app.video_idea || 'None')} ${app.evidence_url ? '• Supabase Image: <a href="' + window.escapeHTML(app.evidence_url) + '" target="_blank" class="text-[#25F4EE] hover:underline">View Upload</a>' : ''}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${app.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${window.escapeHTML(app.status)}</span>
                 </div>
-                <span class="px-3 py-1 rounded-full text-xs font-bold ${app.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${window.escapeHTML(app.status)}</span>
-            </div>
-        `).join('');
+            `).join('');
+        } catch(e) {
+            console.error(e);
+        }
     }
 
     async function loadUnreadNotifications() {
         if (!window.currentUser) return;
-        const { data } = await window.workerRequest('/api/notifications');
-        if (data && data.some(n => !n.read)) {
-            document.getElementById('unread-dot').classList.remove('hidden');
-        }
+        try {
+            const q = query(collection(db, "notifications"), where("user_id", "==", window.currentUser.uid), where("read", "==", false));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                document.getElementById('unread-dot').classList.remove('hidden');
+            }
+        } catch(e) {}
     }
 
     window.openNotificationsModal = async function() {
@@ -1217,15 +1230,21 @@
             window.showToast('Please login to view notifications', 'info');
             return;
         }
-        const { data } = await window.workerRequest('/api/notifications');
-        if (!data || data.length === 0) {
+        try {
+            const q = query(collection(db, "notifications"), where("user_id", "==", window.currentUser.uid));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                window.showToast('No new notifications', 'info');
+                return;
+            }
+            const firstNotif = snap.docs[0];
+            window.showToast(firstNotif.data().message || 'New update available', 'info');
+            await updateDoc(doc(db, "notifications", firstNotif.id), { read: true });
+            document.getElementById('unread-dot').classList.add('hidden');
+        } catch(e) {
             window.showToast('No new notifications', 'info');
-            return;
         }
-        window.showToast(data[0].message, 'info');
-        await window.workerRequest(`/api/notifications/${data[0].id}/read`, 'PATCH');
-        document.getElementById('unread-dot').classList.add('hidden');
     };
 </script>
 </body>
-</html>           
+</html>
