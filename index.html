@@ -261,7 +261,13 @@
             messagingSenderId: "964441294320",
             appId: "1:964441294320:web:4c8da74a0cee8ed2644935"
         },
-        workerUrl: window.HAWME_WORKER_URL || "http://127.0.0.1:8787", // Set window.HAWME_WORKER_URL before this module for production.
+        // Local development uses Wrangler. On GitHub Pages, set window.HAWME_WORKER_URL
+        // to the deployed Worker URL in a script before this module is loaded.
+        workerUrl: window.HAWME_WORKER_URL || (
+            ["localhost", "127.0.0.1"].includes(window.location.hostname)
+                ? "http://127.0.0.1:8787"
+                : ""
+        ),
         supabaseUrl: "https://akoddbuemubeorwfwonv.supabase.co/rest/v1/",
         supabasePublishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
         r2PublicUrl: "https://pub-2b7577a8a0504c8896c8003d89c0fc7c.r2.dev"
@@ -300,6 +306,9 @@
             options.body = JSON.stringify(data);
         }
         try {
+            if (!CONFIG.workerUrl) {
+                throw new Error("HAWME backend is not configured. Set window.HAWME_WORKER_URL to your deployed Cloudflare Worker URL.");
+            }
             const res = await fetch(`${CONFIG.workerUrl}${endpoint}`, options);
             const text = await res.text();
             const json = text ? JSON.parse(text) : null;
