@@ -1,1 +1,9 @@
+name = "hawme-worker"
+main = "index.ts"
+compatibility_date = "2026-03-01"
 
+[vars]
+CLOUDFLARE_ACCOUNT_ID = "149acc27c103b48358ecfa01707b081d"
+BUCKET_NAME = "hawme"
+SUPABASE_URL = "https://akoddbuemubeorwfwonv.supabase.co"
+FIREBASE_PROJECT_ID = "my-tiktok-cbd6f"
