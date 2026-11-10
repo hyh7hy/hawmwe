@@ -44,11 +44,13 @@
         .glow-coral { box-shadow: 0 0 25px rgba(254, 44, 85, 0.15); }
 
         /* HAWME_LIGHT_THEME_TEXT_CONTRAST
-           Convert Tailwind's fixed white text utilities to a readable TikTok-inspired
-           blue whenever light mode is active. Dark mode remains unchanged. */
-        html:not(.dark) body.text-white,
-        html:not(.dark) body .text-white {
-            color: #0066CC !important;
+           Improve contrast for legacy fixed text colors in light mode.
+           Dark mode remains unchanged. */
+        html:not(.dark) .text-white:not(button):not(.bg-black):not(.bg-zinc-900):not([class*="bg-gradient-"]):not([class*="bg-[#FE2C55]"]):not([class*="bg-black/"]) {
+            color: #111111 !important;
+        }
+        html:not(.dark) .text-zinc-300 {
+            color: #3f3f46 !important;
         }
     </style>
 </head>
@@ -539,6 +541,8 @@
         window.currentTheme = window.currentTheme === 'dark' ? 'light' : 'dark';
         localStorage.setItem('hawme_theme', window.currentTheme);
         document.documentElement.classList.toggle('dark', window.currentTheme === 'dark');
+        updateNavActiveStates();
+        renderView();
         lucide.createIcons();
     };
 
@@ -1063,7 +1067,7 @@
                 </div>
                 <div class="space-y-2">
                     <h4 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Bio</h4>
-                    <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">${window.escapeHTML(c.bio || 'This creator has not added a bio yet.')}</p>
+                    <p class="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-line">${window.escapeHTML(c.bio || 'This creator has not added a bio yet.')}</p>
                 </div>
                 ${isCompany ? `
                     <div class="pt-4 border-t border-zinc-200 dark:border-zinc-800">
@@ -1742,7 +1746,7 @@
                                     <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isCompleted ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${window.escapeHTML(d.status.replace('_',' '))}</span>
                                 </div>
                                 <p class="text-xs text-zinc-400 mt-1">${window.escapeHTML(d.description)}</p>
-                                ${d.video_url ? `<p class="text-xs mt-1 text-zinc-300">Submitted Video: <a href="${window.escapeHTML(d.video_url)}" target="_blank" class="text-[#25F4EE] hover:underline font-semibold">${window.escapeHTML(d.video_url)}</a></p>` : ''}
+                                ${d.video_url ? `<p class="text-xs mt-1 text-zinc-700 dark:text-zinc-300">Submitted Video: <a href="${window.escapeHTML(d.video_url)}" target="_blank" class="text-[#25F4EE] hover:underline font-semibold">${window.escapeHTML(d.video_url)}</a></p>` : ''}
                             </div>
                             <div>
                                 ${hasSubmittedVideo ? `
@@ -1803,7 +1807,7 @@
                                     <span class="text-xs text-[#25F4EE] font-semibold">${window.escapeHTML(a.creator_tiktok)}</span>
                                     <span class="text-xs text-zinc-400">(${Number(a.creator_followers || 0).toLocaleString()} followers)</span>
                                 </div>
-                                <p class="text-xs text-zinc-400">Offer: <strong class="text-white">${window.escapeHTML(a.campaign_title)}</strong></p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Offer: <strong class="text-zinc-900 dark:text-white">${window.escapeHTML(a.campaign_title)}</strong></p>
                                 ${a.pitch ? `<p class="text-xs text-zinc-300 italic bg-zinc-100 dark:bg-[#181818] p-2 rounded-lg mt-1">"${window.escapeHTML(a.pitch)}"</p>` : ''}
                             </div>
                             <div class="flex items-center space-x-3">
@@ -1982,7 +1986,7 @@
                                 ${d.target_views || d.target_likes ? `
                                     <p class="text-[11px] text-zinc-500">Conditions: ${d.target_views ? `${d.target_views.toLocaleString()} views ` : ''} ${d.target_likes ? `• ${d.target_likes.toLocaleString()} likes` : ''}</p>
                                 ` : ''}
-                                ${d.video_url ? `<p class="text-xs text-zinc-300">Your URL: <a href="${window.escapeHTML(d.video_url)}" target="_blank" class="text-[#25F4EE] hover:underline">${window.escapeHTML(d.video_url)}</a></p>` : ''}
+                                ${d.video_url ? `<p class="text-xs text-zinc-700 dark:text-zinc-300">Your URL: <a href="${window.escapeHTML(d.video_url)}" target="_blank" class="text-[#25F4EE] hover:underline">${window.escapeHTML(d.video_url)}</a></p>` : ''}
                             </div>
 
                             <div class="flex items-center space-x-2">
