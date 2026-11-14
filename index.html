@@ -37,9 +37,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* ==========================================================================
-           DESIGN TOKENS: DARK (MULTI-SHADE #080808 / #111111 / #161616) & LIGHT (WHITE + SAGE)
-           ========================================================================== */
         :root {
             --bg-main: #080808;
             --bg-sec: #101113;
@@ -188,6 +185,31 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(130, 130, 130, 0.25); border-radius: 99px; }
+
+        /* Payment flow additions */
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+        .payment-badge-verified {
+            background: rgba(16, 185, 129, 0.14);
+            color: #34D399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+        .payment-badge-review {
+            background: rgba(234, 179, 8, 0.14);
+            color: #FACC15;
+            border: 1px solid rgba(234, 179, 8, 0.35);
+        }
+        .payment-badge-dot { width: 6px; height: 6px; border-radius: 99px; }
+        .payment-badge-verified .payment-badge-dot { background: #10B981; }
+        .payment-badge-review .payment-badge-dot { background: #EAB308; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col pb-20 md:pb-0">
@@ -481,7 +503,7 @@
     </div>
 </div>
 
-<!-- Telebirr Escrow Payment Modal -->
+<!-- Telebirr Escrow Payment Modal (kept for legacy direct-deal escrow flow) -->
 <div id="telebirr-escrow-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
     <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 text-center my-8">
         <div class="w-12 h-12 rounded-xl card-inner mx-auto flex items-center justify-center text-accent">
@@ -509,6 +531,86 @@
             I Have Sent the Money via Telebirr
         </button>
         <button onclick="closeTelebirrModal()" class="w-full py-2 text-xs text-sec hover:opacity-100">Cancel</button>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     NEW PAYMENT FLOW MODALS
+     ========================================================================== -->
+
+<!-- Payment Method Choice Modal (shown after Post Offer form is submitted) -->
+<div id="payment-method-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 my-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-black tracking-tight">Choose Payment Method</h2>
+                <p class="text-xs text-sec mt-0.5">How do you want to fund this offer?</p>
+            </div>
+            <button onclick="closePaymentMethodModal()" class="text-sec hover:opacity-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <button onclick="choosePaymentMethod('VERIFIED_NOW')" class="w-full p-4 btn-cta text-left flex items-start space-x-3.5">
+            <i data-lucide="shield-check" class="w-5 h-5 shrink-0 mt-0.5"></i>
+            <div>
+                <div class="font-extrabold text-sm">Verified Payment (Pay Now)</div>
+                <div class="text-xs opacity-85 font-medium mt-0.5">Send Telebirr + upload screenshot now. Offer goes live marked Under Review until admin verifies.</div>
+            </div>
+        </button>
+        <button onclick="choosePaymentMethod('ON_APPROVAL')" class="w-full p-4 btn-ghost text-left flex items-start space-x-3.5">
+            <i data-lucide="handshake" class="w-5 h-5 text-accent shrink-0 mt-0.5"></i>
+            <div>
+                <div class="font-extrabold text-sm">Payment on Approval</div>
+                <div class="text-xs text-sec font-medium mt-0.5">Offer goes live immediately. You pay only after a creator submits their URL and you approve it.</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<!-- Telebirr Payment + Screenshot Modal -->
+<div id="telebirr-pay-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 my-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-black">Pay via Telebirr</h2>
+                <p class="text-xs text-sec mt-0.5">Send the exact amount, then upload your screenshot.</p>
+            </div>
+            <button onclick="closeTelebirrPayModal()" class="text-sec hover:opacity-100"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="card-inner p-4 space-y-2.5">
+            <div class="flex justify-between text-xs">
+                <span class="text-sec">Company</span>
+                <span class="font-bold">HAWME</span>
+            </div>
+            <div class="flex justify-between text-xs">
+                <span class="text-sec">Telebirr Receiver</span>
+                <span class="font-bold text-accent tabular-nums">0996350347</span>
+            </div>
+            <div class="flex justify-between text-xs">
+                <span class="text-sec">Account Name</span>
+                <span class="font-bold">Hanif</span>
+            </div>
+            <div class="flex justify-between text-xs pt-2 border-t" style="border-color: var(--border-normal);">
+                <span class="text-sec">Amount Due</span>
+                <span id="telebirr-pay-amount" class="font-extrabold text-emerald-400 text-sm tabular-nums">ETB 0</span>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-bold text-sec mb-1.5">Telebirr Transaction Reference</label>
+            <input type="text" id="telebirr-pay-reference" class="input-field px-4 py-3 text-sm tabular-nums" placeholder="e.g. TB123456789">
+        </div>
+
+        <div>
+            <label class="block text-xs font-bold text-sec mb-1.5">Payment Screenshot</label>
+            <input type="file" id="telebirr-pay-screenshot" accept="image/*" class="w-full text-xs text-sec file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border file:border-current file:text-xs file:font-bold file:bg-transparent">
+            <img id="telebirr-pay-preview" class="hidden mt-3 w-full max-h-48 object-contain rounded-xl border" style="border-color: var(--border-normal);">
+        </div>
+
+        <button onclick="submitTelebirrPayment()" id="telebirr-pay-submit-btn" class="w-full py-3.5 btn-cta text-sm">
+            Send Payment for Review
+        </button>
+        <p class="text-[11px] text-sec text-center">After sending, your payment will be marked <b>Under Review</b> until an admin confirms receipt.</p>
     </div>
 </div>
 
@@ -568,7 +670,6 @@
                 <span class="font-extrabold text-lg tracking-tight">HAWME</span>
             </a>
 
-            <!-- Desktop Nav Links -->
             <nav class="hidden md:flex items-center space-x-1">
                 <button onclick="switchView('discover')" class="nav-link px-3.5 py-2 rounded-xl text-xs font-bold text-sec hover:opacity-100 transition-all" data-view="discover">Explore</button>
                 <button onclick="switchView('promotions')" class="nav-link px-3.5 py-2 rounded-xl text-xs font-bold text-sec hover:opacity-100 transition-all" data-view="promotions">Promotions</button>
@@ -580,7 +681,6 @@
         </div>
 
         <div class="flex items-center space-x-2.5">
-            <!-- Mobile Leaderboard Quick Button for Companies (so Companies can view Leaderboard & send offers on mobile too) -->
             <button id="header-company-lb-btn" onclick="switchView('leaderboard')" class="hidden md:hidden p-2 rounded-xl btn-ghost" title="Leaderboard">
                 <i data-lucide="trophy" class="w-4 h-4 text-accent"></i>
             </button>
@@ -642,12 +742,8 @@
     </div>
 </header>
 
-<!-- Dynamic Main View Container -->
 <main id="app-container" class="flex-grow relative z-10"></main>
 
-<!-- ==========================================================================
-     MOBILE BOTTOM NAVIGATION
-     ========================================================================== -->
 <nav id="mobile-creator-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 mobile-dock h-16 grid grid-cols-5 items-center">
     <button onclick="switchView('home')" data-mnav="home" class="mobile-nav-btn relative h-full flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-sec">
         <i data-lucide="home" class="w-5 h-5"></i>
@@ -695,7 +791,6 @@
     </button>
 </nav>
 
-<!-- Desktop Footer -->
 <footer class="hidden md:block border-t pt-12 pb-8 mt-auto relative z-10" style="background: var(--bg-sec); border-color: var(--border-normal);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
         <div class="space-y-3">
@@ -779,6 +874,13 @@
         bucket: "campaign-images"
     };
 
+    // Company Telebirr receiving account used by the new payment flow
+    const TELEBIRR_COMPANY = {
+        name: "HAWME",
+        accountNumber: "0996350347",
+        accountName: "Hanif"
+    };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -798,6 +900,11 @@
     window.companyActivityTab = 'offers';
     window.activeEscrowDeal = null;
     window.cachedNotifications = [];
+
+    // NEW: payment flow state
+    window.pendingOffer = null;              // offer data awaiting payment-method choice
+    window.activePaymentContext = null;      // { offerId, amount, mode: 'CREATE' | 'APPROVE' }
+    window.TELEBIRR_COMPANY = TELEBIRR_COMPANY;
 
     window.signupWizard = {
         step: 1,
@@ -825,6 +932,22 @@
     window.verifiedBadgeSVG = function(isVerified) {
         if (!isVerified) return '';
         return `<span title="Verified HAWME Account" class="inline-flex items-center justify-center text-sky-400 shrink-0"><i data-lucide="badge-check" class="w-4 h-4"></i></span>`;
+    };
+
+    // NEW: payment badges — returns HTML for the badge shown on cards/details
+    window.paymentBadgeHTML = function(campaign) {
+        if (!campaign) return '';
+        const status = campaign.payment_status || '';
+        if (status === 'VERIFIED') {
+            return `<span class="payment-badge payment-badge-verified"><span class="payment-badge-dot"></span>Payment Verified</span>`;
+        }
+        if (status === 'SUBMITTED') {
+            return `<span class="payment-badge payment-badge-review"><span class="payment-badge-dot"></span>Payment Under Review</span>`;
+        }
+        if (status === 'REJECTED') {
+            return `<span class="payment-badge" style="background: rgba(239,68,68,0.14); color:#F87171; border:1px solid rgba(239,68,68,0.35);"><span class="payment-badge-dot" style="background:#EF4444;"></span>Payment Rejected</span>`;
+        }
+        return '';
     };
 
     window.previewImageElement = function(input, imgId) {
@@ -1094,7 +1217,7 @@
     }
 
     // ==========================================================================
-    // MULTI-STEP REGISTRATION WIZARD (REDIRECTS TO HOME AFTER SIGNUP/LOGIN)
+    // MULTI-STEP REGISTRATION WIZARD
     // ==========================================================================
     window.selectRoleForSignup = function(role) {
         window.selectedSignupRole = role;
@@ -2218,7 +2341,7 @@
     };
 
     // ==========================================================================
-    // EXPLORE, PROMOTIONS, CHALLENGES (EXCLUDING COMPLETED PROMOTIONS)
+    // EXPLORE, PROMOTIONS, CHALLENGES
     // ==========================================================================
     function renderDiscoverHTML() {
         return `
@@ -2324,7 +2447,6 @@
         `;
     }
 
-    // Only returns active/open campaigns — completed promotions are removed from public marketplace feeds
     async function getCampaignsFromFirebase() {
         try {
             const snap = await getDocs(collection(db, "campaigns"));
@@ -2390,11 +2512,14 @@
         lucide.createIcons();
     };
 
+    // UPDATED: renderCampaignCardHTML now shows the payment badge at the top of each card
     function renderCampaignCardHTML(c) {
         const imgUrl = c.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500';
+        const badge = window.paymentBadgeHTML(c);
         return `
             <div onclick="switchView('details', '${window.escapeHTML(c.id)}')" class="card-outer card-outer-hover overflow-hidden group cursor-pointer flex flex-col justify-between">
                 <div>
+                    ${badge ? `<div class="px-4 pt-3">${badge}</div>` : ''}
                     <div class="h-44 relative overflow-hidden bg-black/40">
                         <img src="${window.escapeHTML(imgUrl)}" alt="Offer cover" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-black ${c.type === 'PROMOTION' ? 'bg-[#FE2C55] text-white' : 'bg-[#25F4EE] text-black'}">${window.escapeHTML(c.type)}</span>
@@ -2419,7 +2544,7 @@
     }
 
     // ==========================================================================
-    // CAMPAIGN DETAILS & DUPLICATE APPLICATION LOCK ("ALREADY APPLIED")
+    // CAMPAIGN DETAILS
     // ==========================================================================
     function renderDetailsHTML() {
         return `
@@ -2444,7 +2569,6 @@
             return;
         }
 
-        // Check if current creator already applied to this campaign
         let existingApplication = null;
         if (window.currentUser?.role === 'creator') {
             try {
@@ -2462,6 +2586,7 @@
 
         const imgUrl = campaign.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500';
         const isChallenge = campaign.type === 'CHALLENGE';
+        const paymentBadge = window.paymentBadgeHTML(campaign);
 
         let rewardBreakdownHTML = '';
         if (isChallenge && campaign.prizes && campaign.prizes.length > 0) {
@@ -2485,6 +2610,8 @@
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
                 <span>Back to opportunities</span>
             </button>
+
+            ${paymentBadge ? `<div>${paymentBadge}</div>` : ''}
 
             <div class="card-outer p-6 sm:p-8 space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2595,7 +2722,6 @@
         if (btn) { btn.disabled = true; btn.innerText = 'Checking application...'; }
 
         try {
-            // Double-check duplicate application on backend before inserting
             const qDup = query(
                 collection(db, "applications"),
                 where("campaign_id", "==", campaignId),
@@ -2644,7 +2770,7 @@
     };
 
     // ==========================================================================
-    // CREATORS DIRECTORY & PUBLIC PROFILE MODAL (WITH COMPANY SEND OFFER ACTION)
+    // CREATORS DIRECTORY
     // ==========================================================================
     function renderCreatorsDirectoryHTML() {
         return `
@@ -2845,7 +2971,7 @@
     };
 
     // ==========================================================================
-    // CREATE CAMPAIGN (COMPANY ONLY)
+    // CREATE CAMPAIGN (COMPANY ONLY) — now opens Payment Method Modal
     // ==========================================================================
     function renderCreateCampaignHTML() {
         return `
@@ -2910,7 +3036,7 @@
                     </div>
 
                     <button type="submit" id="publish-offer-btn" class="w-full py-4 btn-cta text-xs">
-                        Publish Offer to Marketplace
+                        Continue to Payment
                     </button>
                 </form>
             </div>
@@ -2951,6 +3077,7 @@
         `).join('');
     };
 
+    // MODIFIED: validates form, uploads image, then shows Payment Method Modal instead of posting directly
     window.handleCreateCampaign = async function(event) {
         event.preventDefault();
         if (!window.currentUser || window.currentUser.role !== 'company') {
@@ -2967,14 +3094,14 @@
         if (!imageFile) { window.showToast('Please select a cover image', 'error'); return; }
 
         const pubBtn = document.getElementById('publish-offer-btn');
-        if (pubBtn) { pubBtn.disabled = true; pubBtn.innerText = 'Publishing...'; }
+        if (pubBtn) { pubBtn.disabled = true; pubBtn.innerText = 'Preparing...'; }
         document.getElementById('image-upload-indicator').classList.remove('hidden');
 
         let frontImageUrl = '';
         try {
             frontImageUrl = await window.uploadImageToSupabase(imageFile);
         } catch (err) {
-            if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Publish Offer to Marketplace'; }
+            if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Continue to Payment'; }
             window.showToast('Image upload failed: ' + err.message, 'error');
             document.getElementById('image-upload-indicator').classList.add('hidden');
             return;
@@ -2983,10 +3110,17 @@
 
         let rewardText = '';
         let prizeArray = [];
+        let totalAmount = 0;
 
         if (activeCampaignType === 'PROMOTION') {
-            const rewardVal = document.getElementById('camp-single-reward').value;
-            rewardText = `ETB ${Number(rewardVal).toLocaleString()}`;
+            const rewardVal = Number(document.getElementById('camp-single-reward').value || 0);
+            if (!rewardVal) {
+                if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Continue to Payment'; }
+                window.showToast('Enter the promotion payout budget.', 'error');
+                return;
+            }
+            totalAmount = rewardVal;
+            rewardText = `ETB ${rewardVal.toLocaleString()}`;
         } else {
             const count = parseInt(document.getElementById('challenge-tier-count').value, 10);
             let total = 0;
@@ -2995,35 +3129,270 @@
                 prizeArray.push(val);
                 total += val;
             }
+            totalAmount = total;
             rewardText = `ETB ${total.toLocaleString()} Pool`;
         }
 
+        if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Continue to Payment'; }
+
+        // stash offer data and open payment method modal
+        window.pendingOffer = {
+            user_id: window.currentUser.uid,
+            brand: window.currentUser.name || 'Company',
+            company_tiktok: window.currentUser.tiktok_username || '',
+            title,
+            type: activeCampaignType,
+            reward: rewardText,
+            prizes: prizeArray,
+            min_followers: minFollowers,
+            image_url: frontImageUrl,
+            description,
+            payout_condition: condition,
+            total_amount: totalAmount,
+            created_at: new Date().toISOString()
+        };
+
+        openPaymentMethodModal();
+    };
+
+    // ==========================================================================
+    // NEW: PAYMENT FLOW (METHOD MODAL, TELEBIRR PAY MODAL, SUBMIT, VERIFY)
+    // ==========================================================================
+
+    // Open the "choose payment method" modal (after form is filled)
+    window.openPaymentMethodModal = function() {
+        document.getElementById('payment-method-modal').classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    window.closePaymentMethodModal = function() {
+        document.getElementById('payment-method-modal').classList.add('hidden');
+    };
+
+    // Handle choice from payment method modal
+    window.choosePaymentMethod = function(method) {
+        closePaymentMethodModal();
+        if (!window.pendingOffer) return;
+
+        if (method === 'VERIFIED_NOW') {
+            // Create the offer in Firestore first (so we have an ID), then open the Telebirr pay modal
+            createOfferThenOpenTelebirr(window.pendingOffer);
+        } else if (method === 'ON_APPROVAL') {
+            // Post immediately with payment_pending status
+            postOfferWithPaymentMethod(window.pendingOffer, 'ON_APPROVAL');
+        }
+    };
+
+    async function postOfferWithPaymentMethod(offerData, method) {
         try {
-            await addDoc(collection(db, "campaigns"), {
-                user_id: window.currentUser.uid,
-                brand: window.currentUser.name || 'Company',
-                company_tiktok: window.currentUser.tiktok_username || '',
-                title,
-                type: activeCampaignType,
-                reward: rewardText,
-                prizes: prizeArray,
-                min_followers: minFollowers,
-                image_url: frontImageUrl,
-                description,
-                payout_condition: condition,
+            const docRef = await addDoc(collection(db, "campaigns"), {
+                ...offerData,
+                payment_method: method,
+                payment_status: method === 'ON_APPROVAL' ? 'PENDING' : 'AWAITING_SCREENSHOT',
                 status: 'Active',
+                payment_screenshot_url: '',
+                payment_reference: '',
+                payment_verified_at: null,
+                payment_verified_by: null
+            });
+            window.pendingOffer = null;
+            window.showToast('Offer posted!', 'success');
+            switchView('company-dashboard');
+            return docRef.id;
+        } catch (err) {
+            window.showToast('Failed to save offer: ' + err.message, 'error');
+            return null;
+        }
+    }
+
+    async function createOfferThenOpenTelebirr(offerData) {
+        try {
+            const docRef = await addDoc(collection(db, "campaigns"), {
+                ...offerData,
+                payment_method: 'VERIFIED_NOW',
+                payment_status: 'AWAITING_SCREENSHOT',
+                status: 'Draft',
+                payment_screenshot_url: '',
+                payment_reference: '',
+                payment_verified_at: null,
+                payment_verified_by: null
+            });
+            openTelebirrPayModal({
+                offerId: docRef.id,
+                amount: offerData.total_amount,
+                mode: 'CREATE'
+            });
+            window.pendingOffer = null;
+        } catch (err) {
+            window.showToast('Failed to save offer: ' + err.message, 'error');
+        }
+    }
+
+    // Open Telebirr Payment + Screenshot modal. Context = { offerId, amount, mode }
+    window.openTelebirrPayModal = function(context) {
+        window.activePaymentContext = context;
+        document.getElementById('telebirr-pay-amount').innerText = `ETB ${Number(context.amount).toLocaleString()}`;
+        document.getElementById('telebirr-pay-reference').value = '';
+        document.getElementById('telebirr-pay-screenshot').value = '';
+        const preview = document.getElementById('telebirr-pay-preview');
+        preview.src = '';
+        preview.classList.add('hidden');
+        document.getElementById('telebirr-pay-modal').classList.remove('hidden');
+        lucide.createIcons();
+    };
+
+    window.closeTelebirrPayModal = function() {
+        document.getElementById('telebirr-pay-modal').classList.add('hidden');
+        window.activePaymentContext = null;
+    };
+
+    // Preview screenshot as soon as file is chosen
+    document.getElementById('telebirr-pay-screenshot')?.addEventListener('change', function(e) {
+        const file = e.target.files?.[0];
+        const preview = document.getElementById('telebirr-pay-preview');
+        if (!file || !preview) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            preview.src = ev.target.result;
+            preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Upload screenshot and update offer with SUBMITTED status
+    window.submitTelebirrPayment = async function() {
+        if (!window.activePaymentContext) return;
+        const { offerId, amount, mode } = window.activePaymentContext;
+        const reference = document.getElementById('telebirr-pay-reference').value.trim();
+        const fileInput = document.getElementById('telebirr-pay-screenshot');
+        const file = fileInput?.files?.[0];
+
+        if (!reference) { window.showToast('Enter the Telebirr transaction reference.', 'error'); return; }
+        if (!file) { window.showToast('Upload your payment screenshot.', 'error'); return; }
+
+        const btn = document.getElementById('telebirr-pay-submit-btn');
+        if (btn) { btn.disabled = true; btn.innerText = 'Uploading screenshot...'; }
+
+        try {
+            const screenshotUrl = await window.uploadImageToSupabase(file);
+
+            await updateDoc(doc(db, "campaigns", offerId), {
+                payment_screenshot_url: screenshotUrl,
+                payment_reference: reference,
+                payment_amount: amount,
+                payment_status: 'SUBMITTED',
+                status: 'Active',           // goes live now, marked Under Review
+                submitted_for_review_at: new Date().toISOString()
+            });
+
+            // Notify admin (any admin user) — we log to a system notifications collection
+            await addDoc(collection(db, "notifications"), {
+                user_id: 'ADMIN',
+                type: 'PAYMENT_SUBMITTED',
+                title: 'New Payment Submitted for Review',
+                message: `Company ${window.currentUser.name} submitted a payment of ETB ${Number(amount).toLocaleString()} for offer ${offerId}.`,
+                detail: `Reference: ${reference}\nScreenshot: ${screenshotUrl}\nMode: ${mode}`,
+                campaign_id: offerId,
+                read: false,
                 created_at: new Date().toISOString()
             });
-            window.showToast('Offer published!', 'success');
-            switchView('company-dashboard');
+
+            if (btn) { btn.disabled = false; btn.innerText = 'Send Payment for Review'; }
+            closeTelebirrPayModal();
+            window.showToast('Payment submitted — status is now Under Review.', 'success');
+
+            // route based on mode
+            if (mode === 'APPROVE') {
+                // after paying during approval, auto-approve the submission
+                await autoApproveAfterPayment(offerId);
+                switchView('company-dashboard');
+            } else {
+                switchView('company-dashboard');
+            }
         } catch (err) {
-            if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Publish Offer to Marketplace'; }
-            window.showToast('Failed to save offer: ' + err.message, 'error');
+            if (btn) { btn.disabled = false; btn.innerText = 'Send Payment for Review'; }
+            window.showToast('Failed to submit payment: ' + err.message, 'error');
+        }
+    };
+
+    // For ON_APPROVAL: advertiser approves URL, must pay first. After payment, mark approved.
+    async function autoApproveAfterPayment(offerId) {
+        try {
+            await updateDoc(doc(db, "campaigns", offerId), {
+                approved_at: new Date().toISOString()
+            });
+            window.showToast('Submission approved! Offer is Under Review until admin verifies payment.', 'success');
+        } catch (e) {}
+    }
+
+    // Called when advertiser clicks "Approve" on a creator submission for ON_APPROVAL offers
+    window.approveSubmissionWithPayment = async function(campaignId, amount) {
+        const snap = await getDoc(doc(db, "campaigns", campaignId));
+        if (!snap.exists()) { window.showToast('Campaign not found', 'error'); return; }
+        const campaign = snap.data();
+
+        // If payment already verified or submitted, no need to force payment
+        if (campaign.payment_status === 'VERIFIED' || campaign.payment_status === 'SUBMITTED') {
+            await autoApproveAfterPayment(campaignId);
+            loadCompanyDashboardData();
+            return;
+        }
+
+        // Force payment
+        window.showToast('Please complete the Telebirr payment to approve this submission.', 'info');
+        openTelebirrPayModal({
+            offerId: campaignId,
+            amount: amount,
+            mode: 'APPROVE'
+        });
+    };
+
+    // ADMIN-side: verify a payment (call this from wherever you run admin actions)
+    window.adminVerifyPayment = async function(campaignId, approve = true) {
+        try {
+            const snap = await getDoc(doc(db, "campaigns", campaignId));
+            if (!snap.exists()) return;
+            const campaign = snap.data();
+            const companyOwnerId = campaign.user_id;
+
+            if (!approve) {
+                await updateDoc(doc(db, "campaigns", campaignId), {
+                    payment_status: 'REJECTED',
+                    status: 'Payment Pending',
+                    payment_verified_at: new Date().toISOString()
+                });
+                window.showToast('Payment rejected.', 'info');
+                return;
+            }
+
+            // Approve: mark VERIFIED and COMPLETED
+            await updateDoc(doc(db, "campaigns", campaignId), {
+                payment_status: 'VERIFIED',
+                status: 'Completed',
+                payment_verified_at: new Date().toISOString(),
+                payment_verified_by: window.currentUser?.uid || 'ADMIN',
+                completed_at: new Date().toISOString()
+            });
+
+            // Notify company owner
+            await addDoc(collection(db, "notifications"), {
+                user_id: companyOwnerId,
+                title: 'Payment Verified',
+                message: `Your payment of ETB ${Number(campaign.payment_amount || 0).toLocaleString()} for "${campaign.title}" has been verified. Offer is complete.`,
+                detail: `Campaign: ${campaign.title}\nStatus: Completed\nPayment: Verified ✅`,
+                campaign_id: campaignId,
+                read: false,
+                created_at: new Date().toISOString()
+            });
+
+            window.showToast('Payment verified. Campaign is now Complete.', 'success');
+        } catch (err) {
+            window.showToast('Admin verify failed: ' + err.message, 'error');
         }
     };
 
     // ==========================================================================
-    // COMPANY & CREATOR ACTIVITY PAGES (WITH DETAILED NOTIFICATIONS TAB)
+    // COMPANY DASHBOARD — with payment status + approve-with-payment button
     // ==========================================================================
     window.setCompanyActivityTab = function(tab) {
         window.companyActivityTab = tab;
@@ -3208,20 +3577,26 @@
                 campList.innerHTML = campSnap.docs.map(docSnap => {
                     const c = docSnap.data();
                     const isDone = c.status === 'Completed';
+                    const badge = window.paymentBadgeHTML(c);
                     return `
                         <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div class="flex items-center space-x-3.5">
                                 <img src="${window.escapeHTML(c.image_url)}" class="w-12 h-12 rounded-xl object-cover">
                                 <div>
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 flex-wrap">
                                         <h4 class="font-extrabold text-sm">${window.escapeHTML(c.title)}</h4>
                                         ${isDone ? `<span class="px-2 py-0.5 card-inner text-[11px] font-bold text-emerald-400">Completed</span>` : ''}
+                                        ${badge}
                                     </div>
                                     <p class="text-xs text-sec tabular-nums">${window.escapeHTML(c.type)} · ${window.escapeHTML(c.reward)} · Min ${Number(c.min_followers || 0).toLocaleString()} followers</p>
+                                    ${c.payment_reference ? `<p class="text-[11px] text-mut tabular-nums">Ref: ${window.escapeHTML(c.payment_reference)}</p>` : ''}
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2.5">
                                 <button onclick="switchView('details', '${docSnap.id}')" class="px-3 py-1.5 btn-ghost text-xs">View</button>
+                                ${!isDone && c.payment_status !== 'VERIFIED' && c.payment_status !== 'SUBMITTED' && c.payment_method === 'VERIFIED_NOW' ? `
+                                    <button onclick="openTelebirrPayModal({ offerId: '${docSnap.id}', amount: ${Number(c.payment_amount || 0)}, mode: 'CREATE' })" class="px-3 py-1.5 btn-cta text-xs">Pay Now</button>
+                                ` : ''}
                                 ${!isDone ? `<button onclick="markCampaignCompleted('${docSnap.id}')" class="px-3 py-1.5 btn-cta text-xs">Mark Completed</button>` : ''}
                             </div>
                         </div>
@@ -3266,7 +3641,7 @@
                                     <button onclick="rejectCreatorApplication('${a.id}')" class="px-3 py-2 btn-ghost text-xs">Reject</button>
                                 ` : ''}
                                 ${a.video_url && !isCompleted ? `
-                                    <button onclick="completeCampaignApplication('${a.id}', '${window.escapeHTML(a.campaign_id)}', '${window.escapeHTML(a.creator_id)}', '${window.escapeHTML(a.campaign_title)}')" class="px-4 py-2 btn-cta text-xs">Approve & Complete</button>
+                                    <button onclick="approveSubmissionWithPayment('${window.escapeHTML(a.campaign_id)}', ${Number(a.payout_amount || 0) || 0})" class="px-4 py-2 btn-cta text-xs">Approve & Complete</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -3276,7 +3651,6 @@
         } catch (e) {}
     }
 
-    // Marks a campaign Completed so it is automatically removed from public marketplace feeds
     window.markCampaignCompleted = async function(campaignId) {
         try {
             await updateDoc(doc(db, "campaigns", campaignId), {
@@ -3288,7 +3662,6 @@
         } catch (err) { window.showToast(err.message, 'error'); }
     };
 
-    // Completes an application AND marks the promotion Completed (removing it from marketplace)
     window.completeCampaignApplication = async function(applicationId, campaignId, creatorId, campaignTitle) {
         try {
             await updateDoc(doc(db, "applications", applicationId), {
@@ -3640,7 +4013,7 @@
     };
 
     // ==========================================================================
-    // LEADERBOARD (WITH COMPANY SEND OFFER ACTION ON EVERY CREATOR)
+    // LEADERBOARD
     // ==========================================================================
     function renderLeaderboardHTML() {
         const isCreators = window.leaderboardTab === 'creators';
@@ -3783,7 +4156,7 @@
     }
 
     // ==========================================================================
-    // NOTIFICATIONS (MODAL + FULL DETAIL VIEW)
+    // NOTIFICATIONS
     // ==========================================================================
     async function loadUnreadNotifications() {
         if (!window.currentUser) return;
