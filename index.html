@@ -186,7 +186,6 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(130, 130, 130, 0.25); border-radius: 99px; }
 
-        /* Payment flow additions */
         .payment-badge {
             display: inline-flex;
             align-items: center;
@@ -210,6 +209,16 @@
         .payment-badge-dot { width: 6px; height: 6px; border-radius: 99px; }
         .payment-badge-verified .payment-badge-dot { background: #10B981; }
         .payment-badge-review .payment-badge-dot { background: #EAB308; }
+
+        /* Locked banner style */
+        .lock-banner {
+            background: rgba(234, 179, 8, 0.10);
+            border: 1px solid rgba(234, 179, 8, 0.35);
+        }
+        .unlock-banner {
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col pb-20 md:pb-0">
@@ -386,7 +395,7 @@
     </div>
 </div>
 
-<!-- Profile Three-Line Menu Drawer -->
+<!-- Profile Drawer -->
 <div id="profile-drawer-modal" onclick="if(event.target===this) closeProfileDrawer()" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
     <div class="card-outer p-5 max-w-sm w-full shadow-2xl space-y-2">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-normal);">
@@ -418,7 +427,7 @@
     </div>
 </div>
 
-<!-- Company Mobile Central Create Sheet -->
+<!-- Company Create Sheet -->
 <div id="company-create-sheet" onclick="if(event.target===this) closeCompanyCreateSheet()" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
     <div class="card-outer p-6 max-w-sm w-full shadow-2xl space-y-4">
         <div class="flex items-center justify-between">
@@ -503,7 +512,7 @@
     </div>
 </div>
 
-<!-- Telebirr Escrow Payment Modal (kept for legacy direct-deal escrow flow) -->
+<!-- Telebirr Escrow Payment Modal (legacy direct-deal) -->
 <div id="telebirr-escrow-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
     <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 text-center my-8">
         <div class="w-12 h-12 rounded-xl card-inner mx-auto flex items-center justify-center text-accent">
@@ -534,11 +543,7 @@
     </div>
 </div>
 
-<!-- ==========================================================================
-     NEW PAYMENT FLOW MODALS
-     ========================================================================== -->
-
-<!-- Payment Method Choice Modal (shown after Post Offer form is submitted) -->
+<!-- Payment Method Choice Modal -->
 <div id="payment-method-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
     <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 my-8">
         <div class="flex items-center justify-between">
@@ -614,7 +619,7 @@
     </div>
 </div>
 
-<!-- Creator Ethiopian Bank Withdrawal Modal -->
+<!-- Creator Bank Withdrawal Modal -->
 <div id="creator-withdraw-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
     <div class="card-outer p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 my-8">
         <div class="flex items-center justify-between">
@@ -655,9 +660,7 @@
     </div>
 </div>
 
-<!-- ==========================================================================
-     MAIN HEADER
-     ========================================================================== -->
+<!-- MAIN HEADER -->
 <header class="sticky top-0 z-40 backdrop-blur-md border-b" style="background: var(--nav-backdrop); border-color: var(--border-normal);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-8">
@@ -874,7 +877,6 @@
         bucket: "campaign-images"
     };
 
-    // Company Telebirr receiving account used by the new payment flow
     const TELEBIRR_COMPANY = {
         name: "HAWME",
         accountNumber: "0996350347",
@@ -900,10 +902,8 @@
     window.companyActivityTab = 'offers';
     window.activeEscrowDeal = null;
     window.cachedNotifications = [];
-
-    // NEW: payment flow state
-    window.pendingOffer = null;              // offer data awaiting payment-method choice
-    window.activePaymentContext = null;      // { offerId, amount, mode: 'CREATE' | 'APPROVE' }
+    window.pendingOffer = null;
+    window.activePaymentContext = null;
     window.TELEBIRR_COMPANY = TELEBIRR_COMPANY;
 
     window.signupWizard = {
@@ -934,7 +934,6 @@
         return `<span title="Verified HAWME Account" class="inline-flex items-center justify-center text-sky-400 shrink-0"><i data-lucide="badge-check" class="w-4 h-4"></i></span>`;
     };
 
-    // NEW: payment badges — returns HTML for the badge shown on cards/details
     window.paymentBadgeHTML = function(campaign) {
         if (!campaign) return '';
         const status = campaign.payment_status || '';
@@ -1217,7 +1216,7 @@
     }
 
     // ==========================================================================
-    // MULTI-STEP REGISTRATION WIZARD
+    // SIGNUP / AUTH
     // ==========================================================================
     window.selectRoleForSignup = function(role) {
         window.selectedSignupRole = role;
@@ -1459,9 +1458,7 @@
 
         try {
             const uniqueCheck = await window.verifyUniqueHawmeUsername(w.hawme_username);
-            if (!uniqueCheck.available) {
-                throw new Error(uniqueCheck.reason);
-            }
+            if (!uniqueCheck.available) throw new Error(uniqueCheck.reason);
 
             let avatarUrl = '';
             const fileInput = document.getElementById('step4-avatar-file');
@@ -1727,7 +1724,7 @@
     };
 
     // ==========================================================================
-    // HOME & ABOUT PAGES
+    // HOME / ABOUT / LOGIN
     // ==========================================================================
     function renderHomeHTML() {
         const isLoggedIn = Boolean(window.currentUser);
@@ -1953,7 +1950,7 @@
     }
 
     // ==========================================================================
-    // TIKTOK-STYLE PROFILE PAGE
+    // PROFILE
     // ==========================================================================
     function renderProfilePageHTML() {
         const u = window.currentUser || {};
@@ -2098,9 +2095,6 @@
         }
     }
 
-    // ==========================================================================
-    // EDIT PROFILE & VERIFICATION
-    // ==========================================================================
     window.openEditProfileModal = function() {
         if (!window.currentUser) return;
         document.getElementById('edit-hawme-username').value = '@' + (window.currentUser.hawme_username || '');
@@ -2175,6 +2169,9 @@
         }
     };
 
+    // ==========================================================================
+    // VERIFICATION
+    // ==========================================================================
     window.openVerificationModal = async function() {
         document.getElementById('user-dropdown')?.classList.add('hidden');
         if (!window.currentUser) { switchView('login'); return; }
@@ -2341,7 +2338,7 @@
     };
 
     // ==========================================================================
-    // EXPLORE, PROMOTIONS, CHALLENGES
+    // EXPLORE / PROMOTIONS / CHALLENGES
     // ==========================================================================
     function renderDiscoverHTML() {
         return `
@@ -2512,7 +2509,6 @@
         lucide.createIcons();
     };
 
-    // UPDATED: renderCampaignCardHTML now shows the payment badge at the top of each card
     function renderCampaignCardHTML(c) {
         const imgUrl = c.image_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500';
         const badge = window.paymentBadgeHTML(c);
@@ -2949,6 +2945,7 @@
                 status: 'Proposed',
                 video_url: '',
                 escrow_status: 'Unpaid',
+                withdrawal_unlocked: false,
                 created_at: new Date().toISOString()
             });
 
@@ -2971,7 +2968,7 @@
     };
 
     // ==========================================================================
-    // CREATE CAMPAIGN (COMPANY ONLY) — now opens Payment Method Modal
+    // CREATE CAMPAIGN
     // ==========================================================================
     function renderCreateCampaignHTML() {
         return `
@@ -3077,7 +3074,6 @@
         `).join('');
     };
 
-    // MODIFIED: validates form, uploads image, then shows Payment Method Modal instead of posting directly
     window.handleCreateCampaign = async function(event) {
         event.preventDefault();
         if (!window.currentUser || window.currentUser.role !== 'company') {
@@ -3135,7 +3131,6 @@
 
         if (pubBtn) { pubBtn.disabled = false; pubBtn.innerText = 'Continue to Payment'; }
 
-        // stash offer data and open payment method modal
         window.pendingOffer = {
             user_id: window.currentUser.uid,
             brand: window.currentUser.name || 'Company',
@@ -3156,10 +3151,8 @@
     };
 
     // ==========================================================================
-    // NEW: PAYMENT FLOW (METHOD MODAL, TELEBIRR PAY MODAL, SUBMIT, VERIFY)
+    // PAYMENT FLOW
     // ==========================================================================
-
-    // Open the "choose payment method" modal (after form is filled)
     window.openPaymentMethodModal = function() {
         document.getElementById('payment-method-modal').classList.remove('hidden');
         lucide.createIcons();
@@ -3169,16 +3162,13 @@
         document.getElementById('payment-method-modal').classList.add('hidden');
     };
 
-    // Handle choice from payment method modal
     window.choosePaymentMethod = function(method) {
         closePaymentMethodModal();
         if (!window.pendingOffer) return;
 
         if (method === 'VERIFIED_NOW') {
-            // Create the offer in Firestore first (so we have an ID), then open the Telebirr pay modal
             createOfferThenOpenTelebirr(window.pendingOffer);
         } else if (method === 'ON_APPROVAL') {
-            // Post immediately with payment_pending status
             postOfferWithPaymentMethod(window.pendingOffer, 'ON_APPROVAL');
         }
     };
@@ -3228,7 +3218,6 @@
         }
     }
 
-    // Open Telebirr Payment + Screenshot modal. Context = { offerId, amount, mode }
     window.openTelebirrPayModal = function(context) {
         window.activePaymentContext = context;
         document.getElementById('telebirr-pay-amount').innerText = `ETB ${Number(context.amount).toLocaleString()}`;
@@ -3246,7 +3235,6 @@
         window.activePaymentContext = null;
     };
 
-    // Preview screenshot as soon as file is chosen
     document.getElementById('telebirr-pay-screenshot')?.addEventListener('change', function(e) {
         const file = e.target.files?.[0];
         const preview = document.getElementById('telebirr-pay-preview');
@@ -3259,7 +3247,6 @@
         reader.readAsDataURL(file);
     });
 
-    // Upload screenshot and update offer with SUBMITTED status
     window.submitTelebirrPayment = async function() {
         if (!window.activePaymentContext) return;
         const { offerId, amount, mode } = window.activePaymentContext;
@@ -3281,11 +3268,10 @@
                 payment_reference: reference,
                 payment_amount: amount,
                 payment_status: 'SUBMITTED',
-                status: 'Active',           // goes live now, marked Under Review
+                status: 'Active',
                 submitted_for_review_at: new Date().toISOString()
             });
 
-            // Notify admin (any admin user) — we log to a system notifications collection
             await addDoc(collection(db, "notifications"), {
                 user_id: 'ADMIN',
                 type: 'PAYMENT_SUBMITTED',
@@ -3301,9 +3287,7 @@
             closeTelebirrPayModal();
             window.showToast('Payment submitted — status is now Under Review.', 'success');
 
-            // route based on mode
             if (mode === 'APPROVE') {
-                // after paying during approval, auto-approve the submission
                 await autoApproveAfterPayment(offerId);
                 switchView('company-dashboard');
             } else {
@@ -3315,7 +3299,6 @@
         }
     };
 
-    // For ON_APPROVAL: advertiser approves URL, must pay first. After payment, mark approved.
     async function autoApproveAfterPayment(offerId) {
         try {
             await updateDoc(doc(db, "campaigns", offerId), {
@@ -3325,20 +3308,17 @@
         } catch (e) {}
     }
 
-    // Called when advertiser clicks "Approve" on a creator submission for ON_APPROVAL offers
     window.approveSubmissionWithPayment = async function(campaignId, amount) {
         const snap = await getDoc(doc(db, "campaigns", campaignId));
         if (!snap.exists()) { window.showToast('Campaign not found', 'error'); return; }
         const campaign = snap.data();
 
-        // If payment already verified or submitted, no need to force payment
         if (campaign.payment_status === 'VERIFIED' || campaign.payment_status === 'SUBMITTED') {
             await autoApproveAfterPayment(campaignId);
             loadCompanyDashboardData();
             return;
         }
 
-        // Force payment
         window.showToast('Please complete the Telebirr payment to approve this submission.', 'info');
         openTelebirrPayModal({
             offerId: campaignId,
@@ -3347,7 +3327,6 @@
         });
     };
 
-    // ADMIN-side: verify a payment (call this from wherever you run admin actions)
     window.adminVerifyPayment = async function(campaignId, approve = true) {
         try {
             const snap = await getDoc(doc(db, "campaigns", campaignId));
@@ -3365,7 +3344,6 @@
                 return;
             }
 
-            // Approve: mark VERIFIED and COMPLETED
             await updateDoc(doc(db, "campaigns", campaignId), {
                 payment_status: 'VERIFIED',
                 status: 'Completed',
@@ -3374,7 +3352,6 @@
                 completed_at: new Date().toISOString()
             });
 
-            // Notify company owner
             await addDoc(collection(db, "notifications"), {
                 user_id: companyOwnerId,
                 title: 'Payment Verified',
@@ -3392,7 +3369,7 @@
     };
 
     // ==========================================================================
-    // COMPANY DASHBOARD — with payment status + approve-with-payment button
+    // COMPANY DASHBOARD
     // ==========================================================================
     window.setCompanyActivityTab = function(tab) {
         window.companyActivityTab = tab;
@@ -3703,6 +3680,9 @@
         } catch (err) { window.showToast(err.message, 'error'); }
     };
 
+    // ==========================================================================
+    // DIRECT-DEAL ESCROW PAYMENT (company pays)
+    // ==========================================================================
     window.openTelebirrModal = function(dealId, amount, creatorId) {
         window.activeEscrowDeal = { dealId, amount, creatorId };
         document.getElementById('escrow-modal-amount').innerText = `ETB ${amount.toLocaleString()}`;
@@ -3714,6 +3694,8 @@
         window.activeEscrowDeal = null;
     };
 
+    // CHANGED: escrow payment no longer unlocks bank info for the creator.
+    // Admin must unlock it manually after verifying.
     window.confirmTelebirrPaymentSent = async function() {
         if (!window.activeEscrowDeal) return;
         const { dealId, amount, creatorId } = window.activeEscrowDeal;
@@ -3721,7 +3703,8 @@
         try {
             await updateDoc(doc(db, "direct_deals", dealId), {
                 status: 'Escrow_Deposited',
-                escrow_status: 'Paid_To_Hanif_Escrow'
+                escrow_status: 'Paid_To_Hanif_Escrow',
+                withdrawal_unlocked: false
             });
 
             await addDoc(collection(db, "transactions"), {
@@ -3736,16 +3719,27 @@
 
             await addDoc(collection(db, "notifications"), {
                 user_id: creatorId,
-                title: 'Escrow Payment Deposited',
-                message: `Payment of ETB ${amount.toLocaleString()} was deposited to HAWME Telebirr Escrow!`,
-                detail: `Amount: ETB ${amount.toLocaleString()}\nEscrow Account: 0996350347 (Hanif)\nNext Step: Open your Creator Activity tab and click "Request Bank Withdrawal" to enter your bank or Telebirr account.`,
+                title: 'Company Paid — Awaiting Admin Verification',
+                message: `ETB ${amount.toLocaleString()} escrow payment confirmed. Admin will verify and unlock your bank withdrawal.`,
+                detail: `Amount: ETB ${amount.toLocaleString()}\nEscrow Account: 0996350347 (Hanif)\nStatus: Awaiting admin verification\n\nOnce admin verifies, the "Request Bank Withdrawal" button will appear in your Creator Activity, where you can enter your bank details.`,
                 read: false,
                 deal_id: dealId,
                 created_at: new Date().toISOString()
             });
 
+            await addDoc(collection(db, "notifications"), {
+                user_id: 'ADMIN',
+                type: 'ESCROW_VERIFY_NEEDED',
+                title: 'Escrow Payment Awaiting Admin Verification',
+                message: `Company paid ETB ${amount.toLocaleString()} for a direct deal. Go to Admin → Direct Deals and click "Verify Payment & Unlock Bank Info".`,
+                detail: `Deal: ${dealId}\nAmount: ETB ${amount.toLocaleString()}\nCompany: ${window.currentUser.name}`,
+                deal_id: dealId,
+                read: false,
+                created_at: new Date().toISOString()
+            });
+
             closeTelebirrModal();
-            window.showToast('Escrow confirmed! Creator notified for payout.', 'success');
+            window.showToast('Escrow paid! Admin will verify and unlock creator withdrawal.', 'success');
             loadCompanyDashboardData();
         } catch (err) { window.showToast(err.message, 'error'); }
     };
@@ -3767,6 +3761,9 @@
         } catch (err) { window.showToast(err.message, 'error'); }
     };
 
+    // ==========================================================================
+    // CREATOR DASHBOARD — bank info LOCKED until admin unlocks
+    // ==========================================================================
     function renderCreatorDashboardHTML() {
         const isNotifs = window.creatorActivityTab === 'notifications';
         return `
@@ -3840,7 +3837,7 @@
             const statDeals = document.getElementById('creator-stat-deals');
             const statDone = document.getElementById('creator-stat-completed');
             if (statDeals) statDeals.innerText = deals.filter(d => d.status === 'In_Progress' || d.status === 'Proposed').length;
-            if (statDone) statDone.innerText = Number(window.currentUser.completed_promotions || deals.filter(d => d.status === 'Escrow_Deposited' || d.status === 'Withdrawn').length);
+            if (statDone) statDone.innerText = Number(window.currentUser.completed_promotions || deals.filter(d => d.status === 'Withdrawn').length);
 
             if (window.creatorActivityTab === 'notifications') {
                 await loadActivityNotificationsIntoFeed();
@@ -3857,6 +3854,7 @@
                     const isSubmitted = d.status === 'Video_Submitted';
                     const isEscrowDeposited = d.status === 'Escrow_Deposited';
                     const isWithdrawn = d.status === 'Withdrawn';
+                    const unlocked = d.withdrawal_unlocked === true;
 
                     return `
                         <div class="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3865,6 +3863,11 @@
                                     <h4 class="font-extrabold text-sm">${window.escapeHTML(d.company_name)}</h4>
                                     <span class="text-xs font-black text-accent tabular-nums">ETB ${Number(d.amount_etb).toLocaleString()}</span>
                                     <span class="px-2.5 py-0.5 card-inner text-xs font-bold">${window.escapeHTML(d.status.replace('_',' '))}</span>
+                                    ${isEscrowDeposited ? `
+                                        <span class="px-2.5 py-0.5 card-inner text-[11px] font-bold ${unlocked ? 'text-emerald-400' : 'text-amber-400'}">
+                                            ${unlocked ? '🔓 Bank Info Unlocked' : '🔒 Bank Info Locked'}
+                                        </span>
+                                    ` : ''}
                                 </div>
                                 <p class="text-xs text-sec">${window.escapeHTML(d.description)}</p>
                                 ${d.video_url ? `<p class="text-xs">Video: <a href="${window.escapeHTML(d.video_url)}" target="_blank" class="text-accent hover:underline font-bold">${window.escapeHTML(d.video_url)}</a></p>` : ''}
@@ -3878,8 +3881,15 @@
                                         <button onclick="submitDealVideo('${d.id}')" class="px-3.5 py-2 btn-cta text-xs">Submit Video</button>
                                     </div>
                                 ` : ''}
-                                ${isSubmitted ? `<span class="text-xs text-amber-400 font-bold">Under Company Review</span>` : ''}
-                                ${isEscrowDeposited ? `<button onclick="openWithdrawModal('${d.id}', ${Number(d.amount_etb)})" class="px-4 py-2 btn-cta text-xs">Request Bank Withdrawal</button>` : ''}
+                                ${isSubmitted ? `<span class="text-xs text-amber-400 font-bold">Awaiting Company Payment</span>` : ''}
+                                ${isEscrowDeposited ? (
+                                    unlocked
+                                        ? `<button onclick="openWithdrawModal('${d.id}', ${Number(d.amount_etb)})" class="px-4 py-2 btn-cta text-xs">Request Bank Withdrawal</button>`
+                                        : `<div class="text-right">
+                                            <p class="text-xs font-bold text-amber-400">Awaiting Admin Verification</p>
+                                            <p class="text-[11px] text-sec">Company paid — admin must verify before you can enter bank info.</p>
+                                           </div>`
+                                ) : ''}
                                 ${isWithdrawn ? `<span class="text-xs text-emerald-400 font-bold">Withdrawal Submitted</span>` : ''}
                             </div>
                         </div>
@@ -3955,6 +3965,7 @@
         } catch (err) { window.showToast(err.message, 'error'); }
     };
 
+    // CHANGED: submitting video no longer increments completed_promotions and keeps bank info locked.
     window.submitDealVideo = async function(dealId) {
         const videoUrl = document.getElementById(`video-url-${dealId}`)?.value.trim() || '';
         if (!videoUrl || !videoUrl.includes('tiktok.com')) {
@@ -3962,13 +3973,29 @@
             return;
         }
         try {
-            await updateDoc(doc(db, "direct_deals", dealId), { status: 'Video_Submitted', video_url: videoUrl });
-            await updateDoc(doc(db, "users", window.currentUser.uid), {
-                completed_promotions: (window.currentUser.completed_promotions || 0) + 1
+            await updateDoc(doc(db, "direct_deals", dealId), {
+                status: 'Video_Submitted',
+                video_url: videoUrl,
+                withdrawal_unlocked: false
             });
-            window.currentUser.completed_promotions = (window.currentUser.completed_promotions || 0) + 1;
-            localStorage.setItem('hawme_user', JSON.stringify(window.currentUser));
-            window.showToast('Video submitted!', 'success');
+
+            const dealSnap = await getDoc(doc(db, "direct_deals", dealId));
+            if (dealSnap.exists()) {
+                const d = dealSnap.data();
+                if (d.company_id) {
+                    await addDoc(collection(db, "notifications"), {
+                        user_id: d.company_id,
+                        title: 'Creator Submitted Video',
+                        message: `${window.currentUser.name} submitted a video for your deal (ETB ${Number(d.amount_etb || 0).toLocaleString()}).`,
+                        detail: `Creator: ${window.currentUser.name} (${window.currentUser.tiktok_username || ''})\nAmount: ETB ${Number(d.amount_etb || 0).toLocaleString()}\nVideo URL: ${videoUrl}\n\nNext Step: Pay via Telebirr to HAWME escrow. Admin will verify and unlock the creator's bank withdrawal.`,
+                        deal_id: dealId,
+                        read: false,
+                        created_at: new Date().toISOString()
+                    });
+                }
+            }
+
+            window.showToast('Video submitted! Awaiting company payment + admin verification.', 'success');
             loadCreatorDashboardData();
         } catch (err) { window.showToast(err.message, 'error'); }
     };
@@ -3983,9 +4010,26 @@
         document.getElementById('creator-withdraw-modal').classList.add('hidden');
     };
 
+    // HARD GATE: refuse withdrawal if admin hasn't unlocked bank info
     window.handleWithdrawalRequest = async function(event) {
         event.preventDefault();
         const dealId = document.getElementById('withdraw-deal-id').value;
+
+        try {
+            const dealSnap = await getDoc(doc(db, "direct_deals", dealId));
+            if (!dealSnap.exists()) { window.showToast('Deal not found', 'error'); return; }
+            const d = dealSnap.data();
+            if (d.withdrawal_unlocked !== true) {
+                window.showToast('Bank info is locked until admin verifies the company payment.', 'error');
+                closeWithdrawModal();
+                loadCreatorDashboardData();
+                return;
+            }
+        } catch (e) {
+            window.showToast('Could not verify unlock state: ' + e.message, 'error');
+            return;
+        }
+
         const amount = Number(document.getElementById('withdraw-deal-amount').value || 0);
         const bankName = document.getElementById('withdraw-bank-choice').value;
         const holderName = document.getElementById('withdraw-holder-name').value.trim();
