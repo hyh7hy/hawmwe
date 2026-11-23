@@ -1,2400 +1,1670 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>DOQA — Play & Win</title>
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Plus Jakarta Sans -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AV GAME — Global Geopolitical Simulation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Supabase JS v2 via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- D3 & TopoJSON for real-world interactive vector map -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
   <style>
-    /* ===== GLOBAL STYLES ===== */
     :root {
-      --bg: #080810;
-      --pink: #FF1685;
-      --cyan: #20D9F5;
-      --purple: #923EFF;
-      --card: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.08);
-      --text: #F0F0FF;
-      --text-dim: #8A8AA0;
-      --gold: #FFD700;
+      --bg-base: #070b14;
+      --bg-surface: #0d1424;
+      --bg-elevated: #131d33;
+      --bg-hover: #192642;
+      --border: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(56, 189, 248, 0.35);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.14);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
+    [data-theme="light"] {
+      --bg-base: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-elevated: #f8fafc;
+      --bg-hover: #e2e8f0;
+      --border: rgba(15, 23, 42, 0.12);
+      --border-strong: rgba(2, 132, 199, 0.4);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-dim: rgba(2, 132, 199, 0.1);
     }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      overflow: hidden;
-      overscroll-behavior: none;
-    }
-
-    /* ===== APP FRAME ===== */
-    #app-frame {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      max-width: 480px;
-      margin: 0 auto;
-      position: relative;
-      background: var(--bg);
-      overflow: hidden;
-      box-shadow: 0 0 80px rgba(255,22,133,0.06);
-    }
-
-    /* ===== SPLASH ===== */
-    #splash {
-      position: absolute;
-      inset: 0;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg);
-      transition: opacity 0.6s ease, visibility 0.6s;
-    }
-    #splash.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .logo-ring {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      border: 3px solid transparent;
-      border-top-color: var(--pink);
-      border-right-color: var(--cyan);
-      animation: spin 1.2s cubic-bezier(0.68,-0.55,0.27,1.55) infinite;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .logo-ring::after {
-      content: '';
-      position: absolute;
-      inset: 8px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      border-bottom-color: var(--purple);
-      border-left-color: var(--pink);
-      animation: spin 1.8s linear infinite reverse;
-    }
-    .logo-text {
-      font-size: 42px;
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--pink), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: 2px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== AUTH SCREEN ===== */
-    #auth-screen {
-      position: absolute;
-      inset: 0;
-      z-index: 900;
-      display: flex;
-      flex-direction: column;
-      padding: 32px 24px;
-      background: var(--bg);
-      overflow-y: auto;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-    #auth-screen.hidden {
-      opacity: 0;
-      transform: translateY(20px);
-      pointer-events: none;
-    }
-    .auth-input {
-      width: 100%;
-      padding: 14px 16px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      color: var(--text);
-      font-size: 14px;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-    .auth-input:focus {
-      border-color: var(--pink);
-      box-shadow: 0 0 0 3px rgba(255,22,133,0.15);
-    }
-    .auth-input::placeholder { color: var(--text-dim); }
-
-    .btn-primary {
-      width: 100%;
-      padding: 15px;
-      border-radius: 14px;
-      border: none;
-      background: linear-gradient(135deg, var(--pink), var(--purple));
-      color: #fff;
-      font-weight: 700;
-      font-size: 15px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-      box-shadow: 0 4px 24px rgba(255,22,133,0.3);
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .btn-secondary {
-      width: 100%;
-      padding: 14px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      color: var(--text);
-      font-weight: 600;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
-    }
-    .btn-secondary:active { background: rgba(255,255,255,0.08); }
-
-    /* ===== MAIN APP ===== */
-    #main-app {
-      display: none;
-      flex-direction: column;
-      height: 100%;
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-    #main-app.visible {
-      display: flex;
-      opacity: 1;
-    }
-
-    /* ===== HEADER ===== */
-    #app-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      background: rgba(8,8,16,0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      z-index: 50;
-      flex-shrink: 0;
-    }
-    .balance-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 14px;
-      background: rgba(255,22,133,0.12);
-      border: 1px solid rgba(255,22,133,0.25);
-      border-radius: 100px;
-      font-weight: 700;
-      font-size: 13px;
-      color: var(--pink);
-      transition: transform 0.2s;
-    }
-    .balance-chip:active { transform: scale(0.95); }
-
-    /* ===== TAB CONTENT ===== */
-    #tab-content {
-      flex: 1;
-      overflow-y: auto;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
       overflow-x: hidden;
-      padding: 16px 20px 100px;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      position: relative;
-    }
-    #tab-content::-webkit-scrollbar { display: none; }
-
-    /* ===== BOTTOM NAV ===== */
-    #bottom-nav {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 10px 8px 24px;
-      background: rgba(8,8,16,0.92);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border-top: 1px solid var(--border);
-      z-index: 60;
-    }
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      color: var(--text-dim);
-      transition: color 0.2s, transform 0.15s;
-      position: relative;
-      border: none;
-      background: transparent;
-      font-family: inherit;
-    }
-    .nav-item:active { transform: scale(0.92); }
-    .nav-item.active { color: var(--pink); }
-    .nav-item.active::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      width: 20px;
-      height: 3px;
-      border-radius: 3px;
-      background: var(--pink);
-      box-shadow: 0 0 12px var(--pink);
-    }
-    .nav-label { font-size: 10px; font-weight: 600; }
-
-    /* ===== CARDS ===== */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-    }
-    .card-glow {
-      box-shadow: 0 0 40px rgba(255,22,133,0.06);
-    }
-    .card:active { transform: scale(0.98); }
-
-    .game-card {
-      position: relative;
-      overflow: hidden;
-      border-radius: 20px;
-      padding: 22px 20px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid var(--border);
-    }
-    .game-card:active { transform: scale(0.97); }
-    .game-card .game-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 14px;
+      font-feature-settings: "tnum" 1;
     }
 
-    /* ===== TICKER ===== */
-    .ticker-wrap {
-      overflow: hidden;
-      white-space: nowrap;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 0;
-    }
-    .ticker {
-      display: inline-block;
-      animation: ticker 25s linear infinite;
-      font-size: 12px;
-      color: var(--text-dim);
-      padding-left: 100%;
-    }
-    @keyframes ticker {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
-    /* ===== LEADERBOARD ===== */
-    .leader-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .leader-row:last-child { border-bottom: none; }
-    .avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 14px;
-      flex-shrink: 0;
-      color: #fff;
-    }
-
-    /* ===== BOTTOM SHEET ===== */
-    .sheet-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
-      z-index: 200;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-    }
-    .sheet-overlay.open { opacity: 1; visibility: visible; }
-
-    .bottom-sheet {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      max-width: 480px;
-      margin: 0 auto;
-      background: #0E0E18;
-      border-radius: 24px 24px 0 0;
-      padding: 8px 20px 32px;
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
-      max-height: 90vh;
-      overflow-y: auto;
-      z-index: 210;
-      border-top: 1px solid var(--border);
-    }
-    .sheet-overlay.open .bottom-sheet { transform: translateY(0); }
-    .sheet-handle {
-      width: 40px;
-      height: 4px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.15);
-      margin: 8px auto 16px;
-    }
-
-    /* ===== CHIPS ===== */
-    .chip {
-      padding: 8px 16px;
-      border-radius: 100px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-    .chip.active {
-      background: rgba(255,22,133,0.15);
-      border-color: var(--pink);
-      color: var(--pink);
-    }
-    .chip:active { transform: scale(0.94); }
-
-    /* ===== PROGRESS BAR ===== */
-    .progress-track {
-      height: 8px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      border-radius: 100px;
-      background: linear-gradient(90deg, var(--pink), var(--purple));
-      transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
-    }
-
-    /* ===== TOAST ===== */
-    #toast-container {
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: calc(100% - 40px);
-      max-width: 420px;
-      pointer-events: none;
-    }
-    .toast {
-      padding: 12px 18px;
-      border-radius: 14px;
-      background: rgba(20,20,32,0.95);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      animation: toastIn 0.35s cubic-bezier(0.22,1,0.36,1);
-      pointer-events: auto;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    }
-    .toast.success { border-color: rgba(32,217,245,0.3); }
-    .toast.error { border-color: rgba(255,22,133,0.3); }
-    .toast.info { border-color: rgba(146,62,255,0.3); }
-    @keyframes toastIn {
-      from { opacity: 0; transform: translateY(-12px) scale(0.95); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    /* ===== SKELETON ===== */
-    .skeleton {
-      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 10px;
-    }
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* ===== MODAL ===== */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(6px);
-      z-index: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-      padding: 24px;
-    }
-    .modal-overlay.open { opacity: 1; visibility: visible; }
-
-    .modal-content {
-      width: 100%;
-      max-width: 380px;
-      background: #0E0E18;
-      border-radius: 24px;
-      padding: 28px 24px;
-      border: 1px solid var(--border);
-      transform: scale(0.9);
-      transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
-    }
-    .modal-overlay.open .modal-content { transform: scale(1); }
-
-    /* ===== SPIN WHEEL ===== */
-    .wheel-container {
-      position: relative;
-      width: 280px;
-      height: 280px;
-      margin: 0 auto;
-    }
-    .wheel-pointer {
-      position: absolute;
-      top: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 12px solid transparent;
-      border-right: 12px solid transparent;
-      border-top: 24px solid var(--pink);
-      filter: drop-shadow(0 0 8px var(--pink));
-      z-index: 10;
-    }
-    .wheel-svg {
-      width: 100%;
-      height: 100%;
-      filter: drop-shadow(0 0 20px rgba(255,22,133,0.2));
-      transition: transform 4s cubic-bezier(0.17,0.67,0.1,0.99);
-    }
-
-    /* ===== BINGO BOARD ===== */
-    .bingo-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-    }
-    .bingo-cell {
-      aspect-ratio: 1;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-      user-select: none;
-    }
-    .bingo-cell.selected {
-      background: rgba(255,22,133,0.15);
-      border-color: var(--pink);
-      color: var(--pink);
-      box-shadow: 0 0 16px rgba(255,22,133,0.2);
-    }
-    .bingo-cell.matched {
-      background: rgba(255,215,0,0.2);
-      border-color: var(--gold);
-      color: var(--gold);
-      box-shadow: 0 0 20px rgba(255,215,0,0.3);
-    }
-    .bingo-cell.missed {
-      opacity: 0.35;
-      filter: grayscale(0.7);
-    }
-
-    /* ===== DOQA ROOM ===== */
-    .room-scroll {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-    }
-    .room-scroll::-webkit-scrollbar { display: none; }
-    .room-card {
-      flex: 0 0 140px;
-      scroll-snap-align: start;
-      padding: 16px;
-      border-radius: 18px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: transform 0.2s, border-color 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .room-card:active { transform: scale(0.96); }
-    .room-card.full { border-color: var(--cyan); }
-    .room-card.playing { border-color: var(--pink); box-shadow: 0 0 20px rgba(255,22,133,0.15); }
-
-    .slot-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-    }
-    .slot {
-      aspect-ratio: 1;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 18px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-    }
-    .slot.taken {
-      opacity: 0.4;
-      cursor: not-allowed;
-      background: rgba(255,255,255,0.02);
-    }
-    .slot.mine {
-      border-color: var(--pink);
-      background: rgba(255,22,133,0.15);
-      color: var(--pink);
-      box-shadow: 0 0 20px rgba(255,22,133,0.25);
-    }
-    .slot.winner {
-      border-color: var(--gold);
-      background: rgba(255,215,0,0.2);
-      color: var(--gold);
-      box-shadow: 0 0 30px rgba(255,215,0,0.4);
-      animation: pulse-win 0.8s ease infinite alternate;
-    }
-    @keyframes pulse-win {
-      from { transform: scale(1); }
-      to { transform: scale(1.06); }
-    }
-    .slot-avatar {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 800;
-      color: #fff;
-      position: absolute;
-      bottom: -4px;
-      right: -4px;
-      border: 2px solid #0E0E18;
-    }
-
-    /* ===== ADMIN ===== */
-    #admin-panel {
-      display: none;
-      flex-direction: column;
-      height: 100%;
-      background: var(--bg);
-    }
-    #admin-panel.visible { display: flex; }
-    .admin-sidebar {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      width: 260px;
-      background: #0E0E18;
-      border-right: 1px solid var(--border);
-      padding: 24px 16px;
-      transform: translateX(-100%);
-      transition: transform 0.3s;
-      z-index: 300;
-      overflow-y: auto;
-    }
-    .admin-sidebar.open { transform: translateX(0); }
-    .admin-nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      color: var(--text-dim);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-      background: transparent;
-      width: 100%;
-      text-align: left;
-      font-family: inherit;
-    }
-    .admin-nav-item:hover, .admin-nav-item.active {
-      background: rgba(255,22,133,0.1);
-      color: var(--pink);
-    }
-
-    /* ===== CONFETTI ===== */
-    .confetti-piece {
-      position: fixed;
-      width: 10px;
-      height: 10px;
-      z-index: 10000;
-      pointer-events: none;
-      animation: confettiFall 2.5s ease-out forwards;
-    }
-    @keyframes confettiFall {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-    }
-
-    /* ===== RESPONSIVE ===== */
-    @media (min-width: 480px) {
-      #app-frame {
-        margin-top: 20px;
-        margin-bottom: 20px;
-        height: calc(100dvh - 40px);
-        border-radius: 28px;
-        border: 1px solid var(--border);
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
       }
     }
 
-    /* ===== UTILITY ===== */
-    .text-gradient {
-      background: linear-gradient(135deg, var(--pink), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .hidden { display: none !important; }
+
+    /* Auth Gate Screen */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: radial-gradient(circle at 50% 20%, #111d38 0%, #070b14 70%);
     }
-    .glow-pink { box-shadow: 0 0 30px rgba(255,22,133,0.15); }
-    .glow-cyan { box-shadow: 0 0 30px rgba(32,217,245,0.15); }
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 5px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+    .auth-card h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .auth-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
 
-    /* Hide scrollbar for all elements */
-    ::-webkit-scrollbar { display: none; }
-    * { scrollbar-width: none; }
+    /* Form Controls */
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
-    /* Hide spline text selection */
-    .no-select { user-select: none; -webkit-user-select: none; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #04101d; }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn-secondary { background: var(--bg-elevated); border-color: var(--border); color: var(--text-primary); }
+    .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); }
+    .btn-danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; }
+    .btn-full { width: 100%; }
 
-    /* Ribbon for demo mode */
-    #demo-ribbon {
+    /* App Layout */
+    #app-shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
       position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 40;
+    }
+    .sidebar-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-text { font-weight: 700; font-size: 16px; letter-spacing: 0.04em; display: flex; align-items: center; gap: 8px; }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+    .nav-list { flex: 1; padding: 12px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+    .badge {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--danger);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); font-size: 12px; }
+
+    /* Main Content Area */
+    .main-area {
+      flex: 1;
+      margin-left: 240px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      height: 58px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
-      z-index: 10000;
-      background: repeating-linear-gradient(45deg, #FF1685, #FF1685 10px, #923EFF 10px, #923EFF 20px);
+      z-index: 30;
+    }
+    .stat-pills { display: flex; align-items: center; gap: 10px; overflow-x: auto; }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .pill span.lbl { color: var(--text-muted); }
+
+    .view-container { padding: 20px; max-width: 1480px; width: 100%; margin: 0 auto; }
+
+    /* Grid & Cards */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+    .card-title { font-size: 14px; font-weight: 600; }
+    .kpi-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Interactive World Map */
+    .map-wrapper {
+      position: relative;
+      width: 100%;
+      height: 540px;
+      background: #050912;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #world-map-svg { width: 100%; height: 100%; cursor: grab; display: block; }
+    #world-map-svg:active { cursor: grabbing; }
+    .country-path {
+      fill: #162238;
+      stroke: #263757;
+      stroke-width: 0.6px;
+      transition: fill 0.2s, stroke 0.2s;
+    }
+    .country-path:hover { fill: #253b63; stroke: var(--accent); stroke-width: 1.1px; }
+    .country-path.owned-player { fill: #17365d; stroke: #38bdf8; }
+    .country-path.owned-self { fill: #0e4a5e; stroke: #22d3ee; stroke-width: 1.2px; }
+    .country-path.at-war {
+      fill: #45141c;
+      stroke: #ef4444;
+      stroke-width: 1.4px;
+      animation: conflictPulse 2s infinite ease-in-out;
+    }
+    @keyframes conflictPulse {
+      0%, 100% { stroke-opacity: 1; }
+      50% { stroke-opacity: 0.35; }
+    }
+    .map-controls {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+    .map-legend {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(13, 20, 36, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: flex;
+      gap: 12px;
+      z-index: 10;
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+    /* Floating Country Inspector Drawer */
+    .country-drawer {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      bottom: 14px;
+      width: 390px;
+      max-width: calc(100% - 28px);
+      background: rgba(13, 20, 36, 0.96);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.65);
+    }
+    .drawer-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drawer-tabs {
+      display: flex;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border);
+      padding: 0 8px;
+      gap: 4px;
+    }
+    .drawer-tab {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .drawer-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .drawer-body { padding: 14px 16px; overflow-y: auto; flex: 1; font-size: 13px; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+
+    /* Alerts & Status Banners */
+    .alert-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+    .alert-item.critical {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+    .offline-banner {
+      background: var(--danger);
       color: #fff;
       text-align: center;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      padding: 4px 0;
-      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px;
+    }
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* Mobile Responsive (iPhone-sized screens) */
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed;
+        bottom: 0; top: auto; left: 0; right: 0;
+        width: 100%;
+        height: 60px;
+        flex-direction: row;
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+      .sidebar-header, .sidebar-footer { display: none; }
+      .nav-list {
+        flex-direction: row;
+        padding: 6px;
+        overflow-x: auto;
+        align-items: center;
+      }
+      .nav-item {
+        flex-direction: column;
+        padding: 4px 10px;
+        font-size: 10px;
+        white-space: nowrap;
+        width: auto;
+      }
+      .main-area { margin-left: 0; padding-bottom: 70px; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .map-wrapper { height: 440px; }
+      .country-drawer { width: calc(100% - 20px); left: 10px; right: 10px; }
     }
   </style>
 </head>
 <body>
-
-  <!-- ===== SPLASH ===== -->
-  <div id="splash">
-    <div class="logo-ring">
-      <span class="logo-text">D</span>
-    </div>
-    <div style="margin-top: 24px; font-size: 14px; color: var(--text-dim); font-weight: 500; letter-spacing: 4px;">LOADING</div>
-  </div>
-
-  <!-- ===== AUTH SCREEN ===== -->
-  <div id="auth-screen" class="hidden">
-    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-      <div style="text-align: center; margin-bottom: 40px;">
-        <div style="font-size: 48px; font-weight: 800;" class="text-gradient">DOQA</div>
-        <div style="font-size: 14px; color: var(--text-dim); margin-top: 8px;">Play. Win. Repeat.</div>
-      </div>
-
-      <!-- Login Form -->
-      <div id="login-form">
-        <div style="margin-bottom: 16px;">
-          <input type="email" id="login-email" class="auth-input" placeholder="Email address" autocomplete="email">
-        </div>
-        <div style="margin-bottom: 24px; position: relative;">
-          <input type="password" id="login-password" class="auth-input" placeholder="Password" autocomplete="current-password">
-        </div>
-        <button class="btn-primary" id="btn-login" onclick="App.handleLogin()">Sign In</button>
-        <div style="display: flex; justify-content: space-between; margin-top: 16px;">
-          <button class="text-gradient" style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;" onclick="App.showForgotPassword()">Forgot password?</button>
-          <button class="text-gradient" style="background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;" onclick="App.showSignUp()">Create account</button>
-        </div>
-      </div>
-
-      <!-- Sign Up Form (hidden by default) -->
-      <div id="signup-form" style="display: none;">
-        <div style="margin-bottom: 12px;">
-          <input type="text" id="signup-name" class="auth-input" placeholder="Full name" autocomplete="name">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <input type="tel" id="signup-phone" class="auth-input" placeholder="Phone (+251...)" autocomplete="tel">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <input type="email" id="signup-email" class="auth-input" placeholder="Email address" autocomplete="email">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <input type="password" id="signup-password" class="auth-input" placeholder="Password (min 8 chars)" autocomplete="new-password">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <input type="password" id="signup-confirm" class="auth-input" placeholder="Confirm password" autocomplete="new-password">
-        </div>
-        <div style="margin-bottom: 12px;">
-          <input type="text" id="signup-referral" class="auth-input" placeholder="Referral code (optional)">
-        </div>
-        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px;">
-          <input type="checkbox" id="signup-age" style="margin-top: 2px; accent-color: var(--pink);">
-          <label for="signup-age" style="font-size: 12px; color: var(--text-dim); line-height: 1.4;">I am 18+ and accept Terms & Responsible Gambling</label>
-        </div>
-        <button class="btn-primary" id="btn-signup" onclick="App.handleSignUp()">Create Account</button>
-        <button class="btn-secondary" style="margin-top: 12px;" onclick="App.showLogin()">Back to Sign In</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== MAIN APP ===== -->
-  <div id="main-app" class="no-select">
-    <!-- Header -->
-    <div id="app-header">
-      <div style="font-size: 22px; font-weight: 800;" class="text-gradient">DOQA</div>
-      <div class="balance-chip" id="header-balance" onclick="App.navigate('wallet')">
-        <span id="header-balance-text">0.00</span>
-        <span style="font-size: 11px; opacity: 0.8;">ETB</span>
-      </div>
-    </div>
-
-    <!-- Tab Content -->
-    <div id="tab-content">
-      <!-- HOME TAB -->
-      <div id="tab-home" class="tab-pane">
-        <!-- Hero Banner -->
-        <div class="game-card" style="background: linear-gradient(135deg, rgba(255,22,133,0.15), rgba(146,62,255,0.1)); margin-bottom: 20px; border-color: rgba(255,22,133,0.2);">
-          <div style="font-size: 12px; color: var(--pink); font-weight: 700; letter-spacing: 1px; margin-bottom: 6px;">WELCOME BONUS</div>
-          <div style="font-size: 22px; font-weight: 800; margin-bottom: 4px;">Play & Win Big</div>
-          <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px;">Deposit now and get up to 500 ETB bonus</div>
-          <button class="btn-primary" style="width: auto; padding: 10px 24px; font-size: 13px;" onclick="App.openDepositSheet()">Deposit Now</button>
-        </div>
-
-        <!-- Winners Ticker -->
-        <div class="ticker-wrap" style="margin-bottom: 20px;">
-          <div class="ticker" id="winners-ticker">
-            🏆 Da***t won 450 ETB &nbsp;•&nbsp; 🏆 Sa***m won 1,200 ETB &nbsp;•&nbsp; 🏆 Ab***l won 320 ETB &nbsp;•&nbsp; 🏆 Ha***w won 890 ETB &nbsp;•&nbsp; 🏆 Me***n won 2,100 ETB
-          </div>
-        </div>
-
-        <!-- Game Cards -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 16px; font-weight: 700;">Games</div>
-          <button style="background: none; border: none; color: var(--pink); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;" onclick="App.navigate('games')">See all</button>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-          <div class="game-card" style="background: linear-gradient(135deg, rgba(255,22,133,0.08), rgba(255,22,133,0.02));" onclick="App.navigate('games'); App.openGame('spin')">
-            <div class="game-icon" style="background: rgba(255,22,133,0.15);">
-              <i data-lucide="disc" style="width: 24px; height: 24px; color: var(--pink);"></i>
-            </div>
-            <div style="font-weight: 700; font-size: 15px;">Spin Wheel</div>
-            <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Up to 5x</div>
-          </div>
-          <div class="game-card" style="background: linear-gradient(135deg, rgba(32,217,245,0.08), rgba(32,217,245,0.02));" onclick="App.navigate('games'); App.openGame('bingo')">
-            <div class="game-icon" style="background: rgba(32,217,245,0.15);">
-              <i data-lucide="hash" style="width: 24px; height: 24px; color: var(--cyan);"></i>
-            </div>
-            <div style="font-weight: 700; font-size: 15px;">Bingo</div>
-            <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Up to 500x</div>
-          </div>
-        </div>
-
-        <div class="game-card" style="background: linear-gradient(135deg, rgba(146,62,255,0.08), rgba(146,62,255,0.02)); margin-bottom: 24px;" onclick="App.navigate('games'); App.openGame('doqa')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="game-icon" style="background: rgba(146,62,255,0.15); margin-bottom: 0;">
-              <i data-lucide="users" style="width: 24px; height: 24px; color: var(--purple);"></i>
-            </div>
-            <div>
-              <div style="font-weight: 700; font-size: 16px;">DOQA Rooms</div>
-              <div style="font-size: 12px; color: var(--text-dim);">Live multiplayer • Win 75% of pool</div>
-            </div>
-            <i data-lucide="chevron-right" style="width: 20px; height: 20px; color: var(--text-dim); margin-left: auto;"></i>
-          </div>
-        </div>
-
-        <!-- Leaderboard -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 16px; font-weight: 700;">Leaderboard</div>
-          <div style="font-size: 11px; color: var(--text-dim);">Today</div>
-        </div>
-        <div class="card" style="padding: 14px 18px;">
-          <div class="leader-row">
-            <div class="avatar" style="background: linear-gradient(135deg, var(--gold), #FFA500);">1</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 600; font-size: 13px;">Da***t</div>
-              <div style="font-size: 11px; color: var(--text-dim);">Spin Wheel</div>
-            </div>
-            <div style="font-weight: 700; font-size: 13px; color: var(--gold);">+450 ETB</div>
-          </div>
-          <div class="leader-row">
-            <div class="avatar" style="background: linear-gradient(135deg, #C0C0C0, #A0A0A0);">2</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 600; font-size: 13px;">Sa***m</div>
-              <div style="font-size: 11px; color: var(--text-dim);">Bingo</div>
-            </div>
-            <div style="font-weight: 700; font-size: 13px; color: var(--cyan);">+1,200 ETB</div>
-          </div>
-          <div class="leader-row">
-            <div class="avatar" style="background: linear-gradient(135deg, #CD7F32, #B8860B);">3</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 600; font-size: 13px;">Ab***l</div>
-              <div style="font-size: 11px; color: var(--text-dim);">DOQA</div>
-            </div>
-            <div style="font-weight: 700; font-size: 13px; color: var(--purple);">+320 ETB</div>
-          </div>
-        </div>
-
-        <!-- Announcements -->
-        <div style="margin-top: 24px; margin-bottom: 12px; font-size: 16px; font-weight: 700;">Announcements</div>
-        <div class="card" style="padding: 16px 18px; margin-bottom: 12px;">
-          <div style="display: flex; gap: 12px; align-items: flex-start;">
-            <i data-lucide="megaphone" style="width: 18px; height: 18px; color: var(--pink); flex-shrink: 0; margin-top: 2px;"></i>
-            <div>
-              <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Welcome to DOQA!</div>
-              <div style="font-size: 12px; color: var(--text-dim); line-height: 1.5;">Deposit via Telebirr and start playing. Minimum deposit is 10 ETB.</div>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="padding: 16px 18px; margin-bottom: 24px;">
-          <div style="display: flex; gap: 12px; align-items: flex-start;">
-            <i data-lucide="shield-check" style="width: 18px; height: 18px; color: var(--cyan); flex-shrink: 0; margin-top: 2px;"></i>
-            <div>
-              <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Play Responsibly</div>
-              <div style="font-size: 12px; color: var(--text-dim); line-height: 1.5;">Set your limits. 18+ only. If you need help, call our helpline.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- GAMES TAB -->
-      <div id="tab-games" class="tab-pane" style="display: none;">
-        <div style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">Games</div>
-
-        <!-- Spin Wheel Card -->
-        <div class="game-card" style="background: linear-gradient(135deg, rgba(255,22,133,0.12), rgba(255,22,133,0.03)); margin-bottom: 16px; border-color: rgba(255,22,133,0.2);" onclick="App.openGame('spin')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="game-icon" style="background: rgba(255,22,133,0.2); margin-bottom: 0;">
-              <i data-lucide="disc" style="width: 28px; height: 28px; color: var(--pink);"></i>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 18px;">Spin Wheel</div>
-              <div style="font-size: 12px; color: var(--text-dim);">7 multipliers • Up to 5x</div>
-            </div>
-            <i data-lucide="chevron-right" style="width: 22px; height: 22px; color: var(--text-dim);"></i>
-          </div>
-        </div>
-
-        <!-- Bingo Card -->
-        <div class="game-card" style="background: linear-gradient(135deg, rgba(32,217,245,0.12), rgba(32,217,245,0.03)); margin-bottom: 16px; border-color: rgba(32,217,245,0.2);" onclick="App.openGame('bingo')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="game-icon" style="background: rgba(32,217,245,0.2); margin-bottom: 0;">
-              <i data-lucide="hash" style="width: 28px; height: 28px; color: var(--cyan);"></i>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 18px;">Bingo</div>
-              <div style="font-size: 12px; color: var(--text-dim);">Pick 5 numbers • Up to 500x</div>
-            </div>
-            <i data-lucide="chevron-right" style="width: 22px; height: 22px; color: var(--text-dim);"></i>
-          </div>
-        </div>
-
-        <!-- DOQA Card -->
-        <div class="game-card" style="background: linear-gradient(135deg, rgba(146,62,255,0.12), rgba(146,62,255,0.03)); border-color: rgba(146,62,255,0.2);" onclick="App.openGame('doqa')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="game-icon" style="background: rgba(146,62,255,0.2); margin-bottom: 0;">
-              <i data-lucide="users" style="width: 28px; height: 28px; color: var(--purple);"></i>
-            </div>
-            <div style="flex: 1;">
-              <div style="font-weight: 800; font-size: 18px;">DOQA Rooms</div>
-              <div style="font-size: 12px; color: var(--text-dim);">Live multiplayer • Win 75%</div>
-            </div>
-            <i data-lucide="chevron-right" style="width: 22px; height: 22px; color: var(--text-dim);"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- WALLET TAB -->
-      <div id="tab-wallet" class="tab-pane" style="display: none;">
-        <div style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">Wallet</div>
-
-        <!-- Balance Card -->
-        <div class="card card-glow" style="background: linear-gradient(135deg, rgba(255,22,133,0.12), rgba(146,62,255,0.08)); border-color: rgba(255,22,133,0.2); margin-bottom: 20px;">
-          <div style="font-size: 12px; color: var(--text-dim); font-weight: 500; margin-bottom: 6px;">Available Balance</div>
-          <div style="font-size: 34px; font-weight: 800; margin-bottom: 2px;" id="wallet-cash">0.00 <span style="font-size: 16px; color: var(--text-dim);">ETB</span></div>
-          <div style="font-size: 12px; color: var(--cyan); font-weight: 600; margin-bottom: 16px;" id="wallet-bonus">+ 0.00 ETB bonus</div>
-          <div style="display: flex; gap: 12px;">
-            <button class="btn-primary" style="flex: 1; padding: 12px; font-size: 14px;" onclick="App.openDepositSheet()">Deposit</button>
-            <button class="btn-secondary" style="flex: 1; padding: 12px; font-size: 14px;" onclick="App.openWithdrawSheet()">Withdraw</button>
-          </div>
-        </div>
-
-        <!-- Wagering Progress -->
-        <div class="card" style="margin-bottom: 20px; padding: 16px 18px;">
-          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
-            <span style="color: var(--text-dim);">Bonus Wagering</span>
-            <span style="font-weight: 600;" id="wagering-label">0 / 0 ETB</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" id="wagering-bar" style="width: 0%;"></div>
-          </div>
-          <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Complete wagering to unlock bonus for withdrawal</div>
-        </div>
-
-        <!-- Transaction History -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 16px; font-weight: 700;">History</div>
-          <div style="display: flex; gap: 6px;">
-            <button class="chip active" style="font-size: 11px; padding: 5px 12px;">All</button>
-            <button class="chip" style="font-size: 11px; padding: 5px 12px;">Deposit</button>
-            <button class="chip" style="font-size: 11px; padding: 5px 12px;">Withdraw</button>
-          </div>
-        </div>
-        <div id="transaction-list">
-          <div class="card" style="padding: 14px 16px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-weight: 600; font-size: 13px;">Deposit</div>
-                <div style="font-size: 11px; color: var(--text-dim);">Pending • Just now</div>
-              </div>
-              <div style="font-weight: 700; font-size: 14px; color: var(--cyan);">+50.00 ETB</div>
-            </div>
-          </div>
-          <div class="card" style="padding: 14px 16px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-weight: 600; font-size: 13px;">Spin Wheel win</div>
-                <div style="font-size: 11px; color: var(--text-dim);">Approved • 2 min ago</div>
-              </div>
-              <div style="font-weight: 700; font-size: 14px; color: var(--gold);">+120.00 ETB</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- INVITE TAB -->
-      <div id="tab-invite" class="tab-pane" style="display: none;">
-        <div style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">Invite & Earn</div>
-
-        <!-- Referral Card -->
-        <div class="card card-glow" style="background: linear-gradient(135deg, rgba(146,62,255,0.12), rgba(255,22,133,0.08)); border-color: rgba(146,62,255,0.2); margin-bottom: 20px; text-align: center; padding: 28px 20px;">
-          <div style="font-size: 14px; color: var(--text-dim); margin-bottom: 8px;">Your Referral Code</div>
-          <div style="font-size: 32px; font-weight: 800; letter-spacing: 4px;" class="text-gradient" id="referral-code">DOQA123</div>
-          <div style="font-size: 12px; color: var(--text-dim); margin-top: 12px; line-height: 1.5;">Earn <span style="color: var(--cyan); font-weight: 700;">5 ETB bonus</span> when your friend makes their first deposit</div>
-          <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn-primary" style="flex: 1; padding: 12px; font-size: 13px;" onclick="App.copyReferral()">Copy Code</button>
-            <button class="btn-secondary" style="flex: 1; padding: 12px; font-size: 13px;" onclick="App.shareReferral()">Share</button>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 20px; font-weight: 800; color: var(--pink);" id="ref-invited">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Invited</div>
-          </div>
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 20px; font-weight: 800; color: var(--cyan);" id="ref-rewarded">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Rewarded</div>
-          </div>
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 20px; font-weight: 800; color: var(--purple);" id="ref-earned">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Earned ETB</div>
-          </div>
-        </div>
-
-        <!-- Invited Users List -->
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Your Invites</div>
-        <div id="invited-list">
-          <div class="card" style="padding: 14px 16px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="avatar" style="width: 32px; height: 32px; font-size: 12px; background: var(--purple);">A</div>
-                <div>
-                  <div style="font-weight: 600; font-size: 13px;">Abebe K.</div>
-                  <div style="font-size: 11px; color: var(--text-dim);">Joined 2 days ago</div>
-                </div>
-              </div>
-              <div style="font-size: 11px; font-weight: 600; color: var(--gold);">Pending</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PROFILE TAB -->
-      <div id="tab-profile" class="tab-pane" style="display: none;">
-        <div style="font-size: 22px; font-weight: 800; margin-bottom: 20px;">Profile</div>
-
-        <!-- Profile Header -->
-        <div class="card" style="text-align: center; padding: 24px; margin-bottom: 20px;">
-          <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--pink), var(--purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; font-weight: 800; color: #fff;" id="profile-avatar">
-            D
-          </div>
-          <div style="font-size: 18px; font-weight: 700;" id="profile-name">User Name</div>
-          <div style="font-size: 13px; color: var(--text-dim); margin-top: 4px;" id="profile-phone">+251 *** *** ***</div>
-        </div>
-
-        <!-- Stats -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 24px;">
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 18px; font-weight: 800;" id="stat-deposited">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Deposited</div>
-          </div>
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 18px; font-weight: 800;" id="stat-wagered">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Wagered</div>
-          </div>
-          <div class="card" style="padding: 14px; text-align: center;">
-            <div style="font-size: 18px; font-weight: 800;" id="stat-bets">0</div>
-            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">Bets</div>
-          </div>
-        </div>
-
-        <!-- Settings -->
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Settings</div>
-
-        <div class="card" style="padding: 4px 0; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <i data-lucide="volume-2" style="width: 18px; height: 18px; color: var(--text-dim);"></i>
-              <span style="font-size: 14px; font-weight: 500;">Sound</span>
-            </div>
-            <div style="width: 44px; height: 26px; border-radius: 100px; background: var(--pink); position: relative; cursor: pointer;" onclick="App.toggleSound()">
-              <div style="width: 22px; height: 22px; border-radius: 50%; background: #fff; position: absolute; top: 2px; right: 2px; transition: transform 0.2s;" id="sound-toggle"></div>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <i data-lucide="globe" style="width: 18px; height: 18px; color: var(--text-dim);"></i>
-              <span style="font-size: 14px; font-weight: 500;">Language</span>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button class="chip active" style="font-size: 11px; padding: 4px 10px;">EN</button>
-              <button class="chip" style="font-size: 11px; padding: 4px 10px;" onclick="App.toggleLang()">አማ</button>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <i data-lucide="shield" style="width: 18px; height: 18px; color: var(--text-dim);"></i>
-              <span style="font-size: 14px; font-weight: 500;">Responsible Gambling</span>
-            </div>
-            <i data-lucide="chevron-right" style="width: 16px; height: 16px; color: var(--text-dim);"></i>
-          </div>
-        </div>
-
-        <!-- Logout -->
-        <button class="btn-secondary" style="color: var(--pink); border-color: rgba(255,22,133,0.3); font-weight: 700;" onclick="App.handleLogout()">Sign Out</button>
-
-        <div style="text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 24px; line-height: 1.6;">
-          DOQA © 2025<br>Play responsibly. 18+ only.
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Nav -->
-    <div id="bottom-nav">
-      <button class="nav-item active" data-tab="home" onclick="App.navigate('home')">
-        <i data-lucide="home" style="width: 22px; height: 22px;"></i>
-        <span class="nav-label">Home</span>
-      </button>
-      <button class="nav-item" data-tab="games" onclick="App.navigate('games')">
-        <i data-lucide="gamepad-2" style="width: 22px; height: 22px;"></i>
-        <span class="nav-label">Games</span>
-      </button>
-      <button class="nav-item" data-tab="wallet" onclick="App.navigate('wallet')">
-        <i data-lucide="wallet" style="width: 22px; height: 22px;"></i>
-        <span class="nav-label">Wallet</span>
-      </button>
-      <button class="nav-item" data-tab="invite" onclick="App.navigate('invite')">
-        <i data-lucide="gift" style="width: 22px; height: 22px;"></i>
-        <span class="nav-label">Invite</span>
-      </button>
-      <button class="nav-item" data-tab="profile" onclick="App.navigate('profile')">
-        <i data-lucide="user" style="width: 22px; height: 22px;"></i>
-        <span class="nav-label">Profile</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ===== TOAST CONTAINER ===== -->
+  <div id="offline-banner" class="offline-banner hidden">Offline Mode — Reconnecting to AV GAME servers...</div>
   <div id="toast-container"></div>
 
-  <!-- ===== BOTTOM SHEET OVERLAY ===== -->
-  <div id="sheet-overlay" class="sheet-overlay" onclick="App.closeSheet(event)">
-    <div class="bottom-sheet" id="bottom-sheet" onclick="event.stopPropagation()">
-      <div class="sheet-handle"></div>
-      <div id="sheet-content"></div>
+  <!-- PHASE 2: PRIVATE AUTHENTICATION & FORCED FIRST-LOGIN PASSWORD CHANGE -->
+  <section id="auth-screen">
+    <div class="auth-card" id="login-box">
+      <div class="brand-badge">AV GAME • CLASSIFIED ACCESS</div>
+      <h1>Presidential Command</h1>
+      <p>Private persistent geopolitical simulation. Accounts are provisioned strictly by the World Administrator.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-username">Assigned Username</label>
+          <input id="login-username" type="text" placeholder="e.g. Hanif" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <div id="login-error" class="kpi-sub" style="color:var(--danger); margin-bottom:10px;"></div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">Authenticate Session</button>
+      </form>
+    </div>
+
+    <div class="auth-card hidden" id="force-password-box">
+      <div class="brand-badge">SECURITY PROTOCOL</div>
+      <h1>Set Permanent Password</h1>
+      <p>Your account was initialized with a temporary credential. Establish a new private password before entering the world.</p>
+      <form id="change-password-form">
+        <div class="form-group">
+          <label for="new-password">New Password (min 8 characters)</label>
+          <input id="new-password" type="password" minlength="8" required />
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm New Password</label>
+          <input id="confirm-password" type="password" minlength="8" required />
+        </div>
+        <div id="pw-error" class="kpi-sub" style="color:var(--danger); margin-bottom:10px;"></div>
+        <button type="submit" class="btn btn-primary btn-full">Activate Presidential Credentials</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- MAIN PERSISTENT GAME SHELL -->
+  <div id="app-shell" class="hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-text"><span class="logo-dot"></span> AV GAME</div>
+        <button class="btn btn-secondary btn-sm" id="theme-toggle" title="Toggle Theme">◐</button>
+      </div>
+      <nav class="nav-list" id="main-nav">
+        <button class="nav-item active" data-view="world"><span>World Map</span></button>
+        <button class="nav-item" data-view="country"><span>My Country</span><span id="nav-alert-badge" class="badge hidden">0</span></button>
+        <button class="nav-item" data-view="market"><span>Global Market</span></button>
+        <button class="nav-item" data-view="diplomacy"><span>Diplomacy</span><span id="nav-msg-badge" class="badge hidden">0</span></button>
+        <button class="nav-item" data-view="conflicts"><span>Conflicts</span></button>
+        <button class="nav-item" data-view="government"><span>Government</span></button>
+        <button class="nav-item" data-view="leaderboard"><span>Leaderboard</span></button>
+        <button class="nav-item" data-view="profile"><span>Profile</span></button>
+        <button class="nav-item hidden" id="nav-admin-btn" data-view="admin" style="color:var(--warning);"><span>Admin Console</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="sidebar-user-meta" style="margin-bottom:8px; color:var(--text-secondary);"></div>
+        <button class="btn btn-secondary btn-sm btn-full" id="logout-btn">Sign Out</button>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="top-country-flag" style="font-size:20px;">🌐</span>
+          <div>
+            <div id="top-country-name" style="font-size:14px; font-weight:700;">Observer State</div>
+            <div id="top-role-label" style="font-size:11px; color:var(--text-secondary);">Awaiting Assignment</div>
+          </div>
+        </div>
+        <div class="stat-pills">
+          <div class="pill"><span class="lbl">Treasury</span><span class="mono" id="top-coins">0</span></div>
+          <div class="pill"><span class="lbl">Level</span><span class="mono" id="top-level">1</span></div>
+          <div class="pill"><span class="lbl">Stability</span><span class="mono" id="top-stability">100%</span></div>
+          <div class="pill"><span class="lbl">Military</span><span class="mono" id="top-military">0</span></div>
+        </div>
+      </header>
+
+      <main class="view-container">
+        <!-- VIEW 1: WORLD MAP & LIVE GLOBAL FEED -->
+        <section id="view-world" class="game-view">
+          <div class="map-wrapper">
+            <div class="map-legend">
+              <span><i class="legend-dot" style="background:#0e4a5e; border:1px solid #22d3ee;"></i>Your Nation</span>
+              <span><i class="legend-dot" style="background:#17365d; border:1px solid #38bdf8;"></i>Player Controlled</span>
+              <span><i class="legend-dot" style="background:#162238;"></i>Unclaimed / AI</span>
+              <span><i class="legend-dot" style="background:#45141c; border:1px solid #ef4444;"></i>Active Conflict</span>
+            </div>
+            <svg id="world-map-svg"></svg>
+            <div class="map-controls">
+              <button class="btn btn-secondary btn-sm" id="zoom-in">+</button>
+              <button class="btn btn-secondary btn-sm" id="zoom-out">−</button>
+              <button class="btn btn-secondary btn-sm" id="zoom-reset">Reset</button>
+            </div>
+
+            <!-- FLOATING COUNTRY INSPECTOR PANEL -->
+            <div id="country-drawer" class="country-drawer hidden">
+              <div class="drawer-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="drawer-flag" style="font-size:22px;">🏳️</span>
+                  <div>
+                    <div id="drawer-name" style="font-weight:700; font-size:15px;">Country</div>
+                    <div id="drawer-president" style="font-size:11px; color:var(--text-secondary);">Unclaimed</div>
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="close-drawer">✕</button>
+              </div>
+              <div class="drawer-tabs" id="drawer-tabs">
+                <button class="drawer-tab active" data-dtab="overview">Overview</button>
+                <button class="drawer-tab" data-dtab="economy">Economy</button>
+                <button class="drawer-tab" data-dtab="industries">Industries</button>
+                <button class="drawer-tab" data-dtab="resources">Resources</button>
+                <button class="drawer-tab" data-dtab="government">Government</button>
+                <button class="drawer-tab" data-dtab="diplomacy">Diplomacy</button>
+                <button class="drawer-tab" data-dtab="military">Military</button>
+                <button class="drawer-tab" data-dtab="deals">Deals</button>
+                <button class="drawer-tab" data-dtab="conflicts">Conflicts</button>
+              </div>
+              <div class="drawer-body" id="drawer-body"></div>
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-top:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">National Shortage Alerts</span></div>
+              <div id="home-alerts-list"><div class="kpi-sub">No critical shortages detected.</div></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Live World News & Events</span></div>
+              <div id="home-news-list" style="max-height:240px; overflow-y:auto;"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Public Deals & Active Wars</span></div>
+              <div id="home-deals-wars" style="max-height:240px; overflow-y:auto;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: MY COUNTRY DASHBOARD -->
+        <section id="view-country" class="game-view hidden">
+          <div class="grid-4" style="margin-bottom:16px;">
+            <div class="card"><div class="kpi-sub">National Treasury</div><div class="kpi-value mono" id="mc-coins">0</div></div>
+            <div class="card"><div class="kpi-sub">GDP / Production Index</div><div class="kpi-value mono" id="mc-gdp">0</div></div>
+            <div class="card"><div class="kpi-sub">Population & Food</div><div class="kpi-value mono" id="mc-pop">0</div></div>
+            <div class="card"><div class="kpi-sub">National XP & Level</div><div class="kpi-value mono" id="mc-xp">Lvl 1 (0 XP)</div></div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">National Industries & Automated Production</span>
+                <button class="btn btn-secondary btn-sm" id="sync-production-btn">Sync Server Tick</button>
+              </div>
+              <div id="mc-companies-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">National Strategic Inventory</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Product / Resource</th><th>Stock</th><th>Threshold</th><th>Status</th></tr></thead>
+                  <tbody id="mc-inventory-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Available Corporate & Asset Offers (Admin Catalog)</span></div>
+            <div id="mc-offers-grid" class="grid-3"></div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: GLOBAL MARKETPLACE -->
+        <section id="view-market" class="game-view hidden">
+          <div class="grid-3" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">List Export Offer on Global Market</span></div>
+              <form id="create-trade-offer-form">
+                <div class="form-group">
+                  <label>Product from Inventory</label>
+                  <select id="trade-product-select" required></select>
+                </div>
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="trade-qty" min="1" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Unit Price (Coins)</label>
+                    <input type="number" id="trade-price" min="1" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Visibility</label>
+                  <select id="trade-visibility">
+                    <option value="public">Public International Deal</option>
+                    <option value="private">Private Bilateral Offer</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Publish Export Offer</button>
+              </form>
+            </div>
+            <div class="card" style="grid-column: span 2;">
+              <div class="card-header"><span class="card-title">Active International Market Listings</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Product</th><th>Seller Country</th><th>Available</th><th>Unit Price</th><th>Action</th></tr></thead>
+                  <tbody id="market-listings-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Verified International Transaction Ledger</span></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Time</th><th>Buyer</th><th>Seller</th><th>Product</th><th>Qty</th><th>Total</th></tr></thead>
+                <tbody id="market-history-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: DIPLOMACY & MESSAGING -->
+        <section id="view-diplomacy" class="game-view hidden">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Send Diplomatic Dispatch / Treaty Proposal</span></div>
+              <form id="diplomacy-form">
+                <div class="form-group">
+                  <label>Recipient Nation</label>
+                  <select id="diplo-target-country" required></select>
+                </div>
+                <div class="form-group">
+                  <label>Dispatch Type</label>
+                  <select id="diplo-type">
+                    <option value="message">Encrypted Diplomatic Note</option>
+                    <option value="trade_pact">Trade Agreement</option>
+                    <option value="alliance">Mutual Defense Alliance</option>
+                    <option value="peace">Peace Treaty</option>
+                    <option value="aid">Economic / Resource Assistance Request</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Terms & Message</label>
+                  <textarea id="diplo-content" rows="3" required placeholder="State treaty terms, resource requests, or diplomatic position..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Transmit Dispatch</button>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Diplomatic Inbox & Active Treaties</span></div>
+              <div id="diplomacy-feed" style="max-height:420px; overflow-y:auto;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 5: ABSTRACT CONFLICTS & WORLD COUNCIL -->
+        <section id="view-conflicts" class="game-view hidden">
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Formal Conflict Declaration (World Council Regulated)</span></div>
+              <p class="kpi-sub" style="margin-bottom:12px;">Abstract geopolitical conflict resolution factors Military Score, Defense Index, Technology, Alliances, Stability, and controlled strategic variance.</p>
+              <form id="declare-conflict-form">
+                <div class="form-group">
+                  <label>Target Country</label>
+                  <select id="conflict-target" required></select>
+                </div>
+                <div class="form-group">
+                  <label>Casus Belli / Strategic Objective</label>
+                  <input type="text" id="conflict-reason" placeholder="e.g. Border Dispute / Resource Embargo" required />
+                </div>
+                <button type="submit" class="btn btn-danger btn-full">Submit Formal Declaration</button>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Active Conflicts & Peace Negotiations</span></div>
+              <div id="active-conflicts-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 6: GOVERNMENT & MINISTERS -->
+        <section id="view-government" class="game-view hidden">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><span class="card-title">State Administration & Political Identity</span></div>
+              <form id="gov-identity-form">
+                <div class="form-group"><label>Official State Name</label><input id="gov-state-name" /></div>
+                <div class="form-group"><label>Government System</label><input id="gov-type" placeholder="e.g. Federal Republic" /></div>
+                <div class="form-group"><label>Ruling Party / Ideology</label><input id="gov-party" /></div>
+                <button type="submit" class="btn btn-primary">Save State Charter</button>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">Cabinet Ministers & Delegated Permissions</span></div>
+              <div id="cabinet-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 7: LEADERBOARDS -->
+        <section id="view-leaderboard" class="game-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Global Power Rankings</span>
+              <select id="lb-category" style="width:200px;">
+                <option value="overall">Overall Power Index</option>
+                <option value="coins">Treasury Wealth</option>
+                <option value="militaryScore">Military Score</option>
+                <option value="techLevel">Technology</option>
+                <option value="level">National Level</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Rank</th><th>Country</th><th>President</th><th>Level</th><th>Score</th></tr></thead>
+                <tbody id="leaderboard-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 8: PRESIDENTIAL PROFILE (SUPABASE AVATAR STORAGE) -->
+        <section id="view-profile" class="game-view hidden">
+          <div class="card" style="max-width:620px;">
+            <div class="card-header"><span class="card-title">Presidential Dossier</span></div>
+            <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+              <img id="profile-avatar-img" src="https://api.dicebear.com/7.x/shapes/svg?seed=AV" alt="Avatar" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid var(--accent);" />
+              <div>
+                <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                  Upload Portrait (Supabase)
+                  <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" class="hidden" />
+                </label>
+                <div class="kpi-sub" style="margin-top:4px;">Max 2MB • Stored in Supabase Storage; URL saved in Firestore.</div>
+              </div>
+            </div>
+            <form id="profile-form">
+              <div class="form-group"><label>Presidential Display Name</label><input id="prof-display-name" required /></div>
+              <div class="form-group"><label>Biography</label><textarea id="prof-bio" rows="3"></textarea></div>
+              <button type="submit" class="btn btn-primary">Update Profile</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- VIEW 9: ADMIN COMMAND CONSOLE (admin.html EQUIVALENT) -->
+        <section id="view-admin" class="game-view hidden">
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">1. Provision Player & Assign Country</span></div>
+              <form id="admin-create-player-form">
+                <div class="grid-2">
+                  <div class="form-group"><label>Username</label><input id="adm-username" placeholder="Hanif" required /></div>
+                  <div class="form-group"><label>Initial Temp Password</label><input id="adm-temp-pw" type="text" placeholder="TempPass2026!" required /></div>
+                </div>
+                <div class="grid-2">
+                  <div class="form-group"><label>Assign Country (ISO-3)</label><input id="adm-iso" placeholder="USA" maxlength="3" required /></div>
+                  <div class="form-group"><label>Starting Coins</label><input id="adm-coins" type="number" value="50000" required /></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Provision Account via Server</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">2. Initialize / Configure Country</span></div>
+              <form id="admin-country-form">
+                <div class="grid-3">
+                  <div class="form-group"><label>ISO-3 Code</label><input id="adm-c-iso" placeholder="USA" maxlength="3" required /></div>
+                  <div class="form-group"><label>Country Name</label><input id="adm-c-name" placeholder="United States" required /></div>
+                  <div class="form-group"><label>Flag Emoji</label><input id="adm-c-flag" placeholder="🇺🇸" required /></div>
+                </div>
+                <div class="grid-3">
+                  <div class="form-group"><label>Treasury</label><input id="adm-c-coins" type="number" value="100000" /></div>
+                  <div class="form-group"><label>Military Score</label><input id="adm-c-mil" type="number" value="80" /></div>
+                  <div class="form-group"><label>Purchasable?</label>
+                    <select id="adm-c-purchasable"><option value="false">No</option><option value="true">Yes (Unclaimed)</option></select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-full">Save Country Record</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-header"><span class="card-title">3. Create Scarcity Product & Company</span></div>
+              <form id="admin-company-form">
+                <div class="grid-2">
+                  <div class="form-group"><label>Company Name</label><input id="adm-comp-name" placeholder="Apple" required /></div>
+                  <div class="form-group"><label>Owner Country ISO</label><input id="adm-comp-iso" placeholder="USA" maxlength="3" required /></div>
+                </div>
+                <div class="grid-3">
+                  <div class="form-group"><label>Product Produced</label><input id="adm-comp-prod" placeholder="Smartphones" required /></div>
+                  <div class="form-group"><label>Output / Interval</label><input id="adm-comp-rate" type="number" value="10" required /></div>
+                  <div class="form-group"><label>Interval (Mins)</label><input id="adm-comp-mins" type="number" value="20" required /></div>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-full">Register Company & Production Rule</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">4. Publish Corporate / Asset Offer</span></div>
+              <form id="admin-offer-form">
+                <div class="grid-2">
+                  <div class="form-group"><label>Offer Title</label><input id="adm-off-title" placeholder="Aramco Refinery Stake" required /></div>
+                  <div class="form-group"><label>Target Country ISO</label><input id="adm-off-iso" placeholder="SAU" maxlength="3" required /></div>
+                </div>
+                <div class="grid-3">
+                  <div class="form-group"><label>Price (Coins)</label><input id="adm-off-price" type="number" value="25000" required /></div>
+                  <div class="form-group"><label>Quantity</label><input id="adm-off-qty" type="number" value="1" required /></div>
+                  <div class="form-group"><label>Unique?</label><select id="adm-off-unique"><option value="true">Yes</option><option value="false">No</option></select></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Publish Offer</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">5. Broadcast World Announcement & Audit Log</span></div>
+            <form id="admin-news-form" style="display:flex; gap:10px; margin-bottom:14px;">
+              <input id="adm-news-text" placeholder="Publish global World Council decree or event..." required />
+              <button type="submit" class="btn btn-primary">Broadcast</button>
+            </form>
+            <div id="admin-audit-list" style="max-height:180px; overflow-y:auto; font-size:12px; color:var(--text-secondary);"></div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
-  <!-- ===== MODAL OVERLAY ===== -->
-  <div id="modal-overlay" class="modal-overlay" onclick="App.closeModal(event)">
-    <div class="modal-content" id="modal-content" onclick="event.stopPropagation()"></div>
-  </div>
-
-  <!-- ==========================================================================
-       LOGIC — Firebase v11.6.1 + Firestore + Supabase
-       ========================================================================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import {
-        getAuth,
-        signInWithEmailAndPassword,
-        createUserWithEmailAndPassword,
-        sendPasswordResetEmail,
-        signOut,
-        onAuthStateChanged
+      getAuth,
+      signInWithEmailAndPassword,
+      updatePassword,
+      signOut,
+      onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import {
-        getFirestore,
-        doc,
-        getDoc,
-        setDoc,
-        collection,
-        getDocs,
-        addDoc,
-        query,
-        where,
-        updateDoc,
-        onSnapshot,
-        serverTimestamp,
-        runTransaction
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      collection,
+      getDocs,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      query,
+      where,
+      orderBy,
+      limit,
+      runTransaction,
+      serverTimestamp,
+      increment
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import {
-        getFunctions,
-        httpsCallable
+      getFunctions,
+      httpsCallable
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
-    // ---------- CONFIG ----------
+    // PRESERVED EXISTING CONFIGURATION
     const firebaseConfig = {
-        apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
-        authDomain: "my-tiktok-cbd6f.firebaseapp.com",
-        databaseURL: "https://my-tiktok-cbd6f-default-rtdb.firebaseio.com",
-        projectId: "my-tiktok-cbd6f",
-        storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
-        messagingSenderId: "964441294320",
-        appId: "1:964441294320:web:4c8da74a0cee8ed2644935",
-        measurementId: "G-RYBWW6XB10"
+      apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
+      authDomain: "my-tiktok-cbd6f.firebaseapp.com",
+      databaseURL: "https://my-tiktok-cbd6f-default-rtdb.firebaseio.com",
+      projectId: "my-tiktok-cbd6f",
+      storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
+      messagingSenderId: "964441294320",
+      appId: "1:964441294320:web:4c8da74a0cee8ed2644935",
+      measurementId: "G-RYBWW6XB10"
     };
 
     const SUPABASE_CONFIG = {
-        url: "https://akoddbuemubeorwfwonv.supabase.co",
-        publishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
-        bucket: "campaign-images"
+      storageUrl: "https://akoddbuemubeorwfwonv.supabase.co/storage/v1",
+      publishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
+      bucket: "campaign-images"
     };
 
-    const TELEBIRR_NUMBER = "0996350347";
-    const CURRENCY = "ETB";
-    const DEMO_MODE = false;
-
-    // ---------- INIT FIREBASE ----------
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    let functions;
-    try { functions = getFunctions(app); } catch(e) { functions = null; }
+    const functions = getFunctions(app);
 
-    // ---------- INIT SUPABASE ----------
-    let supabase = null;
-    if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey);
+    // Application State
+    const state = {
+      user: null,
+      profile: null,
+      isAdmin: false,
+      countries: {},
+      selectedIso: null,
+      activeDrawerTab: 'overview',
+      myCompanies: [],
+      myInventory: {},
+      alerts: [],
+      unsubscribers: []
+    };
+
+    // ISO Numeric -> ISO-3 Map for key nations (extensible via countries collection)
+    const NUM_TO_ISO3 = {
+      "840": "USA", "643": "RUS", "156": "CHN", "276": "DEU", "392": "JPN",
+      "682": "SAU", "231": "ETH", "076": "BRA", "170": "COL", "826": "GBR",
+      "250": "FRA", "356": "IND", "818": "EGY", "710": "ZAF", "792": "TUR",
+      "410": "KOR", "036": "AUS", "124": "CAN", "484": "MEX", "380": "ITA"
+    };
+
+    function toast(msg) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = msg;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => el.remove(), 3600);
     }
 
-    // ---------- STATE ----------
-    const State = {
-        user: null,
-        uid: null,
-        userData: null,
-        settings: {
-            siteOpen: true,
-            closedMessage: "We'll be back soon!",
-            reopenAt: null,
-            telebirrNumber: TELEBIRR_NUMBER,
-            minDeposit: 10,
-            minWithdraw: 50,
-            maxWithdraw: 10000,
-            bonusWagerMultiplier: 5,
-            referralReward: 5,
-            referralTrigger: "first_deposit_approved",
-            spinWeights: [125, 125, 125, 125, 125, 125, 125, 125],
-            bingoPaytable: [0, 0, 1.5, 4, 25, 500],
-            doqaPayoutPercent: 75,
-            maxBetPerGame: 1000,
-            maxPayoutPerRound: 50000,
-            banks: [
-                "Commercial Bank of Ethiopia", "Awash Bank", "Dashen Bank",
-                "Bank of Abyssinia", "Wegagen Bank", "Nib Bank",
-                "Cooperative Bank of Oromia", "Hibret Bank", "Telebirr", "CBE Birr", "Other"
-            ]
-        },
-        currentTab: 'home',
-        spinWheelAngle: 0,
-        currentGame: null,
-        isAdmin: false,
-        soundEnabled: true,
-        language: 'en',
-        bingoSelected: new Set()
-    };
+    // Network status listeners
+    window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
+    window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
 
-    // ---------- API ADAPTER (Firestore-based) ----------
-    const Api = {
-        async _ensureUser() {
-            if (!State.uid) throw new Error('Not authenticated');
-        },
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
 
-        async signUp({ name, phone, email, password, referralCode }) {
-            const cred = await createUserWithEmailAndPassword(auth, email, password);
-            const uid = cred.user.uid;
-            const userDoc = {
-                name, phone, email,
-                balance: 0, bonusBalance: 0,
-                wagerRequired: 0,
-                totalDeposited: 0, totalWagered: 0, totalBets: 0,
-                referralCode: 'DOQA' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                referredBy: referralCode || null,
-                createdAt: Date.now(),
-                status: 'active'
-            };
-            await setDoc(doc(db, 'users', uid), userDoc);
-            return { user: { uid, ...userDoc } };
-        },
+    // Username -> Deterministic internal auth email (no plaintext passwords stored)
+    function usernameToAuthEmail(username) {
+      const clean = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+      return `${clean}@avgame.internal`;
+    }
 
-        async login({ email, password }) {
-            const cred = await signInWithEmailAndPassword(auth, email, password);
-            return { user: cred.user };
-        },
+    // AUTHENTICATION FLOW
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('login-error');
+      errEl.textContent = '';
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      try {
+        await signInWithEmailAndPassword(auth, usernameToAuthEmail(username), password);
+      } catch (err) {
+        errEl.textContent = 'Access denied. Verify assigned username and credentials.';
+      }
+    });
 
-        async requestDeposit({ amount, senderName, screenshotUrl }) {
-            await this._ensureUser();
-            const id = 'dep_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-            await setDoc(doc(db, 'deposits', id), {
-                uid: State.uid, amount, senderName, screenshotUrl,
-                status: 'pending', createdAt: Date.now()
+    document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const p1 = document.getElementById('new-password').value;
+      const p2 = document.getElementById('confirm-password').value;
+      const errEl = document.getElementById('pw-error');
+      if (p1 !== p2) { errEl.textContent = 'Passwords do not match.'; return; }
+      try {
+        await updatePassword(auth.currentUser, p1);
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          mustChangePassword: false,
+          updatedAt: serverTimestamp()
+        });
+        toast('Permanent presidential credentials activated.');
+        bootGame(auth.currentUser);
+      } catch (err) {
+        errEl.textContent = err.message;
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      state.unsubscribers.forEach(u => u());
+      state.unsubscribers = [];
+      await signOut(auth);
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('login-box').classList.remove('hidden');
+        document.getElementById('force-password-box').classList.add('hidden');
+        document.getElementById('app-shell').classList.add('hidden');
+        return;
+      }
+      state.user = user;
+      const tokenRes = await user.getIdTokenResult(true);
+      state.isAdmin = tokenRes.claims.admin === true;
+
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!userSnap.exists()) {
+        toast('Account record missing. Contact World Administrator.');
+        await signOut(auth);
+        return;
+      }
+      state.profile = userSnap.data();
+      if (state.profile.suspended) {
+        toast('This presidential account has been suspended.');
+        await signOut(auth);
+        return;
+      }
+      if (state.profile.mustChangePassword) {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('login-box').classList.add('hidden');
+        document.getElementById('force-password-box').classList.remove('hidden');
+        return;
+      }
+      bootGame(user);
+    });
+
+    async function bootGame(user) {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+
+      if (state.isAdmin || state.profile.role === 'admin') {
+        document.getElementById('nav-admin-btn').classList.remove('hidden');
+      }
+
+      document.getElementById('sidebar-user-meta').textContent =
+        `${state.profile.displayName || state.profile.username} (${state.profile.role || 'President'})`;
+      document.getElementById('prof-display-name').value = state.profile.displayName || state.profile.username;
+      document.getElementById('prof-bio').value = state.profile.bio || '';
+      if (state.profile.avatarUrl) {
+        document.getElementById('profile-avatar-img').src = state.profile.avatarUrl;
+      }
+
+      await initWorldMap();
+      attachRealtimeListeners();
+    }
+
+    // NAVIGATION ROUTER
+    document.getElementById('main-nav').addEventListener('click', (e) => {
+      const btn = e.target.closest('.nav-item');
+      if (!btn) return;
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+    });
+
+    // INTERACTIVE VECTOR WORLD MAP (REAL BOUNDARIES)
+    let mapSvg, mapG, zoomBehavior;
+    async function initWorldMap() {
+      if (mapSvg) return;
+      const container = document.querySelector('.map-wrapper');
+      const width = container.clientWidth || 960;
+      const height = container.clientHeight || 540;
+
+      mapSvg = d3.select('#world-map-svg')
+        .attr('viewBox', `0 0 ${width} ${height}`);
+      mapG = mapSvg.append('g');
+
+      zoomBehavior = d3.zoom()
+        .scaleExtent([1, 8])
+        .on('zoom', (event) => mapG.attr('transform', event.transform));
+      mapSvg.call(zoomBehavior);
+
+      document.getElementById('zoom-in').onclick = () => mapSvg.transition().call(zoomBehavior.scaleBy, 1.5);
+      document.getElementById('zoom-out').onclick = () => mapSvg.transition().call(zoomBehavior.scaleBy, 0.67);
+      document.getElementById('zoom-reset').onclick = () => mapSvg.transition().call(zoomBehavior.transform, d3.zoomIdentity);
+
+      const worldData = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r => r.json());
+      const countriesGeo = topojson.feature(worldData, worldData.objects.countries).features;
+      const projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "FeatureCollection", features: countriesGeo });
+      const pathGen = d3.geoPath().projection(projection);
+
+      mapG.selectAll('path')
+        .data(countriesGeo)
+        .enter()
+        .append('path')
+        .attr('d', pathGen)
+        .attr('class', 'country-path')
+        .attr('data-iso', d => NUM_TO_ISO3[String(d.id).padStart(3, '0')] || d.properties.name)
+        .on('click', (event, d) => {
+          const iso = NUM_TO_ISO3[String(d.id).padStart(3, '0')] || String(d.id);
+          openCountryDrawer(iso, d.properties.name);
+        });
+
+      refreshMapColors();
+    }
+
+    function refreshMapColors() {
+      if (!mapG) return;
+      const myIso = state.profile?.countryIso;
+      mapG.selectAll('.country-path').each(function() {
+        const el = d3.select(this);
+        const iso = el.attr('data-iso');
+        const c = state.countries[iso];
+        el.classed('owned-self', iso === myIso)
+          .classed('owned-player', Boolean(c && c.presidentUid && iso !== myIso))
+          .classed('at-war', Boolean(c && c.atWar));
+      });
+    }
+
+    // FLOATING COUNTRY INSPECTOR DRAWER
+    function openCountryDrawer(iso, fallbackName = '') {
+      state.selectedIso = iso;
+      const c = state.countries[iso] || {
+        iso, name: fallbackName || iso, flag: '🏳️', presidentName: 'Unclaimed Territory',
+        coins: 0, level: 1, stability: 100, militaryScore: 10, techLevel: 1, purchasable: false
+      };
+      document.getElementById('drawer-flag').textContent = c.flag || '🏳️';
+      document.getElementById('drawer-name').textContent = `${c.name} (${iso})`;
+      document.getElementById('drawer-president').textContent = c.presidentName ? `President: ${c.presidentName}` : 'Unclaimed / AI Controlled';
+      document.getElementById('country-drawer').classList.remove('hidden');
+      renderDrawerTab();
+    }
+
+    document.getElementById('close-drawer').onclick = () => document.getElementById('country-drawer').classList.add('hidden');
+    document.getElementById('drawer-tabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.drawer-tab');
+      if (!tab) return;
+      document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.activeDrawerTab = tab.dataset.dtab;
+      renderDrawerTab();
+    });
+
+    function renderDrawerTab() {
+      const iso = state.selectedIso;
+      const c = state.countries[iso] || { iso, name: iso };
+      const body = document.getElementById('drawer-body');
+      const isMine = iso === state.profile?.countryIso;
+      const t = state.activeDrawerTab;
+
+      if (t === 'overview') {
+        body.innerHTML = `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+            <div class="card" style="padding:10px;"><div class="kpi-sub">Level</div><div class="mono" style="font-weight:700;">${c.level || 1}</div></div>
+            <div class="card" style="padding:10px;"><div class="kpi-sub">Stability</div><div class="mono" style="font-weight:700;">${c.stability ?? 100}%</div></div>
+            <div class="card" style="padding:10px;"><div class="kpi-sub">Treasury</div><div class="mono" style="font-weight:700;">${isMine ? (c.coins || 0).toLocaleString() : 'Classified'}</div></div>
+            <div class="card" style="padding:10px;"><div class="kpi-sub">Military</div><div class="mono" style="font-weight:700;">${c.militaryScore || 10}</div></div>
+          </div>
+          ${(!c.presidentUid && c.purchasable) ? `<button class="btn btn-primary btn-full" id="claim-country-btn">Acquire Sovereign Mandate (${(c.purchasePrice || 50000).toLocaleString()} Coins)</button>` : ''}
+        `;
+        const claimBtn = document.getElementById('claim-country-btn');
+        if (claimBtn) claimBtn.onclick = () => claimUnclaimedCountry(iso);
+      } else if (t === 'economy') {
+        body.innerHTML = `<p class="kpi-sub">National Treasury: <strong class="mono">${isMine ? (c.coins || 0).toLocaleString() : 'Restricted'}</strong></p>
+          <p class="kpi-sub" style="margin-top:6px;">Tax Rate: ${c.taxRate || 15}% • Inflation: ${c.inflation || 2.1}%</p>`;
+      } else if (t === 'military') {
+        body.innerHTML = `<p>Abstract Military Score: <strong class="mono">${c.militaryScore || 10}</strong></p>
+          <p class="kpi-sub" style="margin-top:6px;">Defense Readiness: ${c.defenseBonus || 100}% • Tech Tier: ${c.techLevel || 1}</p>`;
+      } else {
+        body.innerHTML = `<p class="kpi-sub">Live ${t.toUpperCase()} intelligence feed for <strong>${c.name || iso}</strong> synchronized with Firestore.</p>`;
+      }
+    }
+
+    // REALTIME FIRESTORE LISTENERS
+    function attachRealtimeListeners() {
+      const myIso = state.profile.countryIso;
+
+      // 1. Countries collection
+      state.unsubscribers.push(onSnapshot(collection(db, 'countries'), (snap) => {
+        const selectTargets = [document.getElementById('diplo-target-country'), document.getElementById('conflict-target')];
+        selectTargets.forEach(s => { if (s) s.innerHTML = ''; });
+
+        const lbRows = [];
+        snap.forEach(d => {
+          const data = { iso: d.id, ...d.data() };
+          state.countries[d.id] = data;
+          lbRows.push(data);
+          if (d.id !== myIso) {
+            selectTargets.forEach(s => {
+              if (s) s.insertAdjacentHTML('beforeend', `<option value="${d.id}">${data.flag || ''} ${data.name} (${d.id})</option>`);
             });
-            return { success: true, id };
-        },
+          }
+        });
 
-        async requestWithdraw({ amount, bankName, accountNumber, accountName }) {
-            await this._ensureUser();
-            // Server-enforced check would happen in cloud function; here we do a client check
-            if ((State.userData?.balance || 0) < amount) throw new Error('Insufficient balance');
-            const id = 'wd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-            await setDoc(doc(db, 'withdrawals', id), {
-                uid: State.uid, amount, bankName, accountNumber, accountName,
-                status: 'pending', createdAt: Date.now()
-            });
-            // Deduct balance atomically via transaction
-            const userRef = doc(db, 'users', State.uid);
-            await runTransaction(db, async (tx) => {
-                const snap = await tx.get(userRef);
-                const bal = snap.data().balance || 0;
-                if (bal < amount) throw new Error('Insufficient balance');
-                tx.update(userRef, { balance: bal - amount });
-            });
-            return { success: true, id };
-        },
+        // Update Topbar & My Country KPIs
+        if (myIso && state.countries[myIso]) {
+          const mc = state.countries[myIso];
+          document.getElementById('top-country-flag').textContent = mc.flag || '🏳️';
+          document.getElementById('top-country-name').textContent = mc.name;
+          document.getElementById('top-role-label').textContent = `President ${state.profile.displayName || state.profile.username}`;
+          document.getElementById('top-coins').textContent = (mc.coins || 0).toLocaleString();
+          document.getElementById('top-level').textContent = mc.level || 1;
+          document.getElementById('top-stability').textContent = `${mc.stability ?? 100}%`;
+          document.getElementById('top-military').textContent = mc.militaryScore || 10;
 
-        async playSpin({ bet }) {
-            await this._ensureUser();
-            const userRef = doc(db, 'users', State.uid);
-            const snap = await getDoc(userRef);
-            const bal = snap.data().balance || 0;
-            if (bal < bet) throw new Error('Insufficient balance');
-
-            // 8 equal segments: 1x, 2x, 3x, 4x, 5x, 0x, 0x, 0x (RTP ~60%? Actually let's use weights from settings)
-            const weights = State.settings.spinWeights || [125,125,125,125,125,125,125,125];
-            const total = weights.reduce((a,b)=>a+b,0);
-            let r = Math.random() * total;
-            let idx = 0;
-            for (let i = 0; i < weights.length; i++) {
-                if (r < weights[i]) { idx = i; break; }
-                r -= weights[i];
-            }
-            const multipliers = [1, 2, 3, 4, 5, 0, 0, 0];
-            const result = multipliers[idx];
-            const payout = bet * result;
-
-            await runTransaction(db, async (tx) => {
-                const s = await tx.get(userRef);
-                const b = s.data().balance || 0;
-                if (b < bet) throw new Error('Insufficient balance');
-                tx.update(userRef, { balance: b - bet + payout });
-            });
-
-            // Log round
-            const roundId = 'round_' + Date.now();
-            await setDoc(doc(db, 'rounds', roundId), {
-                game: 'spin', uid: State.uid, bet, result, payout,
-                serverSeed: 'demo', serverSeedHash: 'demo', clientSeed: 'demo',
-                nonce: 1, createdAt: Date.now()
-            });
-
-            return { result, payout, serverSeed: 'demo', serverSeedHash: 'demo', nonce: 1 };
-        },
-
-        async playBingo({ bet, picks }) {
-            await this._ensureUser();
-            if (!Array.isArray(picks) || picks.length !== 5) throw new Error('Pick exactly 5 numbers');
-            const userRef = doc(db, 'users', State.uid);
-            const snap = await getDoc(userRef);
-            const bal = snap.data().balance || 0;
-            if (bal < bet) throw new Error('Insufficient balance');
-
-            // Draw 5 unique from 1-20
-            const pool = Array.from({length: 20}, (_, i) => i + 1);
-            const drawn = [];
-            for (let i = 0; i < 5; i++) {
-                const idx = Math.floor(Math.random() * pool.length);
-                drawn.push(pool.splice(idx, 1)[0]);
-            }
-            const matches = picks.filter(p => drawn.includes(p)).length;
-            const paytable = [0, 0, 1.5, 4, 25, 500];
-            const payout = bet * (paytable[matches] || 0);
-
-            await runTransaction(db, async (tx) => {
-                const s = await tx.get(userRef);
-                const b = s.data().balance || 0;
-                if (b < bet) throw new Error('Insufficient balance');
-                tx.update(userRef, { balance: b - bet + payout });
-            });
-
-            const roundId = 'round_' + Date.now();
-            await setDoc(doc(db, 'rounds', roundId), {
-                game: 'bingo', uid: State.uid, bet, result: matches, payout,
-                drawnNumbers: drawn, picks,
-                serverSeed: 'demo', serverSeedHash: 'demo',
-                nonce: 1, createdAt: Date.now()
-            });
-
-            return { matches, payout, drawnNumbers: drawn, serverSeed: 'demo', serverSeedHash: 'demo', nonce: 1 };
-        },
-
-        async joinDoqaRoom({ roomId, entry }) {
-            await this._ensureUser();
-            const userRef = doc(db, 'users', State.uid);
-            const snap = await getDoc(userRef);
-            const bal = snap.data().balance || 0;
-            if (bal < entry) throw new Error('Insufficient balance');
-
-            // In a real app, the server would handle room state. Here we simulate a simple join.
-            // We'll store in Firestore rooms collection
-            const roomRef = doc(db, 'rooms', roomId);
-            const roomSnap = await getDoc(roomRef);
-            if (!roomSnap.exists()) {
-                await setDoc(roomRef, { entry, status: 'open', slots: {}, pool: entry, createdAt: Date.now() });
-            }
-            // Charge entry
-            await runTransaction(db, async (tx) => {
-                const s = await tx.get(userRef);
-                const b = s.data().balance || 0;
-                if (b < entry) throw new Error('Insufficient balance');
-                tx.update(userRef, { balance: b - entry });
-            });
-
-            return { success: true, roomId, number: Math.floor(Math.random() * 10) + 1 };
-        },
-
-        async pickDoqaNumber({ number }) {
-            await this._ensureUser();
-            return { success: true, number };
-        },
-
-        async claimReferral({ refereeUid }) {
-            await this._ensureUser();
-            return { success: true, reward: State.settings.referralReward };
-        },
-
-        async adminApproveDeposit({ depositId, note }) {
-            const depRef = doc(db, 'deposits', depositId);
-            const depSnap = await getDoc(depRef);
-            if (!depSnap.exists()) throw new Error('Deposit not found');
-            const dep = depSnap.data();
-            if (dep.status !== 'pending') throw new Error('Already processed');
-            const userRef = doc(db, 'users', dep.uid);
-            await runTransaction(db, async (tx) => {
-                const us = await tx.get(userRef);
-                const u = us.data();
-                tx.update(userRef, {
-                    balance: (u.balance || 0) + dep.amount,
-                    totalDeposited: (u.totalDeposited || 0) + dep.amount
-                });
-            });
-            await updateDoc(depRef, { status: 'approved', reviewedBy: State.uid, note: note || '' });
-            return { success: true };
-        },
-
-        async adminRejectDeposit({ depositId, note }) {
-            await updateDoc(doc(db, 'deposits', depositId), { status: 'rejected', reviewedBy: State.uid, note: note || '' });
-            return { success: true };
-        },
-
-        async adminApproveWithdraw({ withdrawalId, note }) {
-            await updateDoc(doc(db, 'withdrawals', withdrawalId), { status: 'approved', reviewedBy: State.uid, note: note || '' });
-            return { success: true };
-        },
-
-        async adminRejectWithdraw({ withdrawalId, note }) {
-            const wdRef = doc(db, 'withdrawals', withdrawalId);
-            const wdSnap = await getDoc(wdRef);
-            if (!wdSnap.exists()) throw new Error('Withdrawal not found');
-            const wd = wdSnap.data();
-            if (wd.status !== 'pending') throw new Error('Already processed');
-            const userRef = doc(db, 'users', wd.uid);
-            await runTransaction(db, async (tx) => {
-                const us = await tx.get(userRef);
-                const u = us.data();
-                tx.update(userRef, { balance: (u.balance || 0) + wd.amount });
-            });
-            await updateDoc(wdRef, { status: 'rejected', reviewedBy: State.uid, note: note || '' });
-            return { success: true };
-        },
-
-        async adminSetSiteStatus({ siteOpen, closedMessage, reopenAt }) {
-            await setDoc(doc(db, 'settings', 'main'), {
-                siteOpen, closedMessage: closedMessage || '', reopenAt: reopenAt || null
-            }, { merge: true });
-            return { success: true };
-        },
-
-        async adminUpdateSettings({ settings }) {
-            await setDoc(doc(db, 'settings', 'main'), settings, { merge: true });
-            return { success: true };
-        },
-
-        async adminAdjustBalance({ uid, amount, reason }) {
-            const userRef = doc(db, 'users', uid);
-            await runTransaction(db, async (tx) => {
-                const s = await tx.get(userRef);
-                const u = s.data();
-                tx.update(userRef, { balance: (u.balance || 0) + amount });
-            });
-            return { success: true };
+          document.getElementById('mc-coins').textContent = (mc.coins || 0).toLocaleString();
+          document.getElementById('mc-gdp').textContent = (mc.gdp || 1000).toLocaleString();
+          document.getElementById('mc-pop').textContent = `${(mc.population || 10).toFixed(1)}M`;
+          document.getElementById('mc-xp').textContent = `Lvl ${mc.level || 1} (${mc.xp || 0} XP)`;
         }
-    };
 
-    // ---------- APP CONTROLLER ----------
-    const App = {
-        async init() {
-            // Listen to auth state
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    State.user = user;
-                    State.uid = user.uid;
-                    await this.loadUserData(user.uid);
-                    this.checkAdminStatus();
-                    document.getElementById('splash').classList.add('hidden');
-                    document.getElementById('auth-screen').classList.add('hidden');
-                    document.getElementById('main-app').classList.add('visible');
-                    this.setupListeners();
-                    this.navigate('home');
-                } else {
-                    State.user = null;
-                    State.uid = null;
-                    State.userData = null;
-                    document.getElementById('splash').classList.add('hidden');
-                    document.getElementById('auth-screen').classList.remove('hidden');
-                    document.getElementById('main-app').classList.remove('visible');
-                }
-            });
+        renderLeaderboard(lbRows);
+        refreshMapColors();
+        if (state.selectedIso) renderDrawerTab();
+      }));
 
-            // Load settings from Firestore
-            try {
-                const settingsSnap = await getDoc(doc(db, 'settings', 'main'));
-                if (settingsSnap.exists()) {
-                    State.settings = { ...State.settings, ...settingsSnap.data() };
-                }
-            } catch (err) {
-                console.warn('Could not load settings, using defaults', err);
-            }
+      // 2. Public World News
+      state.unsubscribers.push(onSnapshot(query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20)), (snap) => {
+        const el = document.getElementById('home-news-list');
+        el.innerHTML = snap.empty ? '<div class="kpi-sub">No world dispatches yet.</div>' : '';
+        snap.forEach(d => {
+          const n = d.data();
+          el.insertAdjacentHTML('beforeend', `
+            <div style="padding:8px 0; border-bottom:1px solid var(--border); font-size:12px;">
+              <span style="color:var(--accent); font-weight:600;">[${(n.type || 'WORLD').toUpperCase()}]</span> ${n.message}
+            </div>
+          `);
+        });
+      }));
 
-            // Splash timeout
-            setTimeout(() => {
-                if (!State.user) {
-                    document.getElementById('splash').classList.add('hidden');
-                    document.getElementById('auth-screen').classList.remove('hidden');
-                }
-            }, 1800);
+      // 3. Global Market Offers
+      state.unsubscribers.push(onSnapshot(query(collection(db, 'tradeOffers'), where('status', '==', 'open')), (snap) => {
+        const tbody = document.getElementById('market-listings-tbody');
+        const homeDeals = document.getElementById('home-deals-wars');
+        tbody.innerHTML = '';
+        homeDeals.innerHTML = '';
+        snap.forEach(d => {
+          const o = { id: d.id, ...d.data() };
+          const canBuy = myIso && o.sellerIso !== myIso;
+          tbody.insertAdjacentHTML('beforeend', `
+            <tr>
+              <td><strong>${o.product}</strong></td>
+              <td>${o.sellerIso}</td>
+              <td class="mono">${o.quantity}</td>
+              <td class="mono">${o.unitPrice}</td>
+              <td>${canBuy ? `<button class="btn btn-primary btn-sm" data-buy-offer="${o.id}">Buy All (${o.quantity * o.unitPrice})</button>` : '<span class="kpi-sub">Your Listing</span>'}</td>
+            </tr>
+          `);
+          if (o.visibility === 'public') {
+            homeDeals.insertAdjacentHTML('beforeend', `<div style="font-size:12px; padding:6px 0; border-bottom:1px solid var(--border);">📦 <strong>${o.sellerIso}</strong> offering ${o.quantity} ${o.product} @ ${o.unitPrice}/unit</div>`);
+          }
+        });
+      }));
 
-            // Initialize Lucide
-            if (window.lucide) window.lucide.createIcons();
-        },
+      if (!myIso) return;
 
-        async loadUserData(uid) {
-            try {
-                const userRef = doc(db, 'users', uid);
-                const snap = await getDoc(userRef);
-                if (snap.exists()) {
-                    State.userData = snap.data();
-                    this.updateUI();
-                } else {
-                    // New user
-                    const newUser = {
-                        name: State.user.displayName || 'User',
-                        phone: '',
-                        email: State.user.email || '',
-                        balance: 0, bonusBalance: 0,
-                        wagerRequired: 0,
-                        totalDeposited: 0, totalWagered: 0, totalBets: 0,
-                        referralCode: 'DOQA' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                        referredBy: null,
-                        createdAt: Date.now(),
-                        status: 'active'
-                    };
-                    await setDoc(userRef, newUser);
-                    State.userData = newUser;
-                    this.updateUI();
-                }
-            } catch (err) {
-                console.error('Load user data error:', err);
-                this.toast('Failed to load profile', 'error');
-            }
-        },
-
-        setupListeners() {
-            if (!State.uid) return;
-
-            // Listen to user document
-            const userRef = doc(db, 'users', State.uid);
-            onSnapshot(userRef, (snap) => {
-                if (snap.exists()) {
-                    State.userData = snap.data();
-                    this.updateUI();
-                }
-            });
-
-            // Listen to settings
-            const settingsRef = doc(db, 'settings', 'main');
-            onSnapshot(settingsRef, (snap) => {
-                if (snap.exists()) {
-                    State.settings = { ...State.settings, ...snap.data() };
-                }
-            });
-        },
-
-        checkAdminStatus() {
-            // Admin check: user document has role='admin' or email matches admin list
-            // For simplicity, we check a custom claim or Firestore admin collection
-            const adminRef = doc(db, 'admins', State.uid);
-            getDoc(adminRef).then(snap => {
-                State.isAdmin = snap.exists() && snap.data().active === true;
-            }).catch(() => {
-                State.isAdmin = false;
-            });
-        },
-
-        updateUI() {
-            if (!State.userData) return;
-            const d = State.userData;
-
-            const headerBal = document.getElementById('header-balance-text');
-            if (headerBal) headerBal.textContent = this.formatNumber(d.balance || 0);
-
-            const walletCash = document.getElementById('wallet-cash');
-            if (walletCash) walletCash.innerHTML = `${this.formatNumber(d.balance || 0)} <span style="font-size: 16px; color: var(--text-dim);">ETB</span>`;
-
-            const walletBonus = document.getElementById('wallet-bonus');
-            if (walletBonus) walletBonus.textContent = `+ ${this.formatNumber(d.bonusBalance || 0)} ETB bonus`;
-
-            const wagerReq = d.wagerRequired || 0;
-            const wagerDone = d.totalWagered || 0;
-            const wagerPct = wagerReq > 0 ? Math.min(100, (wagerDone / wagerReq) * 100) : 100;
-            const wageringBar = document.getElementById('wagering-bar');
-            if (wageringBar) wageringBar.style.width = wagerPct + '%';
-            const wageringLabel = document.getElementById('wagering-label');
-            if (wageringLabel) wageringLabel.textContent = `${this.formatNumber(wagerDone)} / ${this.formatNumber(wagerReq)} ETB`;
-
-            const refCode = document.getElementById('referral-code');
-            if (refCode) refCode.textContent = d.referralCode || 'DOQA123';
-
-            const profileName = document.getElementById('profile-name');
-            if (profileName) profileName.textContent = d.name || 'User';
-            const profilePhone = document.getElementById('profile-phone');
-            if (profilePhone) profilePhone.textContent = d.phone || '+251 *** *** ***';
-            const profileAvatar = document.getElementById('profile-avatar');
-            if (profileAvatar) profileAvatar.textContent = (d.name || 'U')[0].toUpperCase();
-
-            const statDep = document.getElementById('stat-deposited');
-            if (statDep) statDep.textContent = this.formatNumber(d.totalDeposited || 0);
-            const statWag = document.getElementById('stat-wagered');
-            if (statWag) statWag.textContent = this.formatNumber(d.totalWagered || 0);
-            const statBets = document.getElementById('stat-bets');
-            if (statBets) statBets.textContent = d.totalBets || 0;
-        },
-
-        // ========== AUTH ==========
-        async handleLogin() {
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            if (!email || !password) { this.toast('Please fill all fields', 'error'); return; }
-            const btn = document.getElementById('btn-login');
-            btn.disabled = true; btn.textContent = 'Signing in...';
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                this.toast('Welcome back!', 'success');
-            } catch (err) {
-                this.toast(err.message || 'Login failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Sign In';
-            }
-        },
-
-        async handleSignUp() {
-            const name = document.getElementById('signup-name').value.trim();
-            const phone = document.getElementById('signup-phone').value.trim();
-            const email = document.getElementById('signup-email').value.trim();
-            const password = document.getElementById('signup-password').value;
-            const confirm = document.getElementById('signup-confirm').value;
-            const referral = document.getElementById('signup-referral').value.trim();
-            const ageCheck = document.getElementById('signup-age').checked;
-
-            if (!name || !phone || !email || !password) { this.toast('Please fill all required fields', 'error'); return; }
-            if (!phone.startsWith('+251')) { this.toast('Phone must start with +251', 'error'); return; }
-            if (password.length < 8) { this.toast('Password must be at least 8 characters', 'error'); return; }
-            if (password !== confirm) { this.toast('Passwords do not match', 'error'); return; }
-            if (!ageCheck) { this.toast('You must be 18+ to sign up', 'error'); return; }
-
-            const btn = document.getElementById('btn-signup');
-            btn.disabled = true; btn.textContent = 'Creating...';
-            try {
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                const uid = cred.user.uid;
-                const userDoc = {
-                    name, phone, email,
-                    balance: 0, bonusBalance: 0,
-                    wagerRequired: 0,
-                    totalDeposited: 0, totalWagered: 0, totalBets: 0,
-                    referralCode: 'DOQA' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-                    referredBy: referral || null,
-                    createdAt: Date.now(),
-                    status: 'active'
-                };
-                await setDoc(doc(db, 'users', uid), userDoc);
-                this.toast('Account created! Welcome to DOQA.', 'success');
-            } catch (err) {
-                this.toast(err.message || 'Sign up failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Create Account';
-            }
-        },
-
-        showForgotPassword() {
-            const email = prompt('Enter your email address:');
-            if (email) {
-                sendPasswordResetEmail(auth, email)
-                    .then(() => this.toast('Password reset email sent', 'success'))
-                    .catch(err => this.toast(err.message, 'error'));
-            }
-        },
-
-        showSignUp() {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'block';
-        },
-
-        showLogin() {
-            document.getElementById('login-form').style.display = 'block';
-            document.getElementById('signup-form').style.display = 'none';
-        },
-
-        async handleLogout() {
-            try {
-                await signOut(auth);
-                this.toast('Signed out', 'info');
-            } catch (err) {
-                this.toast('Logout failed', 'error');
-            }
-        },
-
-        // ========== NAVIGATION ==========
-        navigate(tab) {
-            State.currentTab = tab;
-            document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
-            const target = document.getElementById('tab-' + tab);
-            if (target) target.style.display = 'block';
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.tab === tab);
-            });
-            const content = document.getElementById('tab-content');
-            if (content) content.scrollTop = 0;
-        },
-
-        // ========== BOTTOM SHEET ==========
-        openSheet(html) {
-            document.getElementById('sheet-content').innerHTML = html;
-            document.getElementById('sheet-overlay').classList.add('open');
-            if (window.lucide) window.lucide.createIcons();
-        },
-
-        closeSheet(e) {
-            if (e && e.target !== e.currentTarget) return;
-            document.getElementById('sheet-overlay').classList.remove('open');
-        },
-
-        // ========== MODAL ==========
-        openModal(html) {
-            document.getElementById('modal-content').innerHTML = html;
-            document.getElementById('modal-overlay').classList.add('open');
-            if (window.lucide) window.lucide.createIcons();
-        },
-
-        closeModal(e) {
-            if (e && e.target !== e.currentTarget) return;
-            document.getElementById('modal-overlay').classList.remove('open');
-        },
-
-        // ========== TOAST ==========
-        toast(msg, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const el = document.createElement('div');
-            el.className = `toast ${type}`;
-            const icons = { success: 'check-circle', error: 'alert-circle', info: 'info' };
-            el.innerHTML = `<i data-lucide="${icons[type] || 'info'}" style="width: 16px; height: 16px;"></i><span>${this.escapeHtml(msg)}</span>`;
-            container.appendChild(el);
-            if (window.lucide) window.lucide.createIcons();
-            setTimeout(() => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(-12px)';
-                el.style.transition = 'all 0.3s';
-                setTimeout(() => el.remove(), 300);
-            }, 3500);
-        },
-
-        // ========== DEPOSIT FLOW ==========
-        openDepositSheet() {
-            const d = State.userData || {};
-            const html = `
-              <div style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">Deposit via Telebirr</div>
-              <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
-                <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">Send to this Telebirr number:</div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <div style="font-size: 22px; font-weight: 800; letter-spacing: 1px;">${State.settings.telebirrNumber || TELEBIRR_NUMBER}</div>
-                  <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 12px;" onclick="App.copyText('${State.settings.telebirrNumber || TELEBIRR_NUMBER}')">Copy</button>
-                </div>
+      // 4. My Country Companies & Inventory
+      state.unsubscribers.push(onSnapshot(query(collection(db, 'companies'), where('countryIso', '==', myIso)), (snap) => {
+        const list = document.getElementById('mc-companies-list');
+        list.innerHTML = snap.empty ? '<div class="kpi-sub">No active companies assigned.</div>' : '';
+        snap.forEach(d => {
+          const comp = d.data();
+          list.insertAdjacentHTML('beforeend', `
+            <div style="padding:10px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong>${comp.name}</strong> <span class="kpi-sub">(${comp.product})</span>
+                <div class="kpi-sub">Output: ${comp.outputRate} units / ${comp.intervalMinutes} mins</div>
               </div>
-              <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6;">
-                1. Send exactly the amount below to the number above.<br>
-                2. Take a screenshot of the confirmation.<br>
-                3. Enter the sender name and upload the screenshot.<br>
-                4. Tap "Send" and wait for admin approval.
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Amount (ETB)</label>
-                <input type="number" id="deposit-amount" class="auth-input" placeholder="Enter amount" min="${State.settings.minDeposit || 10}">
-              </div>
-              <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-                ${[50, 100, 200, 500, 1000].map(a => `<button class="chip" onclick="document.getElementById('deposit-amount').value=${a}">${a}</button>`).join('')}
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Sender Full Name</label>
-                <input type="text" id="deposit-sender" class="auth-input" placeholder="Name on Telebirr account">
-              </div>
-              <div style="margin-bottom: 16px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Payment Screenshot</label>
-                <input type="file" id="deposit-screenshot" accept="image/*" style="display: none;" onchange="App.handleScreenshot(this)">
-                <button class="btn-secondary" style="width: 100%; padding: 14px; font-size: 13px;" onclick="document.getElementById('deposit-screenshot').click()">
-                  <i data-lucide="upload" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 6px;"></i>
-                  Upload Screenshot
-                </button>
-                <div id="screenshot-preview" style="display: none; margin-top: 10px;"></div>
-              </div>
-              <button class="btn-primary" id="btn-deposit" onclick="App.submitDeposit()">Send Deposit Request</button>
-            `;
-            this.openSheet(html);
-        },
+              <span class="brand-badge" style="margin:0;">${comp.status || 'ACTIVE'}</span>
+            </div>
+          `);
+        });
+      }));
 
-        handleScreenshot(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const preview = document.getElementById('screenshot-preview');
-            preview.style.display = 'block';
-            preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width: 100%; border-radius: 12px; border: 1px solid var(--border); max-height: 180px; object-fit: cover;">`;
-        },
+      state.unsubscribers.push(onSnapshot(collection(db, 'countries', myIso, 'inventory'), (snap) => {
+        const tbody = document.getElementById('mc-inventory-tbody');
+        const select = document.getElementById('trade-product-select');
+        const alertsEl = document.getElementById('home-alerts-list');
+        tbody.innerHTML = '';
+        select.innerHTML = '';
+        alertsEl.innerHTML = '';
+        let alertCount = 0;
 
-        async submitDeposit() {
-            const amount = parseFloat(document.getElementById('deposit-amount').value);
-            const sender = document.getElementById('deposit-sender').value.trim();
-            const fileInput = document.getElementById('deposit-screenshot');
-            const file = fileInput.files[0];
-
-            if (!amount || amount < (State.settings.minDeposit || 10)) { this.toast('Minimum deposit is ' + (State.settings.minDeposit || 10) + ' ETB', 'error'); return; }
-            if (!sender) { this.toast('Please enter sender name', 'error'); return; }
-            if (!file) { this.toast('Please upload a screenshot', 'error'); return; }
-
-            const btn = document.getElementById('btn-deposit');
-            btn.disabled = true; btn.textContent = 'Submitting...';
-            try {
-                let screenshotUrl = '';
-                if (supabase) {
-                    const fileName = `deposits/${State.uid}/${Date.now()}_${file.name}`;
-                    const { data, error } = await supabase.storage.from(SUPABASE_CONFIG.bucket).upload(fileName, file);
-                    if (error) throw error;
-                    const { data: urlData } = supabase.storage.from(SUPABASE_CONFIG.bucket).getPublicUrl(fileName);
-                    screenshotUrl = urlData.publicUrl;
-                } else {
-                    screenshotUrl = 'https://via.placeholder.com/300x200?text=Screenshot';
-                }
-
-                await Api.requestDeposit({ amount, senderName: sender, screenshotUrl });
-                this.closeSheet();
-                this.toast('Deposit request sent! Awaiting approval.', 'success');
-            } catch (err) {
-                this.toast(err.message || 'Deposit failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Send Deposit Request';
-            }
-        },
-
-        // ========== WITHDRAW FLOW ==========
-        openWithdrawSheet() {
-            const d = State.userData || {};
-            const html = `
-              <div style="font-size: 20px; font-weight: 800; margin-bottom: 20px;">Withdraw Funds</div>
-              <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 16px;">
-                <div style="font-size: 12px; color: var(--text-dim);">Available for withdrawal</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--cyan);">${this.formatNumber(d.balance || 0)} ETB</div>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Amount (ETB)</label>
-                <input type="number" id="withdraw-amount" class="auth-input" placeholder="Enter amount" min="${State.settings.minWithdraw || 50}">
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Bank</label>
-                <select id="withdraw-bank" class="auth-input" style="appearance: none;">
-                  ${(State.settings.banks || []).map(b => `<option value="${b}">${b}</option>`).join('')}
-                </select>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Account Number</label>
-                <input type="text" id="withdraw-account" class="auth-input" placeholder="Account number">
-              </div>
-              <div style="margin-bottom: 16px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px; display: block;">Account Holder Name</label>
-                <input type="text" id="withdraw-name" class="auth-input" placeholder="Full name on account">
-              </div>
-              <div style="background: rgba(255,22,133,0.08); border: 1px solid rgba(255,22,133,0.2); border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--text-dim); line-height: 1.5;">
-                Minimum withdrawal: ${State.settings.minWithdraw || 50} ETB. Bonus funds require ${State.settings.bonusWagerMultiplier || 5}x wagering to unlock.
-              </div>
-              <button class="btn-primary" id="btn-withdraw" onclick="App.submitWithdraw()">Request Withdrawal</button>
-            `;
-            this.openSheet(html);
-        },
-
-        async submitWithdraw() {
-            const amount = parseFloat(document.getElementById('withdraw-amount').value);
-            const bank = document.getElementById('withdraw-bank').value;
-            const account = document.getElementById('withdraw-account').value.trim();
-            const name = document.getElementById('withdraw-name').value.trim();
-
-            if (!amount || amount < (State.settings.minWithdraw || 50)) { this.toast('Minimum withdrawal is ' + (State.settings.minWithdraw || 50) + ' ETB', 'error'); return; }
-            if (!account || !name) { this.toast('Please fill all bank details', 'error'); return; }
-
-            const btn = document.getElementById('btn-withdraw');
-            btn.disabled = true; btn.textContent = 'Processing...';
-            try {
-                await Api.requestWithdraw({ amount, bankName: bank, accountNumber: account, accountName: name });
-                this.closeSheet();
-                this.toast('Withdrawal request sent! Awaiting approval.', 'success');
-            } catch (err) {
-                this.toast(err.message || 'Withdrawal failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Request Withdrawal';
-            }
-        },
-
-        // ========== GAMES ==========
-        openGame(game) {
-            State.currentGame = game;
-            if (game === 'spin') this.openSpinWheel();
-            else if (game === 'bingo') this.openBingo();
-            else if (game === 'doqa') this.openDoqaRooms();
-        },
-
-        openSpinWheel() {
-            // 8 segments: 1x, 2x, 3x, 4x, 5x, 0x, 0x, 0x
-            const segments = ['1x', '2x', '3x', '4x', '5x', '0x', '0x', '0x'];
-            const colors = ['#FF1685', '#20D9F5', '#923EFF', '#FFD700', '#FF1685', '#20D9F5', '#923EFF', '#FFD700'];
-            const n = segments.length;
-            const segAngle = 360 / n;
-
-            // Build SVG paths
-            let paths = '';
-            for (let i = 0; i < n; i++) {
-                const startAngle = i * segAngle;
-                const endAngle = startAngle + segAngle;
-                const rad1 = (startAngle - 90) * Math.PI / 180;
-                const rad2 = (endAngle - 90) * Math.PI / 180;
-                const x1 = 50 + 45 * Math.cos(rad1);
-                const y1 = 50 + 45 * Math.sin(rad1);
-                const x2 = 50 + 45 * Math.cos(rad2);
-                const y2 = 50 + 45 * Math.sin(rad2);
-                paths += `<path d="M50,50 L${x1},${y1} A45,45 0 0,1 ${x2},${y2} Z" fill="${colors[i]}" stroke="#080810" stroke-width="0.5" opacity="0.92"/>`;
-            }
-            // Labels
-            let labels = '';
-            for (let i = 0; i < n; i++) {
-                const angle = i * segAngle + segAngle / 2;
-                const rad = (angle - 90) * Math.PI / 180;
-                const x = 50 + 30 * Math.cos(rad);
-                const y = 50 + 30 * Math.sin(rad);
-                labels += `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="5.5" font-weight="800" transform="rotate(${angle},${x},${y})">${segments[i]}</text>`;
-            }
-
-            const html = `
-              <div style="text-align: center; margin-bottom: 16px;">
-                <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Spin Wheel</div>
-                <div style="font-size: 12px; color: var(--text-dim);">Bet and spin to win up to 5x</div>
-              </div>
-              <div class="wheel-container">
-                <div class="wheel-pointer"></div>
-                <svg class="wheel-svg" id="spin-wheel-svg" viewBox="0 0 100 100">
-                  ${paths}
-                  ${labels}
-                </svg>
-              </div>
-              <div style="margin-top: 24px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px; display: block;">Bet Amount (ETB)</label>
-                <input type="number" id="spin-bet" class="auth-input" placeholder="Enter bet" value="10" min="1">
-                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                  ${[10, 20, 50, 100, 200, 500].map(a => `<button class="chip" onclick="document.getElementById('spin-bet').value=${a}">${a}</button>`).join('')}
-                </div>
-              </div>
-              <button class="btn-primary" style="margin-top: 20px;" id="btn-spin" onclick="App.playSpin()">Spin!</button>
-              <div style="text-align: center; margin-top: 12px;">
-                <button style="background: none; border: none; color: var(--text-dim); font-size: 11px; cursor: pointer; font-family: inherit;" onclick="App.showOdds('spin')">View Odds & RTP</button>
-              </div>
-            `;
-            this.openSheet(html);
-            State.spinWheelAngle = 0;
-        },
-
-        async playSpin() {
-            const bet = parseFloat(document.getElementById('spin-bet').value);
-            if (!bet || bet < 1) { this.toast('Minimum bet is 1 ETB', 'error'); return; }
-            const btn = document.getElementById('btn-spin');
-            btn.disabled = true; btn.textContent = 'Spinning...';
-
-            try {
-                const result = await Api.playSpin({ bet });
-                // result.result is the multiplier (0..5)
-                const multipliers = [1, 2, 3, 4, 5, 0, 0, 0];
-                const idx = multipliers.indexOf(result.result);
-                const segAngle = 360 / 8;
-                // Target rotation: land the pointer (top) on the segment index
-                // Segment i spans from i*segAngle to (i+1)*segAngle clockwise from top
-                // We want the center of segment i to align with top (0°)
-                const targetCenter = idx * segAngle + segAngle / 2;
-                const extraSpins = 3 + Math.floor(Math.random() * 3);
-                const finalAngle = 360 * extraSpins + (360 - targetCenter);
-                State.spinWheelAngle += finalAngle;
-
-                const wheel = document.getElementById('spin-wheel-svg');
-                if (wheel) {
-                    wheel.style.transition = 'transform 4s cubic-bezier(0.17,0.67,0.1,0.99)';
-                    wheel.style.transform = `rotate(${State.spinWheelAngle}deg)`;
-                    await new Promise(r => setTimeout(r, 4200));
-                }
-
-                if (result.payout > 0) {
-                    this.toast(`You won ${this.formatNumber(result.payout)} ETB!`, 'success');
-                    this.showWinModal(result.payout, bet, result.result + 'x');
-                } else {
-                    this.toast('Oops! Try one more time.', 'info');
-                }
-            } catch (err) {
-                this.toast(err.message || 'Spin failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Spin!';
-            }
-        },
-
-        openBingo() {
-            const html = `
-              <div style="text-align: center; margin-bottom: 16px;">
-                <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Bingo</div>
-                <div style="font-size: 12px; color: var(--text-dim);">Pick 5 numbers • Match 2+ to win</div>
-              </div>
-              <div class="bingo-grid" id="bingo-board">
-                ${Array.from({length: 20}, (_, i) => i + 1).map(n => `<div class="bingo-cell" data-num="${n}" onclick="App.toggleBingoCell(${n})">${n}</div>`).join('')}
-              </div>
-              <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button class="btn-secondary" style="flex: 1; padding: 10px; font-size: 12px;" onclick="App.quickPickBingo()">Quick Pick</button>
-                <button class="btn-secondary" style="flex: 1; padding: 10px; font-size: 12px;" onclick="App.clearBingo()">Clear</button>
-              </div>
-              <div style="margin-top: 16px;">
-                <label style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px; display: block;">Bet Amount (ETB)</label>
-                <input type="number" id="bingo-bet" class="auth-input" placeholder="Enter bet" value="10" min="1">
-                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                  ${[10, 20, 50, 100, 200, 500].map(a => `<button class="chip" onclick="document.getElementById('bingo-bet').value=${a}">${a}</button>`).join('')}
-                </div>
-              </div>
-              <button class="btn-primary" style="margin-top: 20px;" id="btn-bingo" onclick="App.playBingo()">Play Bingo!</button>
-              <div style="text-align: center; margin-top: 12px;">
-                <button style="background: none; border: none; color: var(--text-dim); font-size: 11px; cursor: pointer; font-family: inherit;" onclick="App.showOdds('bingo')">View Odds & RTP</button>
-              </div>
-            `;
-            this.openSheet(html);
-            State.bingoSelected = new Set();
-        },
-
-        toggleBingoCell(num) {
-            const el = document.querySelector(`.bingo-cell[data-num="${num}"]`);
-            if (!el) return;
-            if (State.bingoSelected.has(num)) {
-                State.bingoSelected.delete(num);
-                el.classList.remove('selected');
-            } else {
-                if (State.bingoSelected.size >= 5) { this.toast('You can only pick 5 numbers', 'info'); return; }
-                State.bingoSelected.add(num);
-                el.classList.add('selected');
-            }
-        },
-
-        quickPickBingo() {
-            this.clearBingo();
-            const nums = [];
-            while (nums.length < 5) {
-                const n = Math.floor(Math.random() * 20) + 1;
-                if (!nums.includes(n)) nums.push(n);
-            }
-            nums.forEach(n => {
-                State.bingoSelected.add(n);
-                const el = document.querySelector(`.bingo-cell[data-num="${n}"]`);
-                if (el) el.classList.add('selected');
-            });
-        },
-
-        clearBingo() {
-            State.bingoSelected = new Set();
-            document.querySelectorAll('.bingo-cell').forEach(el => el.classList.remove('selected', 'matched', 'missed'));
-        },
-
-        async playBingo() {
-            if (State.bingoSelected.size !== 5) { this.toast('Please pick exactly 5 numbers', 'error'); return; }
-            const bet = parseFloat(document.getElementById('bingo-bet').value);
-            if (!bet || bet < 1) { this.toast('Minimum bet is 1 ETB', 'error'); return; }
-
-            const btn = document.getElementById('btn-bingo');
-            btn.disabled = true; btn.textContent = 'Drawing...';
-
-            try {
-                const result = await Api.playBingo({ bet, picks: Array.from(State.bingoSelected) });
-                const drawn = result.drawnNumbers || [];
-                for (const num of drawn) {
-                    await new Promise(r => setTimeout(r, 600));
-                    const el = document.querySelector(`.bingo-cell[data-num="${num}"]`);
-                    if (el) {
-                        if (State.bingoSelected.has(num)) {
-                            el.classList.add('matched');
-                        } else {
-                            el.classList.add('missed');
-                        }
-                    }
-                }
-                await new Promise(r => setTimeout(r, 800));
-
-                if (result.payout > 0) {
-                    this.toast(`You won ${this.formatNumber(result.payout)} ETB!`, 'success');
-                    this.showWinModal(result.payout, bet, result.matches + ' matches');
-                } else {
-                    this.toast(`${result.matches} matches — no win. Try again!`, 'info');
-                }
-            } catch (err) {
-                this.toast(err.message || 'Bingo failed', 'error');
-            } finally {
-                btn.disabled = false; btn.textContent = 'Play Bingo!';
-            }
-        },
-
-        openDoqaRooms() {
-            const html = `
-              <div style="text-align: center; margin-bottom: 16px;">
-                <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">DOQA Rooms</div>
-                <div style="font-size: 12px; color: var(--text-dim);">Pick a room and win 75% of the pool</div>
-              </div>
-              <div class="room-scroll" id="doqa-rooms">
-                ${[10, 20, 50, 100, 200, 500, 1000].map(entry => `
-                  <div class="room-card" onclick="App.joinDoqaRoom(${entry})">
-                    <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">${entry} ETB</div>
-                    <div style="font-size: 11px; color: var(--text-dim);">Pool: ${entry * 10} ETB</div>
-                    <div style="font-size: 11px; color: var(--cyan); margin-top: 6px;">Winner: ${Math.floor(entry * 10 * 0.75)} ETB</div>
-                    <div style="font-size: 10px; color: var(--text-dim); margin-top: 8px;">0/10 players</div>
-                    <div style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; margin-top: 10px; overflow: hidden;">
-                      <div style="height: 100%; width: 0%; background: var(--pink); border-radius: 4px; transition: width 0.3s;"></div>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-              <div style="margin-top: 24px; text-align: center;">
-                <div style="font-size: 12px; color: var(--text-dim); line-height: 1.6;">
-                  Rooms fill with 10 players. When full, a winner is drawn.<br>
-                  If not full within the time limit, everyone is refunded.
-                </div>
-              </div>
-            `;
-            this.openSheet(html);
-        },
-
-        async joinDoqaRoom(entry) {
-            try {
-                const result = await Api.joinDoqaRoom({ roomId: 'room_' + entry, entry });
-                this.toast(`Joined ${entry} ETB room!`, 'success');
-                this.showDoqaBoard(entry, result);
-            } catch (err) {
-                this.toast(err.message || 'Could not join room', 'error');
-            }
-        },
-
-        showDoqaBoard(entry, joinResult) {
-            const html = `
-              <div style="text-align: center; margin-bottom: 16px;">
-                <div style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Room: ${entry} ETB</div>
-                <div style="font-size: 12px; color: var(--text-dim);">Pick a number (1-10)</div>
-              </div>
-              <div class="slot-grid" id="doqa-slots">
-                ${Array.from({length: 10}, (_, i) => i + 1).map(n => `
-                  <div class="slot" data-num="${n}" onclick="App.pickDoqaNumber(${n})">${n}</div>
-                `).join('')}
-              </div>
-              <div style="margin-top: 24px; text-align: center;">
-                <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px;">Waiting for players...</div>
-                <div style="font-size: 11px; color: var(--text-dim);" id="doqa-status">0/10 players</div>
-              </div>
-            `;
-            this.openSheet(html);
-            setTimeout(() => {
-                const slot = document.querySelector(`.slot[data-num="${joinResult.number}"]`);
-                if (slot) {
-                    slot.classList.add('mine');
-                    slot.innerHTML = `<span>${joinResult.number}</span><div class="slot-avatar" style="background: var(--pink);">${(State.userData?.name || 'U')[0]}</div>`;
-                }
-            }, 500);
-        },
-
-        async pickDoqaNumber(num) {
-            try {
-                await Api.pickDoqaNumber({ number: num });
-                const slot = document.querySelector(`.slot[data-num="${num}"]`);
-                if (slot) {
-                    slot.classList.add('mine');
-                    slot.innerHTML = `<span>${num}</span><div class="slot-avatar" style="background: var(--pink);">${(State.userData?.name || 'U')[0]}</div>`;
-                }
-                this.toast(`Picked number ${num}`, 'success');
-            } catch (err) {
-                this.toast(err.message || 'Could not pick number', 'error');
-            }
-        },
-
-        showOdds(game) {
-            let html = '';
-            if (game === 'spin') {
-                html = `
-                  <div style="font-size: 20px; font-weight: 800; margin-bottom: 16px;">Spin Wheel Odds</div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr style="border-bottom: 1px solid var(--border);"><th style="text-align: left; padding: 8px 0; color: var(--text-dim);">Multiplier</th><th style="text-align: right; color: var(--text-dim);">Probability</th></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">5x</td><td style="text-align: right; color: var(--pink);">12.5%</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">4x</td><td style="text-align: right; color: var(--pink);">12.5%</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">3x</td><td style="text-align: right; color: var(--pink);">12.5%</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">2x</td><td style="text-align: right; color: var(--pink);">12.5%</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">1x</td><td style="text-align: right; color: var(--pink);">12.5%</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">0x</td><td style="text-align: right; color: var(--pink);">37.5%</td></tr>
-                  </table>
-                  <div style="margin-top: 16px; font-size: 12px; color: var(--text-dim); text-align: center;">RTP: ~59%</div>
-                `;
-            } else if (game === 'bingo') {
-                html = `
-                  <div style="font-size: 20px; font-weight: 800; margin-bottom: 16px;">Bingo Odds</div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr style="border-bottom: 1px solid var(--border);"><th style="text-align: left; padding: 8px 0; color: var(--text-dim);">Matches</th><th style="text-align: center; color: var(--text-dim);">Chance</th><th style="text-align: right; color: var(--text-dim);">Payout</th></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">0-1</td><td style="text-align: center; color: var(--text-dim);">63%</td><td style="text-align: right; color: var(--text-dim);">0x</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">2</td><td style="text-align: center; color: var(--text-dim);">29.4%</td><td style="text-align: right; color: var(--cyan);">1.5x</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">3</td><td style="text-align: center; color: var(--text-dim);">6.8%</td><td style="text-align: right; color: var(--purple);">4x</td></tr>
-                    <tr style="border-bottom: 1px solid var(--border);"><td style="padding: 10px 0;">4</td><td style="text-align: center; color: var(--text-dim);">0.48%</td><td style="text-align: right; color: var(--gold);">25x</td></tr>
-                    <tr><td style="padding: 10px 0;">5</td><td style="text-align: center; color: var(--text-dim);">0.006%</td><td style="text-align: right; color: var(--gold);">500x</td></tr>
-                  </table>
-                  <div style="margin-top: 16px; font-size: 12px; color: var(--text-dim); text-align: center;">RTP: ~86%</div>
-                `;
-            }
-            this.openModal(`<div style="padding: 8px;">${html}</div><button class="btn-secondary" style="margin-top: 20px;" onclick="App.closeModal()">Close</button>`);
-        },
-
-        showWinModal(payout, bet, label) {
-            const isBigWin = payout >= bet * 5;
-            if (isBigWin) this.fireConfetti();
-            this.openModal(`
-              <div style="text-align: center; padding: 12px 0;">
-                <div style="font-size: 48px; margin-bottom: 12px;">${isBigWin ? '🎉' : '✨'}</div>
-                <div style="font-size: 28px; font-weight: 800; color: var(--gold); margin-bottom: 4px;">+${this.formatNumber(payout)} ETB</div>
-                <div style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">${label}</div>
-                <button class="btn-primary" onclick="App.closeModal()">Awesome!</button>
+        snap.forEach(d => {
+          const item = d.data();
+          const low = item.quantity < (item.minThreshold || 20);
+          if (low) {
+            alertCount++;
+            alertsEl.insertAdjacentHTML('beforeend', `
+              <div class="alert-item critical">
+                <div><strong>${d.id} Shortage</strong><div class="kpi-sub">Stock: ${item.quantity} / Needed: ${item.minThreshold || 20}</div></div>
+                <span class="badge">LOW</span>
               </div>
             `);
-        },
+          }
+          tbody.insertAdjacentHTML('beforeend', `
+            <tr>
+              <td>${d.id}</td>
+              <td class="mono">${item.quantity}</td>
+              <td class="mono">${item.minThreshold || 20}</td>
+              <td style="color:${low ? 'var(--danger)' : 'var(--success)'}; font-weight:600;">${low ? 'SHORTAGE' : 'STABLE'}</td>
+            </tr>
+          `);
+          if (item.quantity > 0) {
+            select.insertAdjacentHTML('beforeend', `<option value="${d.id}">${d.id} (${item.quantity} avail)</option>`);
+          }
+        });
+        const badge = document.getElementById('nav-alert-badge');
+        badge.textContent = alertCount;
+        badge.classList.toggle('hidden', alertCount === 0);
+      }));
 
-        // ========== REFERRAL ==========
-        copyReferral() {
-            const code = State.userData?.referralCode || 'DOQA123';
-            this.copyText(code);
-        },
+      // 5. Admin Corporate Offers for My Country
+      state.unsubscribers.push(onSnapshot(query(collection(db, 'companyOffers'), where('status', '==', 'available')), (snap) => {
+        const grid = document.getElementById('mc-offers-grid');
+        grid.innerHTML = snap.empty ? '<div class="kpi-sub">No corporate offers available.</div>' : '';
+        snap.forEach(d => {
+          const off = { id: d.id, ...d.data() };
+          if (off.targetIso && off.targetIso !== myIso) return;
+          grid.insertAdjacentHTML('beforeend', `
+            <div class="card">
+              <div class="card-title">${off.title}</div>
+              <div class="kpi-sub" style="margin:6px 0;">Price: <strong class="mono">${off.price.toLocaleString()}</strong> Coins • Qty: ${off.quantity}</div>
+              <button class="btn btn-primary btn-sm btn-full" data-purchase-corp="${off.id}">Acquire Asset</button>
+            </div>
+          `);
+        });
+      }));
 
-        shareReferral() {
-            const code = State.userData?.referralCode || 'DOQA123';
-            const text = `Join DOQA and win real money! Use my referral code: ${code}`;
-            if (navigator.share) {
-                navigator.share({ title: 'DOQA', text, url: window.location.href }).catch(() => {});
-            } else {
-                this.copyText(text);
-            }
-        },
+      // 6. Diplomacy Inbox
+      state.unsubscribers.push(onSnapshot(query(collection(db, 'messages'), where('toIso', '==', myIso)), (snap) => {
+        const feed = document.getElementById('diplomacy-feed');
+        feed.innerHTML = snap.empty ? '<div class="kpi-sub">No incoming dispatches.</div>' : '';
+        let unread = 0;
+        snap.forEach(d => {
+          const m = { id: d.id, ...d.data() };
+          if (m.status === 'pending') unread++;
+          feed.insertAdjacentHTML('beforeend', `
+            <div class="card" style="margin-bottom:8px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <strong>From: ${m.fromIso} (${m.type})</strong>
+                <span class="kpi-sub">${m.status}</span>
+              </div>
+              <p style="font-size:13px; margin:8px 0;">${m.content}</p>
+              ${m.status === 'pending' ? `<button class="btn btn-primary btn-sm" data-accept-diplo="${m.id}">Accept & Ratify</button>` : ''}
+            </div>
+          `);
+        });
+        const badge = document.getElementById('nav-msg-badge');
+        badge.textContent = unread;
+        badge.classList.toggle('hidden', unread === 0);
+      }));
 
-        copyText(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                this.toast('Copied!', 'success');
-            }).catch(() => {
-                this.toast('Failed to copy', 'error');
-            });
-        },
+      // 7. Active Conflicts
+      state.unsubscribers.push(onSnapshot(collection(db, 'conflicts'), (snap) => {
+        const list = document.getElementById('active-conflicts-list');
+        list.innerHTML = snap.empty ? '<div class="kpi-sub">Global peace currently holds.</div>' : '';
+        snap.forEach(d => {
+          const w = { id: d.id, ...d.data() };
+          list.insertAdjacentHTML('beforeend', `
+            <div class="alert-item critical">
+              <div>
+                <strong>${w.attackerIso} ⚔️ ${w.defenderIso}</strong>
+                <div class="kpi-sub">${w.reason} • Status: ${w.status}</div>
+              </div>
+              ${(w.status === 'active' && (w.attackerIso === myIso || w.defenderIso === myIso))
+                ? `<button class="btn btn-secondary btn-sm" data-resolve-war="${w.id}">Resolve Turn</button>` : ''}
+            </div>
+          `);
+        });
+      }));
+    }
 
-        // ========== PROFILE ==========
-        toggleSound() {
-            State.soundEnabled = !State.soundEnabled;
-            const toggle = document.getElementById('sound-toggle');
-            if (toggle) {
-                toggle.style.transform = State.soundEnabled ? 'translateX(0)' : 'translateX(-18px)';
-                toggle.parentElement.style.background = State.soundEnabled ? 'var(--pink)' : 'var(--text-dim)';
-            }
-            this.toast(State.soundEnabled ? 'Sound on' : 'Sound off', 'info');
-        },
+    // ATOMIC MARKETPLACE PURCHASE (CLIENT + SERVER VALIDATION)
+    document.getElementById('market-listings-tbody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-buy-offer]');
+      if (!btn) return;
+      const offerId = btn.dataset.buyOffer;
+      const buyerIso = state.profile.countryIso;
+      btn.disabled = true;
+      try {
+        await runTransaction(db, async (tx) => {
+          const offerRef = doc(db, 'tradeOffers', offerId);
+          const offerSnap = await tx.get(offerRef);
+          if (!offerSnap.exists() || offerSnap.data().status !== 'open') {
+            throw new Error('Offer already fulfilled or cancelled.');
+          }
+          const offer = offerSnap.data();
+          const totalCost = offer.quantity * offer.unitPrice;
+          const buyerRef = doc(db, 'countries', buyerIso);
+          const sellerRef = doc(db, 'countries', offer.sellerIso);
+          const buyerSnap = await tx.get(buyerRef);
+          if ((buyerSnap.data().coins || 0) < totalCost) {
+            throw new Error('Insufficient national treasury.');
+          }
+          const buyerInvRef = doc(db, 'countries', buyerIso, 'inventory', offer.product);
+          const buyerInvSnap = await tx.get(buyerInvRef);
+          const curQty = buyerInvSnap.exists() ? buyerInvSnap.data().quantity : 0;
 
-        toggleLang() {
-            State.language = State.language === 'en' ? 'am' : 'en';
-            this.toast(State.language === 'en' ? 'English' : 'አማርኛ', 'info');
-        },
+          tx.update(buyerRef, { coins: increment(-totalCost), xp: increment(25) });
+          tx.update(sellerRef, { coins: increment(totalCost), xp: increment(25) });
+          tx.set(buyerInvRef, { quantity: curQty + offer.quantity }, { merge: true });
+          tx.update(offerRef, { status: 'completed', buyerIso, completedAt: serverTimestamp() });
+        });
+        toast('International trade settled atomically.');
+      } catch (err) {
+        toast(err.message);
+        btn.disabled = false;
+      }
+    });
 
-        // ========== SITE CLOSED ==========
-        showClosedScreen() {
-            const overlay = document.createElement('div');
-            overlay.id = 'closed-overlay';
-            overlay.style.cssText = 'position: fixed; inset: 0; z-index: 5000; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;';
-            overlay.innerHTML = `
-              <div style="font-size: 64px; margin-bottom: 24px;">🔒</div>
-              <div style="font-size: 24px; font-weight: 800; margin-bottom: 12px;">DOQA is Temporarily Closed</div>
-              <div style="font-size: 14px; color: var(--text-dim); max-width: 300px; line-height: 1.6; margin-bottom: 24px;">${this.escapeHtml(State.settings.closedMessage || 'We will be back soon!')}</div>
-              <div style="font-size: 13px; color: var(--pink); font-weight: 600;">Reopening soon</div>
-            `;
-            document.body.appendChild(overlay);
-        },
+    // CREATE EXPORT OFFER (ATOMIC INVENTORY LOCK)
+    document.getElementById('create-trade-offer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const myIso = state.profile.countryIso;
+      const product = document.getElementById('trade-product-select').value;
+      const qty = parseInt(document.getElementById('trade-qty').value, 10);
+      const price = parseInt(document.getElementById('trade-price').value, 10);
+      const visibility = document.getElementById('trade-visibility').value;
 
-        // ========== UTILITIES ==========
-        formatNumber(n) {
-            return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        },
+      try {
+        await runTransaction(db, async (tx) => {
+          const invRef = doc(db, 'countries', myIso, 'inventory', product);
+          const invSnap = await tx.get(invRef);
+          if (!invSnap.exists() || invSnap.data().quantity < qty) {
+            throw new Error('Insufficient inventory for export.');
+          }
+          tx.update(invRef, { quantity: invSnap.data().quantity - qty });
+          const newOfferRef = doc(collection(db, 'tradeOffers'));
+          tx.set(newOfferRef, {
+            sellerIso: myIso,
+            product,
+            quantity: qty,
+            unitPrice: price,
+            visibility,
+            status: 'open',
+            createdAt: serverTimestamp()
+          });
+        });
+        toast('Export offer published to Global Market.');
+      } catch (err) {
+        toast(err.message);
+      }
+    });
 
-        escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        },
+    // PURCHASE CORPORATE OFFER (PREVENTS DOUBLE BUY)
+    document.getElementById('mc-offers-grid').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-purchase-corp]');
+      if (!btn) return;
+      const offerId = btn.dataset.purchaseCorp;
+      const myIso = state.profile.countryIso;
+      btn.disabled = true;
+      try {
+        await runTransaction(db, async (tx) => {
+          const offRef = doc(db, 'companyOffers', offerId);
+          const cRef = doc(db, 'countries', myIso);
+          const [offSnap, cSnap] = await Promise.all([tx.get(offRef), tx.get(cRef)]);
+          if (!offSnap.exists() || offSnap.data().status !== 'available') {
+            throw new Error('Offer no longer available.');
+          }
+          const off = offSnap.data();
+          if ((cSnap.data().coins || 0) < off.price) throw new Error('Insufficient treasury.');
+          tx.update(cRef, { coins: increment(-off.price), xp: increment(50) });
+          tx.update(offRef, {
+            quantity: increment(-1),
+            status: (off.unique || off.quantity <= 1) ? 'sold' : 'available',
+            purchasedBy: myIso
+          });
+        });
+        toast('Corporate asset acquired.');
+      } catch (err) {
+        toast(err.message);
+        btn.disabled = false;
+      }
+    });
 
-        fireConfetti() {
-            const colors = ['#FF1685', '#20D9F5', '#923EFF', '#FFD700', '#FFFFFF'];
-            for (let i = 0; i < 60; i++) {
-                const piece = document.createElement('div');
-                piece.className = 'confetti-piece';
-                piece.style.left = Math.random() * 100 + 'vw';
-                piece.style.top = -10 + 'px';
-                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-                piece.style.width = (6 + Math.random() * 8) + 'px';
-                piece.style.height = (6 + Math.random() * 8) + 'px';
-                piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-                piece.style.animationDelay = Math.random() * 0.8 + 's';
-                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
-                document.body.appendChild(piece);
-                setTimeout(() => piece.remove(), 4500);
-            }
-        }
-    };
+    // DIPLOMACY & CONFLICTS
+    document.getElementById('diplomacy-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'messages'), {
+        fromIso: state.profile.countryIso,
+        toIso: document.getElementById('diplo-target-country').value,
+        type: document.getElementById('diplo-type').value,
+        content: document.getElementById('diplo-content').value,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      e.target.reset();
+      toast('Diplomatic dispatch transmitted.');
+    });
 
-    // ---------- BOOT ----------
-    window.App = App;
-    window.addEventListener('load', () => {
-        if (window.lucide) window.lucide.createIcons();
-        App.init();
+    document.getElementById('diplomacy-feed').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-accept-diplo]');
+      if (!btn) return;
+      await updateDoc(doc(db, 'messages', btn.dataset.acceptDiplo), { status: 'ratified' });
+      toast('Treaty ratified.');
+    });
+
+    document.getElementById('declare-conflict-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const target = document.getElementById('conflict-target').value;
+      const reason = document.getElementById('conflict-reason').value;
+      const declareConflictFn = httpsCallable(functions, 'declareConflict');
+      try {
+        await declareConflictFn({ targetIso: target, reason });
+        toast('Conflict declared under World Council rules.');
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    document.getElementById('active-conflicts-list').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-resolve-war]');
+      if (!btn) return;
+      const resolveFn = httpsCallable(functions, 'resolveConflictTurn');
+      try {
+        const res = await resolveFn({ conflictId: btn.dataset.resolveWar });
+        toast(`Conflict resolved: ${res.data.summary}`);
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    document.getElementById('sync-production-btn').addEventListener('click', async () => {
+      const syncFn = httpsCallable(functions, 'processProductionTick');
+      try {
+        await syncFn({ countryIso: state.profile.countryIso });
+        toast('Production cycles synchronized.');
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    // SUPABASE PROFILE AVATAR UPLOAD (ONLY FOR PROFILE IMAGES)
+    document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { toast('Max image size is 2MB.'); return; }
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${state.user.uid}_${Date.now()}.${ext}`;
+      const uploadUrl = `${SUPABASE_CONFIG.storageUrl}/object/${SUPABASE_CONFIG.bucket}/${path}`;
+      try {
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_CONFIG.publishableKey,
+            'Authorization': `Bearer ${SUPABASE_CONFIG.publishableKey}`,
+            'Content-Type': file.type
+          },
+          body: file
+        });
+        if (!res.ok) throw new Error('Supabase storage upload failed.');
+        const publicUrl = `${SUPABASE_CONFIG.storageUrl}/object/public/${SUPABASE_CONFIG.bucket}/${path}`;
+        await updateDoc(doc(db, 'users', state.user.uid), { avatarUrl: publicUrl });
+        document.getElementById('profile-avatar-img').src = publicUrl;
+        toast('Presidential portrait updated.');
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updateDoc(doc(db, 'users', state.user.uid), {
+        displayName: document.getElementById('prof-display-name').value.trim(),
+        bio: document.getElementById('prof-bio').value.trim()
+      });
+      toast('Profile dossier updated.');
+    });
+
+    // LEADERBOARDS
+    function renderLeaderboard(rows) {
+      const cat = document.getElementById('lb-category').value;
+      const sorted = [...rows].sort((a, b) => {
+        const scoreA = cat === 'overall' ? ((a.coins || 0) / 1000 + (a.militaryScore || 0) * 10 + (a.level || 1) * 100) : (a[cat] || 0);
+        const scoreB = cat === 'overall' ? ((b.coins || 0) / 1000 + (b.militaryScore || 0) * 10 + (b.level || 1) * 100) : (b[cat] || 0);
+        return scoreB - scoreA;
+      });
+      const tbody = document.getElementById('leaderboard-tbody');
+      tbody.innerHTML = sorted.slice(0, 25).map((c, idx) => {
+        const sc = cat === 'overall' ? Math.round((c.coins || 0) / 1000 + (c.militaryScore || 0) * 10 + (c.level || 1) * 100) : (c[cat] || 0);
+        return `<tr><td class="mono">#${idx + 1}</td><td>${c.flag || ''} ${c.name}</td><td>${c.presidentName || 'AI'}</td><td class="mono">${c.level || 1}</td><td class="mono">${sc.toLocaleString()}</td></tr>`;
+      }).join('');
+    }
+    document.getElementById('lb-category').addEventListener('change', () => renderLeaderboard(Object.values(state.countries)));
+
+    // ADMIN CONSOLE HANDLERS (SERVER-VALIDATED)
+    document.getElementById('admin-create-player-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const provisionFn = httpsCallable(functions, 'adminProvisionPlayer');
+      try {
+        await provisionFn({
+          username: document.getElementById('adm-username').value.trim(),
+          tempPassword: document.getElementById('adm-temp-pw').value,
+          countryIso: document.getElementById('adm-iso').value.trim().toUpperCase(),
+          startingCoins: Number(document.getElementById('adm-coins').value)
+        });
+        toast('Player provisioned and assigned to country.');
+        e.target.reset();
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+
+    document.getElementById('admin-country-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const iso = document.getElementById('adm-c-iso').value.trim().toUpperCase();
+      await setDoc(doc(db, 'countries', iso), {
+        name: document.getElementById('adm-c-name').value.trim(),
+        flag: document.getElementById('adm-c-flag').value.trim(),
+        coins: Number(document.getElementById('adm-c-coins').value),
+        militaryScore: Number(document.getElementById('adm-c-mil').value),
+        purchasable: document.getElementById('adm-c-purchasable').value === 'true',
+        level: 1, xp: 0, stability: 100
+      }, { merge: true });
+      toast(`Country ${iso} saved.`);
+    });
+
+    document.getElementById('admin-company-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'companies'), {
+        name: document.getElementById('adm-comp-name').value.trim(),
+        countryIso: document.getElementById('adm-comp-iso').value.trim().toUpperCase(),
+        product: document.getElementById('adm-comp-prod').value.trim(),
+        outputRate: Number(document.getElementById('adm-comp-rate').value),
+        intervalMinutes: Number(document.getElementById('adm-comp-mins').value),
+        lastProducedAt: serverTimestamp(),
+        status: 'ACTIVE'
+      });
+      toast('Company & scarcity production rule registered.');
+    });
+
+    document.getElementById('admin-offer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'companyOffers'), {
+        title: document.getElementById('adm-off-title').value.trim(),
+        targetIso: document.getElementById('adm-off-iso').value.trim().toUpperCase(),
+        price: Number(document.getElementById('adm-off-price').value),
+        quantity: Number(document.getElementById('adm-off-qty').value),
+        unique: document.getElementById('adm-off-unique').value === 'true',
+        status: 'available',
+        createdAt: serverTimestamp()
+      });
+      toast('Corporate offer published.');
+    });
+
+    document.getElementById('admin-news-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await addDoc(collection(db, 'announcements'), {
+        type: 'WORLD COUNCIL',
+        message: document.getElementById('adm-news-text').value.trim(),
+        createdAt: serverTimestamp()
+      });
+      e.target.reset();
+      toast('Global announcement broadcast.');
     });
   </script>
 </body>
