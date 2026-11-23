@@ -3,41 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>AV GAME — Global Geopolitical Strategy Simulation</title>
+<title>AV GAME — Global Geopolitical Strategy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --bg-base:#070B14; --bg-surface:#0F182A; --bg-card:#152036; --bg-elevated:#1C2A45;
-  --bg-hover:#25354F; --border:rgba(148,163,184,.15); --border-strong:rgba(56,189,248,.45);
+  --bg-hover:#25354F; --border:rgba(148,163,184,.15); --border-strong:rgba(34,211,238,.45);
   --text-primary:#F8FAFC; --text-secondary:#94A3B8; --text-muted:#64748B;
   --cyan:#22D3EE; --blue:#6366F1; --purple:#A78BFA; --green:#4ADE80;
-  --orange:#FBBF24; --pink:#F472B6; --danger:#F43F5E; --blood:#7F1D1D;
+  --orange:#FBBF24; --pink:#F472B6; --danger:#F43F5E;
   --grad-primary:linear-gradient(135deg,#22D3EE 0%,#6366F1 100%);
   --grad-war:linear-gradient(135deg,#F43F5E 0%,#7F1D1D 100%);
   --grad-gold:linear-gradient(135deg,#FBBF24 0%,#F59E0B 100%);
   --shadow-card:0 10px 30px -10px rgba(0,0,0,.65);
-  --shadow-glow:0 0 30px rgba(34,211,238,.35);
   --radius:16px;
   --font-sans:'Inter',sans-serif; --font-display:'Space Grotesk',sans-serif;
   --font-mono:'JetBrains Mono',monospace;
 }
-[data-theme="light"]{
-  --bg-base:#F3F6FC; --bg-surface:#FFF; --bg-card:#FFF; --bg-elevated:#F1F5F9;
-  --bg-hover:#E2E8F0; --border:rgba(23,32,51,.10); --border-strong:rgba(2,132,199,.45);
-  --text-primary:#172033; --text-secondary:#475569; --text-muted:#64748B;
-  --cyan:#0284C7; --blue:#4F46E5; --purple:#7C3AED; --green:#059669;
-  --orange:#D97706; --pink:#DB2777; --danger:#E11D48;
-  --shadow-card:0 8px 24px -8px rgba(15,23,42,.08);
-}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans);background:var(--bg-base);color:var(--text-primary);min-height:100vh;overflow-x:hidden;font-feature-settings:"tnum" 1}
-body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+body{font-family:var(--font-sans);background:var(--bg-base);color:var(--text-primary);
+  min-height:100vh;overflow-x:hidden;font-feature-settings:"tnum" 1}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .display-font{font-family:var(--font-display)}
 .hidden{display:none!important}
@@ -46,28 +35,23 @@ svg.lucide{width:16px;height:16px;stroke-width:2;flex-shrink:0}
 ::-webkit-scrollbar-track{background:var(--bg-base)}
 ::-webkit-scrollbar-thumb{background:var(--bg-elevated);border-radius:4px}
 
-/* ============ ANIMATIONS ============ */
-@keyframes pulseGlow{0%,100%{box-shadow:0 0 8px rgba(34,211,238,.4)}50%{box-shadow:0 0 24px rgba(34,211,238,.9)}}
-@keyframes floatUp{from{transform:translateY(0);opacity:1}to{transform:translateY(-80px);opacity:0}}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-@keyframes flashScreen{0%,100%{background:transparent}50%{background:rgba(255,255,255,.4)}}
-@keyframes warPulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
-@keyframes missileLaunch{0%{transform:translateY(0) rotate(45deg);opacity:1}100%{transform:translateY(-300px) rotate(45deg);opacity:0}}
-@keyframes explode{0%{transform:scale(0);opacity:1}50%{transform:scale(1.4);opacity:.8}100%{transform:scale(2);opacity:0}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 8px rgba(34,211,238,.4)}50%{box-shadow:0 0 24px rgba(34,211,238,.9)}}
 @keyframes bounceIn{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes warPulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 @keyframes coinFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(.4);opacity:0}}
-@keyframes damagePop{0%{transform:scale(0) rotate(-15deg);opacity:0}30%{transform:scale(1.3) rotate(5deg);opacity:1}100%{transform:scale(1) translateY(-30px);opacity:0}}
-@keyframes radarSweep{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-@keyframes mushroom{0%{transform:scale(0) translateY(0);opacity:1}60%{transform:scale(1.8) translateY(-20px);opacity:.9}100%{transform:scale(2.4) translateY(-60px);opacity:0}}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes damagePop{0%{transform:scale(0);opacity:0}30%{transform:scale(1.3);opacity:1}100%{transform:scale(1) translateY(-30px);opacity:0}}
 
-/* ============ AUTH ============ */
+/* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
   background:radial-gradient(circle at 20% 20%,rgba(99,102,241,.25) 0%,transparent 45%),
   radial-gradient(circle at 80% 80%,rgba(34,211,238,.2) 0%,transparent 45%),var(--bg-base)}
 .auth-card{width:100%;max-width:430px;background:var(--bg-surface);border:1px solid var(--border-strong);
-  border-radius:20px;padding:36px;box-shadow:0 28px 70px rgba(0,0,0,.7);animation:bounceIn .5s ease}
+  border-radius:20px;padding:36px;box-shadow:0 28px 70px rgba(0,0,0,.7)}
 .brand-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;
   letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);background:rgba(34,211,238,.12);
   border:1px solid rgba(34,211,238,.3);padding:5px 12px;border-radius:999px;margin-bottom:14px}
@@ -80,9 +64,11 @@ input,select,textarea{width:100%;background:var(--bg-elevated);border:1px solid 
   color:var(--text-primary);padding:11px 13px;border-radius:10px;font-size:14px;
   font-family:var(--font-sans);outline:none;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.18)}
+input[type="checkbox"]{width:20px;height:20px}
+
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;
   border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid transparent;
-  transition:transform .12s,filter .15s,background .15s;font-family:var(--font-sans)}
+  transition:transform .12s,filter .15s;font-family:var(--font-sans)}
 .btn:active:not(:disabled){transform:scale(.97)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-primary{background:var(--grad-primary);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.4)}
@@ -96,13 +82,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
 .btn-full{width:100%}
 
-/* ============ SHELL ============ */
+/* SHELL */
 #app-shell{display:flex;min-height:100vh}
 .sidebar{width:260px;background:var(--bg-surface);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;
-  transition:width .22s ease}
-.sidebar.collapsed{width:76px}
-.sidebar.collapsed .nav-label,.sidebar.collapsed .logo-label,.sidebar.collapsed .sidebar-profile-text{display:none}
+  display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50}
 .sidebar-header{padding:16px 18px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between}
 .logo-wrap{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:18px}
@@ -113,7 +96,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .nav-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;
   border-radius:10px;font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;
   background:transparent;border:1px solid transparent;width:100%;text-align:left;
-  transition:all .15s ease;font-family:var(--font-sans)}
+  transition:all .15s;font-family:var(--font-sans)}
 .nav-item-left{display:flex;align-items:center;gap:11px}
 .nav-item:hover{background:var(--bg-elevated);color:var(--text-primary)}
 .nav-item.active{background:linear-gradient(90deg,rgba(34,211,238,.18),rgba(99,102,241,.12));
@@ -121,22 +104,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .nav-item[data-view="war"].active{background:linear-gradient(90deg,rgba(244,63,94,.2),rgba(127,29,29,.15));
   border-color:rgba(244,63,94,.4);color:#FCA5A5}
 .badge{font-size:10px;padding:2px 7px;border-radius:999px;background:var(--pink);
-  color:#fff;font-weight:800;animation:bounceIn .4s}
+  color:#fff;font-weight:800}
 .badge.red{background:var(--danger)}
+.badge.green{background:var(--green);color:#000}
 .sidebar-footer{padding:12px;border-top:1px solid var(--border)}
-.sidebar-profile-card{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;
-  background:var(--bg-elevated);margin-bottom:8px}
+.sidebar-profile-card{display:flex;align-items:center;gap:10px;padding:8px;
+  border-radius:10px;background:var(--bg-elevated);margin-bottom:8px}
 .sidebar-profile-card img{width:34px;height:34px;border-radius:50%;object-fit:cover;
   border:2px solid var(--cyan)}
 
-/* ============ TOPBAR ============ */
-.main-area{flex:1;margin-left:260px;display:flex;flex-direction:column;min-width:0;
-  transition:margin-left .22s ease}
-.sidebar.collapsed+.main-area{margin-left:76px}
+.main-area{flex:1;margin-left:260px;display:flex;flex-direction:column;min-width:0}
 .topbar{height:66px;background:rgba(15,24,42,.9);backdrop-filter:blur(14px);
   border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;
   justify-content:space-between;gap:12px;position:sticky;top:0;z-index:40}
-[data-theme="light"] .topbar{background:rgba(255,255,255,.9)}
 .stat-pills{display:flex;align-items:center;gap:8px;overflow-x:auto}
 .pill{display:flex;align-items:center;gap:6px;background:var(--bg-card);
   border:1px solid var(--border);padding:7px 12px;border-radius:999px;
@@ -144,14 +124,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .pill .lbl{color:var(--text-secondary);font-weight:500}
 .view-container{padding:20px;max-width:1520px;width:100%;margin:0 auto}
 
-/* ============ WAR TICKER ============ */
-.war-ticker{background:linear-gradient(90deg,rgba(244,63,94,.15),rgba(127,29,29,.1));
-  border-bottom:1px solid rgba(244,63,94,.3);padding:6px 20px;font-size:12px;
-  font-weight:600;display:flex;align-items:center;gap:10px;overflow:hidden;white-space:nowrap}
-.war-ticker-track{display:flex;gap:30px;animation:scrollTicker 30s linear infinite}
-@keyframes scrollTicker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-
-/* ============ HERO ============ */
+/* HERO */
 .hero-banner{background:linear-gradient(120deg,rgba(99,102,241,.25) 0%,rgba(34,211,238,.15) 55%,rgba(167,139,250,.2) 100%);
   border:1px solid var(--border-strong);border-radius:var(--radius);padding:20px 24px;
   margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;
@@ -163,87 +136,20 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .progress-fill{height:100%;background:var(--grad-primary);border-radius:999px;
   transition:width .5s cubic-bezier(.22,1,.36,1);box-shadow:0 0 12px rgba(34,211,238,.6)}
 
-/* ============ GRIDS & CARDS ============ */
+/* GRIDS & CARDS */
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;box-shadow:var(--shadow-card);transition:border-color .2s,transform .2s}
 .card:hover{border-color:rgba(148,163,184,.3)}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap}
 .card-title{font-family:var(--font-display);font-size:15px;font-weight:700;
   display:flex;align-items:center;gap:8px}
 .kpi-value{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
 .kpi-sub{font-size:12px;color:var(--text-secondary);margin-top:3px}
 
-/* ============ WAR ROOM ============ */
-.war-room-hero{background:linear-gradient(135deg,rgba(127,29,29,.4),rgba(15,24,42,.9));
-  border:1px solid rgba(244,63,94,.4);border-radius:var(--radius);padding:22px;
-  margin-bottom:18px;position:relative;overflow:hidden}
-.war-room-hero::after{content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(244,63,94,.03) 10px,rgba(244,63,94,.03) 20px);
-  pointer-events:none}
-.enemy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.enemy-card{background:var(--bg-elevated);border:1px solid rgba(244,63,94,.25);
-  border-radius:14px;padding:16px;transition:transform .2s,border-color .2s;position:relative}
-.enemy-card:hover{transform:translateY(-3px);border-color:rgba(244,63,94,.6)}
-.enemy-flag{font-size:38px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
-.threat-meter{height:8px;border-radius:999px;background:rgba(244,63,94,.15);
-  overflow:hidden;margin:8px 0;display:flex}
-.threat-fill{height:100%;background:var(--grad-war);transition:width .5s}
-.power-stat{display:flex;justify-content:space-between;font-size:12px;
-  padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.1)}
-.power-stat:last-child{border-bottom:none}
-
-/* ============ BATTLE MODAL ============ */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
-  z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
-  animation:fadeIn .25s ease}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal-content{background:var(--bg-surface);border:1px solid var(--border-strong);
-  border-radius:20px;padding:28px;max-width:560px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.9);
-  animation:bounceIn .35s ease;position:relative;overflow:hidden}
-.modal-content.nuke-modal{border-color:rgba(251,191,36,.5);
-  background:linear-gradient(180deg,rgba(251,191,36,.08),var(--bg-surface))}
-.modal-close{position:absolute;top:14px;right:14px;background:var(--bg-elevated);
-  border:1px solid var(--border);border-radius:8px;width:32px;height:32px;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary)}
-.modal-close:hover{background:var(--bg-hover);color:var(--text-primary)}
-
-/* Battle arena */
-.battle-arena{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  margin:20px 0;padding:20px;border-radius:14px;
-  background:radial-gradient(circle,rgba(244,63,94,.12),transparent 70%),
-  linear-gradient(135deg,rgba(15,24,42,.9),rgba(127,29,29,.3))}
-.battle-side{flex:1;text-align:center}
-.battle-flag{font-size:56px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));
-  transition:transform .3s}
-.battle-flag.attacking{animation:shake .5s infinite}
-.battle-name{font-size:12px;font-weight:700;margin-top:6px;color:var(--text-secondary)}
-.battle-power{font-family:var(--font-mono);font-size:20px;font-weight:800;margin-top:2px}
-.battle-vs{font-family:var(--font-display);font-size:24px;font-weight:800;
-  color:var(--danger);text-shadow:0 0 20px rgba(244,63,94,.8);flex-shrink:0}
-
-/* Nuke animation */
-.nuke-stage{position:relative;height:220px;margin:20px 0;border-radius:14px;
-  background:radial-gradient(circle at 50% 100%,#1a0a0a 0%,#050810 100%);
-  overflow:hidden;border:1px solid rgba(251,191,36,.3)}
-.missile{position:absolute;bottom:20px;left:50%;width:8px;height:40px;
-  background:linear-gradient(180deg,#FBBF24,#F43F5E);border-radius:2px;
-  transform:translateX(-50%) rotate(45deg);box-shadow:0 0 15px #FBBF24}
-.missile.launch{animation:missileLaunch 1.2s ease-out forwards}
-.mushroom-cloud{position:absolute;bottom:40%;left:50%;transform:translateX(-50%);
-  width:60px;height:60px;border-radius:50%;
-  background:radial-gradient(circle,#FBBF24 0%,#F43F5E 40%,transparent 70%);
-  display:none}
-.mushroom-cloud.explode{display:block;animation:mushroom 1.5s ease-out forwards}
-
-/* Damage popup */
-.damage-pop{position:absolute;font-family:var(--font-mono);font-size:28px;font-weight:900;
-  color:#FCA5A5;text-shadow:0 0 12px rgba(244,63,94,.9);pointer-events:none;
-  animation:damagePop 1.2s ease-out forwards;z-index:250}
-
-/* ============ MAP ============ */
+/* MAP */
 .map-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:center;justify-content:space-between}
 .map-wrapper{position:relative;width:100%;height:560px;
   background:radial-gradient(circle at 50% 45%,#0F1A30 0%,#060913 100%);
@@ -270,12 +176,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   gap:12px;z-index:15}
 .legend-dot{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px}
 
-/* Country drawer */
+/* COUNTRY DRAWER */
 .country-drawer{position:absolute;top:14px;right:14px;bottom:14px;width:420px;
   max-width:calc(100% - 28px);background:rgba(15,24,42,.97);backdrop-filter:blur(16px);
   border:1px solid var(--border-strong);border-radius:16px;display:flex;
-  flex-direction:column;z-index:30;box-shadow:0 24px 60px rgba(0,0,0,.8);
-  transition:transform .25s,height .25s}
+  flex-direction:column;z-index:30;box-shadow:0 24px 60px rgba(0,0,0,.8)}
 .country-drawer.minimized{height:64px;bottom:auto;overflow:hidden}
 .drawer-header{padding:14px 16px;border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between}
@@ -287,18 +192,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .drawer-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
 .drawer-body{padding:16px;overflow-y:auto;flex:1;font-size:13px}
 
-/* ============ SHOP / MARKET ============ */
+/* COMPANIES */
+.company-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.company-card{background:var(--bg-elevated);border:1px solid var(--border);
+  border-radius:14px;padding:16px;position:relative;transition:transform .2s,border-color .2s}
+.company-card:hover{transform:translateY(-3px);border-color:var(--cyan)}
+.company-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(99,102,241,.35));
+  color:#22D3EE;border:1px solid rgba(34,211,238,.4);flex-shrink:0}
+.company-icon svg{width:26px;height:26px}
+.stat-line{display:flex;justify-content:space-between;padding:6px 0;
+  border-bottom:1px dashed rgba(148,163,184,.1);font-size:12px}
+.stat-line:last-child{border-bottom:none}
+
+/* MARKET */
 .market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:14px}
 .product-card{background:var(--bg-elevated);border:1px solid var(--border);
   border-radius:14px;padding:16px;display:flex;flex-direction:column;
-  justify-content:space-between;gap:12px;transition:transform .18s,border-color .18s,box-shadow .18s;
+  justify-content:space-between;gap:12px;transition:transform .18s,border-color .18s;
   position:relative;overflow:hidden}
 .product-card:hover{transform:translateY(-4px);border-color:var(--cyan);
   box-shadow:0 14px 30px -10px rgba(34,211,238,.3)}
-.product-card.buying::after{content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(74,222,128,.3),transparent);
-  animation:buySweep .8s ease}
-@keyframes buySweep{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 .product-art-badge{width:56px;height:56px;border-radius:14px;display:flex;
   align-items:center;justify-content:center;flex-shrink:0}
 .product-art-badge svg{width:28px;height:28px}
@@ -310,42 +224,71 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .category-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;
   font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;
   border-radius:6px;background:rgba(255,255,255,.06);color:var(--text-secondary)}
-.versus-bar{height:10px;border-radius:999px;background:var(--danger);overflow:hidden;
-  display:flex;margin:8px 0}
-.versus-fill-atk{background:var(--cyan);height:100%;transition:width .4s}
 
-/* Toast & notification */
+/* WAR */
+.war-room-hero{background:linear-gradient(135deg,rgba(127,29,29,.4),rgba(15,24,42,.9));
+  border:1px solid rgba(244,63,94,.4);border-radius:var(--radius);padding:22px;
+  margin-bottom:18px;position:relative;overflow:hidden}
+.enemy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.enemy-card{background:var(--bg-elevated);border:1px solid rgba(244,63,94,.25);
+  border-radius:14px;padding:16px;transition:transform .2s,border-color .2s}
+.enemy-card:hover{transform:translateY(-3px);border-color:rgba(244,63,94,.6)}
+.enemy-flag{font-size:38px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.threat-meter{height:8px;border-radius:999px;background:rgba(244,63,94,.15);
+  overflow:hidden;margin:8px 0;display:flex}
+.threat-fill{height:100%;background:var(--grad-war)}
+.power-stat{display:flex;justify-content:space-between;font-size:12px;
+  padding:4px 0;border-bottom:1px dashed rgba(148,163,184,.1)}
+.power-stat:last-child{border-bottom:none}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:fadeIn .25s ease}
+.modal-content{background:var(--bg-surface);border:1px solid var(--border-strong);
+  border-radius:20px;padding:28px;max-width:560px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.9);
+  animation:bounceIn .35s ease;position:relative;max-height:90vh;overflow-y:auto}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg-elevated);
+  border:1px solid var(--border);border-radius:8px;width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary)}
+.modal-close:hover{background:var(--bg-hover);color:var(--text-primary)}
+
+.battle-arena{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:20px 0;padding:20px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(15,24,42,.9),rgba(127,29,29,.3))}
+.battle-side{flex:1;text-align:center}
+.battle-flag{font-size:56px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.6))}
+.battle-name{font-size:12px;font-weight:700;margin-top:6px;color:var(--text-secondary)}
+.battle-power{font-family:var(--font-mono);font-size:20px;font-weight:800;margin-top:2px}
+.battle-vs{font-family:var(--font-display);font-size:24px;font-weight:800;
+  color:var(--danger);text-shadow:0 0 20px rgba(244,63,94,.8);flex-shrink:0}
+
+/* TOAST */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:999;
   display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{background:var(--bg-surface);border:1px solid var(--cyan);color:var(--text-primary);
   padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;
   box-shadow:0 12px 32px rgba(0,0,0,.6);display:flex;align-items:center;gap:8px;
-  animation:slideIn .3s ease;pointer-events:auto}
+  animation:slideIn .3s ease;pointer-events:auto;max-width:340px}
 .toast.success{border-color:var(--green)}
 .toast.error{border-color:var(--danger)}
 
-/* Confetti */
 .confetti{position:fixed;width:10px;height:10px;top:-20px;z-index:1000;pointer-events:none;
   animation:confettiFall linear forwards}
-@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}
-  100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
-
-/* Coin fly */
 .coin-particle{position:fixed;width:20px;height:20px;border-radius:50%;
   background:radial-gradient(circle at 30% 30%,#FDE68A,#F59E0B);
   box-shadow:0 0 12px #FBBF24;z-index:1000;pointer-events:none}
 
-/* Offline banner */
 .offline-banner{background:var(--danger);color:#fff;text-align:center;font-size:12px;
   font-weight:800;padding:6px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
+.empty-state svg{width:48px;height:48px;margin-bottom:12px;opacity:.5}
 
-/* Mobile sheet */
+/* RESPONSIVE */
 .mobile-more-sheet{position:fixed;bottom:66px;left:10px;right:10px;background:var(--bg-surface);
   border:1px solid var(--border-strong);border-radius:16px;padding:12px;z-index:60;
   display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
   box-shadow:0 -10px 40px rgba(0,0,0,.7)}
-
-/* Responsive */
 @media(max-width:960px){
   .sidebar{position:fixed;bottom:0;top:auto;left:0;right:0;width:100%!important;
     height:64px;flex-direction:row;border-right:none;border-top:1px solid var(--border)}
@@ -360,19 +303,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   .map-wrapper{height:480px}
   .country-drawer{top:auto;left:8px;right:8px;bottom:8px;width:calc(100% - 16px);
     max-height:68%;border-radius:18px}
-  .battle-arena{flex-direction:column}
-  .battle-vs{transform:rotate(90deg)}
 }
 @media(min-width:961px){#mobile-more-btn,#mobile-more-sheet{display:none!important}}
-
-/* Skeleton loading */
-.skeleton{background:linear-gradient(90deg,var(--bg-elevated) 25%,var(--bg-hover) 50%,var(--bg-elevated) 75%);
-  background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 </style>
 </head>
 <body>
-<div id="offline-banner" class="offline-banner hidden">⚠️ Connection Lost — Reconnecting to AV GAME World Servers...</div>
+<div id="offline-banner" class="offline-banner hidden">⚠️ Connection Lost — Reconnecting...</div>
 <div id="toast-container"></div>
 
 <!-- AUTH -->
@@ -380,11 +316,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   <div class="auth-card" id="login-box">
     <div class="brand-badge"><i data-lucide="globe"></i> AV GAME • WORLD SIMULATION</div>
     <h1>Presidential Command</h1>
-    <p>Private persistent geopolitical simulation. Enter your administrator-issued presidential credentials.</p>
+    <p>Enter your administrator-issued credentials to access your nation.</p>
     <form id="login-form">
       <div class="form-group">
-        <label for="login-username">Assigned Username</label>
-        <input id="login-username" type="text" placeholder="e.g. Hanif" autocomplete="username" required />
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" placeholder="e.g. alex" autocomplete="username" required />
       </div>
       <div class="form-group">
         <label for="login-password">Password</label>
@@ -395,19 +331,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
         <i data-lucide="shield-check"></i> Enter World Simulation
       </button>
     </form>
-    <div class="kpi-sub" style="margin-top:14px;text-align:center;font-size:11px">
-      <i data-lucide="info" style="width:12px;height:12px"></i>
-      If you cannot login, ask your admin to reset your password in admin.html
-    </div>
   </div>
 
   <div class="auth-card hidden" id="force-password-box">
     <div class="brand-badge"><i data-lucide="key-round"></i> FIRST-LOGIN SECURITY</div>
     <h1>Set Private Password</h1>
-    <p>Your account was provisioned with a temporary password. Create a permanent password.</p>
+    <p>Your account was provisioned with a temporary password. Create a permanent one.</p>
     <form id="change-password-form">
       <div class="form-group">
-        <label for="new-password">New Password (min 8 characters)</label>
+        <label for="new-password">New Password (min 8 chars)</label>
         <input id="new-password" type="password" minlength="8" required />
       </div>
       <div class="form-group">
@@ -422,59 +354,47 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   </div>
 </section>
 
-<!-- APP SHELL -->
+<!-- APP -->
 <div id="app-shell" class="hidden">
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo-wrap">
         <div class="logo-orb"><i data-lucide="globe-2"></i></div>
-        <span class="logo-label">AV GAME</span>
+        <span>AV GAME</span>
       </div>
-      <button class="btn btn-secondary btn-sm" id="sidebar-collapse-btn" title="Collapse">
-        <i data-lucide="panel-left-close"></i>
-      </button>
     </div>
 
     <nav class="nav-list" id="main-nav">
-      <button class="nav-item active" data-view="world"><span class="nav-item-left"><i data-lucide="map"></i><span class="nav-label">World Map</span></span></button>
-      <button class="nav-item" data-view="war"><span class="nav-item-left"><i data-lucide="swords"></i><span class="nav-label">War Room</span></span><span id="nav-war-badge" class="badge red hidden">!</span></button>
-      <button class="nav-item" data-view="country"><span class="nav-item-left"><i data-lucide="landmark"></i><span class="nav-label">My Country</span></span><span id="nav-alert-badge" class="badge hidden">0</span></button>
-      <button class="nav-item" data-view="market"><span class="nav-item-left"><i data-lucide="shopping-bag"></i><span class="nav-label">Shop</span></span></button>
-      <button class="nav-item" data-view="missions"><span class="nav-item-left"><i data-lucide="target"></i><span class="nav-label">Missions</span></span></button>
-      <button class="nav-item desktop-only" data-view="diplomacy"><span class="nav-item-left"><i data-lucide="handshake"></i><span class="nav-label">Diplomacy</span></span><span id="nav-msg-badge" class="badge hidden">0</span></button>
-      <button class="nav-item desktop-only" data-view="research"><span class="nav-item-left"><i data-lucide="cpu"></i><span class="nav-label">Research</span></span></button>
-      <button class="nav-item desktop-only" data-view="government"><span class="nav-item-left"><i data-lucide="building-2"></i><span class="nav-label">Government</span></span></button>
-      <button class="nav-item desktop-only" data-view="achievements"><span class="nav-item-left"><i data-lucide="award"></i><span class="nav-label">Achievements</span></span></button>
-      <button class="nav-item desktop-only" data-view="leaderboard"><span class="nav-item-left"><i data-lucide="trophy"></i><span class="nav-label">Leaderboard</span></span></button>
-      <button class="nav-item desktop-only" data-view="notifications"><span class="nav-item-left"><i data-lucide="bell"></i><span class="nav-label">Alerts</span></span><span id="nav-notif-badge" class="badge hidden">0</span></button>
-      <button class="nav-item desktop-only" data-view="profile"><span class="nav-item-left"><i data-lucide="user-circle"></i><span class="nav-label">Profile</span></span></button>
-      <button class="nav-item desktop-only" data-view="settings"><span class="nav-item-left"><i data-lucide="settings"></i><span class="nav-label">Settings</span></span></button>
-      <button class="nav-item desktop-only hidden" id="nav-admin-btn" data-view="admin" style="color:var(--orange)"><span class="nav-item-left"><i data-lucide="shield-alert"></i><span class="nav-label">Admin</span></span></button>
-      <button class="nav-item" id="mobile-more-btn" type="button"><span class="nav-item-left"><i data-lucide="layout-grid"></i><span class="nav-label">More</span></span></button>
+      <button class="nav-item active" data-view="world"><span class="nav-item-left"><i data-lucide="map"></i><span>World Map</span></span></button>
+      <button class="nav-item" data-view="war"><span class="nav-item-left"><i data-lucide="swords"></i><span>War Room</span></span><span id="nav-war-badge" class="badge red hidden">!</span></button>
+      <button class="nav-item" data-view="country"><span class="nav-item-left"><i data-lucide="landmark"></i><span>My Country</span></span><span id="nav-alert-badge" class="badge hidden">0</span></button>
+      <button class="nav-item" data-view="companies"><span class="nav-item-left"><i data-lucide="factory"></i><span>My Companies</span></span></button>
+      <button class="nav-item" data-view="sell"><span class="nav-item-left"><i data-lucide="tag"></i><span>Sell Products</span></span></button>
+      <button class="nav-item" data-view="market"><span class="nav-item-left"><i data-lucide="shopping-bag"></i><span>Global Market</span></span></button>
+      <button class="nav-item desktop-only" data-view="diplomacy"><span class="nav-item-left"><i data-lucide="handshake"></i><span>Diplomacy</span></span></button>
+      <button class="nav-item desktop-only" data-view="leaderboard"><span class="nav-item-left"><i data-lucide="trophy"></i><span>Leaderboard</span></span></button>
+      <button class="nav-item desktop-only" data-view="notifications"><span class="nav-item-left"><i data-lucide="bell"></i><span>Alerts</span></span><span id="nav-notif-badge" class="badge hidden">0</span></button>
+      <button class="nav-item desktop-only" data-view="profile"><span class="nav-item-left"><i data-lucide="user-circle"></i><span>Profile</span></span></button>
+      <button class="nav-item" id="mobile-more-btn" type="button"><span class="nav-item-left"><i data-lucide="layout-grid"></i><span>More</span></span></button>
     </nav>
 
     <div class="sidebar-footer">
       <div class="sidebar-profile-card">
         <img id="sidebar-avatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=AV" alt="Avatar" />
-        <div class="sidebar-profile-text" style="min-width:0">
+        <div style="min-width:0">
           <div id="sidebar-user-name" style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">President</div>
           <div id="sidebar-user-role" style="font-size:11px;color:var(--cyan)">Leader</div>
         </div>
       </div>
-      <button class="btn btn-secondary btn-sm btn-full" id="logout-btn"><i data-lucide="log-out"></i><span class="nav-label">Sign Out</span></button>
+      <button class="btn btn-secondary btn-sm btn-full" id="logout-btn"><i data-lucide="log-out"></i> Sign Out</button>
     </div>
   </aside>
 
   <div id="mobile-more-sheet" class="mobile-more-sheet hidden">
     <button class="btn btn-secondary btn-sm" data-mobile-view="diplomacy"><i data-lucide="handshake"></i> Diplo</button>
-    <button class="btn btn-secondary btn-sm" data-mobile-view="research"><i data-lucide="cpu"></i> Research</button>
-    <button class="btn btn-secondary btn-sm" data-mobile-view="government"><i data-lucide="building-2"></i> Gov</button>
-    <button class="btn btn-secondary btn-sm" data-mobile-view="achievements"><i data-lucide="award"></i> Awards</button>
     <button class="btn btn-secondary btn-sm" data-mobile-view="leaderboard"><i data-lucide="trophy"></i> Ranks</button>
     <button class="btn btn-secondary btn-sm" data-mobile-view="notifications"><i data-lucide="bell"></i> Alerts</button>
     <button class="btn btn-secondary btn-sm" data-mobile-view="profile"><i data-lucide="user-circle"></i> Profile</button>
-    <button class="btn btn-secondary btn-sm" data-mobile-view="settings"><i data-lucide="settings"></i> Settings</button>
-    <button class="btn btn-secondary btn-sm hidden" id="mobile-admin-btn" data-mobile-view="admin" style="color:var(--orange)"><i data-lucide="shield-alert"></i> Admin</button>
   </div>
 
   <div class="main-area">
@@ -495,13 +415,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
       </div>
     </header>
 
-    <div class="war-ticker" id="war-ticker">
-      <span style="color:var(--danger);font-weight:800">⚡ LIVE:</span>
-      <div class="war-ticker-track" id="war-ticker-track">
-        <span>🌐 World Council monitoring all nations...</span>
-      </div>
-    </div>
-
     <main class="view-container">
 
       <!-- WORLD MAP -->
@@ -513,7 +426,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
               <span class="badge" id="hero-nuclear-status" style="background:rgba(251,191,36,.15);color:var(--orange)">☢️ Non-Nuclear</span>
             </div>
             <h2 class="display-font" id="welcome-headline" style="font-size:22px">Welcome back, President</h2>
-            <p class="kpi-sub" id="welcome-sub">Monitor markets, diplomacy, and live strategic shifts.</p>
+            <p class="kpi-sub" id="welcome-sub">Monitor markets, diplomacy, and strategic shifts.</p>
           </div>
           <div class="xp-bar-wrap">
             <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700">
@@ -538,13 +451,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
           <div style="display:flex;gap:8px">
             <button class="btn btn-secondary btn-sm" id="focus-my-country-btn"><i data-lucide="crosshair"></i> My Nation</button>
             <button class="btn btn-war btn-sm" id="quick-war-btn"><i data-lucide="swords"></i> War Room</button>
-            <button class="btn btn-primary btn-sm" id="quick-market-btn"><i data-lucide="shopping-bag"></i> Shop</button>
+            <button class="btn btn-primary btn-sm" id="quick-market-btn"><i data-lucide="shopping-bag"></i> Market</button>
           </div>
         </div>
 
         <div class="map-wrapper">
           <div id="map-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(7,11,20,.85);z-index:20">
-            <span class="brand-badge"><i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i> Loading World Boundaries...</span>
+            <span class="brand-badge"><i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i> Loading World...</span>
           </div>
           <div id="map-tooltip" class="map-tooltip hidden"></div>
           <div class="map-legend">
@@ -576,7 +489,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
             <div class="drawer-tabs" id="drawer-tabs">
               <button class="drawer-tab active" data-dtab="overview">Overview</button>
               <button class="drawer-tab" data-dtab="military">Defense</button>
-              <button class="drawer-tab" data-dtab="deals">Deals</button>
             </div>
             <div class="drawer-body" id="drawer-body"></div>
           </div>
@@ -584,7 +496,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 
         <div class="grid-3" style="margin-top:18px">
           <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="alert-triangle" style="color:var(--orange)"></i> National Alerts</span></div>
+            <div class="card-header"><span class="card-title"><i data-lucide="alert-triangle" style="color:var(--orange)"></i> Alerts</span></div>
             <div id="home-alerts-list"><div class="kpi-sub">All reserves nominal.</div></div>
           </div>
           <div class="card">
@@ -593,7 +505,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title"><i data-lucide="trending-up" style="color:var(--green)"></i> Live Market</span></div>
-            <div id="home-deals-wars" style="max-height:230px;overflow-y:auto"></div>
+            <div id="home-deals" style="max-height:230px;overflow-y:auto"></div>
           </div>
         </div>
       </section>
@@ -601,12 +513,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
       <!-- WAR ROOM -->
       <section id="view-war" class="game-view hidden">
         <div class="war-room-hero">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:relative;z-index:1">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
             <div>
-              <h2 class="display-font" style="font-size:26px;font-weight:800;color:#FCA5A5">
-                ⚔️ WAR ROOM
-              </h2>
-              <p class="kpi-sub" style="margin-top:4px">Declare war, launch strikes, or defend your nation. Every battle shifts power.</p>
+              <h2 class="display-font" style="font-size:26px;font-weight:800;color:#FCA5A5">⚔️ WAR ROOM</h2>
+              <p class="kpi-sub" style="margin-top:4px">Declare war, launch strikes, or defend your nation.</p>
             </div>
             <div style="text-align:right">
               <div class="kpi-sub">Your Military Power</div>
@@ -635,8 +545,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
           </div>
 
           <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="radiation" style="color:var(--orange)"></i> Nuclear Launch Codes</span></div>
-            <p class="kpi-sub" style="margin-bottom:12px">Requires ≥1 warhead. Launch causes global fallout & massive damage.</p>
+            <div class="card-header"><span class="card-title"><i data-lucide="radiation" style="color:var(--orange)"></i> Nuclear Strike</span></div>
+            <p class="kpi-sub" style="margin-bottom:12px">Requires ≥1 warhead. Causes massive damage.</p>
             <div class="form-group">
               <label>Target</label>
               <select id="nuke-target-select"></select>
@@ -647,7 +557,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
           </div>
         </div>
 
-        <h3 class="display-font" style="font-size:18px;margin-bottom:12px">🌍 Nations & Threat Assessment</h3>
+        <h3 class="display-font" style="font-size:18px;margin-bottom:12px">🌍 Nations</h3>
         <div id="enemy-grid" class="enemy-grid"></div>
 
         <h3 class="display-font" style="font-size:18px;margin:24px 0 12px">🔥 Active Conflicts</h3>
@@ -682,7 +592,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
             <div id="mc-companies-list"></div>
           </div>
           <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="packages" style="color:var(--green)"></i> Strategic Inventory</span></div>
+            <div class="card-header"><span class="card-title"><i data-lucide="packages" style="color:var(--green)"></i> Inventory</span></div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Product</th><th>Stock</th><th>Min</th><th>Status</th></tr></thead>
@@ -691,125 +601,176 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
             </div>
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i data-lucide="line-chart" style="color:var(--purple)"></i> Telemetry History</span></div>
-          <div id="chart-empty-state" class="kpi-sub" style="padding:24px;text-align:center">Telemetry snapshots appear here.</div>
-          <canvas id="country-telemetry-chart" class="hidden" height="160"></canvas>
-        </div>
       </section>
 
-      <!-- SHOP -->
-      <section id="view-market" class="game-view hidden">
-        <div class="grid-3" style="margin-bottom:18px">
+      <!-- MY COMPANIES -->
+      <section id="view-companies" class="game-view hidden">
+        <div class="hero-banner" style="background:linear-gradient(120deg,rgba(34,211,238,.2),rgba(99,102,241,.15))">
+          <div>
+            <h2 class="display-font" style="font-size:22px;font-weight:800">🏭 My Companies</h2>
+            <p class="kpi-sub">Manage your industrial empire. Each company produces goods every tick.</p>
+          </div>
+          <div style="text-align:right">
+            <div class="kpi-sub">Total Produced Value</div>
+            <div class="mono" style="font-size:24px;font-weight:900;color:var(--green)" id="comp-total-value">0 💰</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:18px">
           <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="upload-cloud" style="color:var(--cyan)"></i> Publish Export</span></div>
-            <form id="create-trade-offer-form">
-              <div class="form-group"><label>Product</label><select id="trade-product-select" required></select></div>
-              <div class="form-group">
-                <label>Category</label>
-                <select id="trade-category-select">
-                  <option value="technology">Technology</option>
-                  <option value="energy">Energy</option>
-                  <option value="agriculture">Agriculture</option>
-                  <option value="automotive">Automotive</option>
-                  <option value="materials">Materials</option>
-                </select>
+            <div class="card-header"><span class="card-title"><i data-lucide="plus-circle" style="color:var(--green)"></i> Found New Company</span></div>
+            <p class="kpi-sub" style="margin-bottom:12px">Costs <strong class="mono" style="color:var(--orange)">10,000 💰</strong> per company.</p>
+            <form id="create-company-form">
+              <div class="grid-2">
+                <div class="form-group"><label>Company Name</label><input id="comp-name" placeholder="e.g. Apex Industries" required /></div>
+                <div class="form-group">
+                  <label>Product</label>
+                  <select id="comp-product" required>
+                    <option value="Smartphones">Smartphones (Tech)</option>
+                    <option value="Laptops">Laptops (Tech)</option>
+                    <option value="Semiconductors">Semiconductors (Tech)</option>
+                    <option value="Crude Oil">Crude Oil (Energy)</option>
+                    <option value="Natural Gas">Natural Gas (Energy)</option>
+                    <option value="Uranium">Uranium (Energy)</option>
+                    <option value="Coffee Beans">Coffee Beans (Agri)</option>
+                    <option value="Wheat">Wheat (Agri)</option>
+                    <option value="Electric Vehicles">Electric Vehicles (Auto)</option>
+                    <option value="Steel">Steel (Materials)</option>
+                    <option value="Lithium">Lithium (Materials)</option>
+                  </select>
+                </div>
               </div>
               <div class="grid-2">
-                <div class="form-group"><label>Qty</label><input type="number" id="trade-qty" min="1" required /></div>
-                <div class="form-group"><label>Price</label><input type="number" id="trade-price" min="1" required /></div>
+                <div class="form-group"><label>Units per Tick</label><input id="comp-rate" type="number" value="10" min="1" max="100" required /></div>
+                <div class="form-group"><label>Interval (minutes)</label><input id="comp-interval" type="number" value="20" min="5" required /></div>
               </div>
-              <div class="form-group">
-                <label>Visibility</label>
-                <select id="trade-visibility">
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary btn-full"><i data-lucide="tag"></i> List on Market</button>
+              <button type="submit" class="btn btn-primary btn-full" id="create-company-btn">
+                <i data-lucide="building"></i> Found Company (10,000 💰)
+              </button>
             </form>
           </div>
 
-          <div class="card" style="grid-column:span 2">
-            <div class="card-header" style="flex-wrap:wrap">
-              <span class="card-title"><i data-lucide="store" style="color:var(--green)"></i> 🛍️ Global Shop</span>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <input id="market-search" type="search" placeholder="🔍 Search..." style="width:180px" />
-                <select id="market-cat-filter" style="width:155px">
-                  <option value="all">All</option>
-                  <option value="technology">Tech</option>
-                  <option value="energy">Energy</option>
-                  <option value="agriculture">Food</option>
-                  <option value="automotive">Auto</option>
-                  <option value="materials">Materials</option>
-                </select>
-                <select id="market-sort" style="width:150px">
-                  <option value="newest">Newest</option>
-                  <option value="price-asc">Price ↑</option>
-                  <option value="price-desc">Price ↓</option>
+          <div class="card">
+            <div class="card-header"><span class="card-title"><i data-lucide="activity" style="color:var(--cyan)"></i> Production Summary</span></div>
+            <div id="comp-summary">
+              <div class="kpi-sub">No companies yet. Found one to start producing.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="display-font" style="font-size:18px;margin-bottom:12px">All Companies</h3>
+        <div id="companies-list" class="company-grid"></div>
+      </section>
+
+      <!-- SELL PRODUCTS -->
+      <section id="view-sell" class="game-view hidden">
+        <div class="hero-banner" style="background:linear-gradient(120deg,rgba(251,191,36,.2),rgba(244,63,94,.15))">
+          <div>
+            <h2 class="display-font" style="font-size:22px;font-weight:800">💰 Sell Products</h2>
+            <p class="kpi-sub">List your company products on the global market. Set your own price.</p>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="card">
+            <div class="card-header"><span class="card-title"><i data-lucide="tag" style="color:var(--orange)"></i> List Product for Sale</span></div>
+            <form id="sell-form">
+              <div class="form-group">
+                <label>Select Company</label>
+                <select id="sell-company" required>
+                  <option value="">Choose a company...</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label>Product (auto-filled)</label>
+                <input id="sell-product" readonly style="opacity:.7" />
+              </div>
+              <div class="form-group">
+                <label>Available Stock</label>
+                <input id="sell-stock" readonly style="opacity:.7" />
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Quantity to Sell</label>
+                  <input id="sell-qty" type="number" min="1" value="10" required />
+                </div>
+                <div class="form-group">
+                  <label>Price per Unit (💰)</label>
+                  <input id="sell-price" type="number" min="1" value="100" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Visibility</label>
+                <select id="sell-visibility">
+                  <option value="public">🌐 Public (everyone can buy)</option>
+                  <option value="private">🔒 Private (only specific nation)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full" id="sell-submit-btn">
+                <i data-lucide="upload-cloud"></i> List on Global Market
+              </button>
+            </form>
+            <div id="sell-preview" class="kpi-sub" style="margin-top:10px;text-align:center;font-weight:700"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title"><i data-lucide="list" style="color:var(--green)"></i> My Active Listings</span></div>
+            <div id="my-listings" style="max-height:500px;overflow-y:auto"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GLOBAL MARKET -->
+      <section id="view-market" class="game-view hidden">
+        <div class="hero-banner" style="background:linear-gradient(120deg,rgba(74,222,128,.2),rgba(34,211,238,.15))">
+          <div>
+            <h2 class="display-font" style="font-size:22px;font-weight:800">🛍️ Global Market</h2>
+            <p class="kpi-sub">Buy products from other nations. Every purchase adds to your inventory.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <span class="card-title"><i data-lucide="store" style="color:var(--green)"></i> Live Listings</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input id="market-search" type="search" placeholder="🔍 Search..." style="width:180px" />
+              <select id="market-cat-filter" style="width:155px">
+                <option value="all">All Categories</option>
+                <option value="technology">Technology</option>
+                <option value="energy">Energy</option>
+                <option value="agriculture">Food & Agri</option>
+                <option value="automotive">Automotive</option>
+                <option value="materials">Materials</option>
+              </select>
+              <select id="market-sort" style="width:150px">
+                <option value="newest">Newest First</option>
+                <option value="price-asc">Price: Low → High</option>
+                <option value="price-desc">Price: High → Low</option>
+              </select>
             </div>
-            <div id="market-cards-grid" class="market-grid"></div>
           </div>
+          <div id="market-cards-grid" class="market-grid"></div>
         </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i data-lucide="receipt" style="color:var(--purple)"></i> Trade History</span></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Product</th><th>Buyer</th><th>Seller</th><th>Qty</th><th>Total</th></tr></thead>
-              <tbody id="market-history-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- MISSIONS -->
-      <section id="view-missions" class="game-view hidden">
-        <div class="card-header">
-          <span class="card-title" style="font-size:18px"><i data-lucide="target" style="color:var(--cyan)"></i> Missions & Challenges</span>
-        </div>
-        <div id="missions-grid" class="grid-3"></div>
-      </section>
-
-      <!-- ACHIEVEMENTS -->
-      <section id="view-achievements" class="game-view hidden">
-        <div class="card-header">
-          <span class="card-title" style="font-size:18px"><i data-lucide="award" style="color:var(--orange)"></i> Achievements</span>
-        </div>
-        <div id="achievements-grid" class="grid-3"></div>
-      </section>
-
-      <!-- RESEARCH -->
-      <section id="view-research" class="game-view hidden">
-        <div class="card-header">
-          <span class="card-title" style="font-size:18px"><i data-lucide="cpu" style="color:var(--purple)"></i> Research</span>
-        </div>
-        <div id="research-grid" class="grid-3"></div>
       </section>
 
       <!-- DIPLOMACY -->
       <section id="view-diplomacy" class="game-view hidden">
         <div class="grid-2">
           <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="send" style="color:var(--cyan)"></i> Diplomatic Dispatch</span></div>
+            <div class="card-header"><span class="card-title"><i data-lucide="send" style="color:var(--cyan)"></i> Send Dispatch</span></div>
             <form id="diplomacy-form">
               <div class="form-group"><label>Recipient</label><select id="diplo-target-country" required></select></div>
               <div class="form-group">
-                <label>Treaty Type</label>
+                <label>Type</label>
                 <select id="diplo-type">
                   <option value="message">Message</option>
                   <option value="trade_pact">Trade Pact</option>
                   <option value="alliance">Alliance</option>
-                  <option value="non_proliferation">Non-Proliferation</option>
-                  <option value="peace">Peace</option>
-                  <option value="aid">Aid Request</option>
+                  <option value="peace">Peace Offer</option>
                 </select>
               </div>
-              <div class="form-group"><label>Proposal</label><textarea id="diplo-content" rows="3" required></textarea></div>
-              <button type="submit" class="btn btn-primary btn-full"><i data-lucide="mail-check"></i> Transmit</button>
+              <div class="form-group"><label>Content</label><textarea id="diplo-content" rows="3" required></textarea></div>
+              <button type="submit" class="btn btn-primary btn-full"><i data-lucide="mail-check"></i> Send</button>
             </form>
           </div>
           <div class="card">
@@ -819,30 +780,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
         </div>
       </section>
 
-      <!-- GOVERNMENT -->
-      <section id="view-government" class="game-view hidden">
-        <div class="card" style="max-width:640px">
-          <div class="card-header"><span class="card-title"><i data-lucide="landmark" style="color:var(--cyan)"></i> State Charter</span></div>
-          <form id="gov-identity-form">
-            <div class="form-group"><label>Government Name</label><input id="gov-state-name" /></div>
-            <div class="form-group"><label>Ideology</label><input id="gov-party" /></div>
-            <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save</button>
-          </form>
-        </div>
-      </section>
-
       <!-- LEADERBOARD -->
       <section id="view-leaderboard" class="game-view hidden">
         <div class="card">
           <div class="card-header">
-            <span class="card-title"><i data-lucide="trophy" style="color:var(--orange)"></i> Global Power Rankings</span>
+            <span class="card-title"><i data-lucide="trophy" style="color:var(--orange)"></i> Global Rankings</span>
             <select id="lb-category" style="width:210px">
-              <option value="overall">Overall</option>
-              <option value="coins">Wealth</option>
+              <option value="overall">Overall Power</option>
+              <option value="coins">Treasury</option>
               <option value="militaryScore">Military</option>
-              <option value="nuclearWarheads">Nuclear</option>
-              <option value="techLevel">Tech</option>
-              <option value="level">Level</option>
+              <option value="nuclearWarheads">Nukes</option>
             </select>
           </div>
           <div class="table-wrap">
@@ -868,49 +815,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
       <!-- PROFILE -->
       <section id="view-profile" class="game-view hidden">
         <div class="card" style="max-width:640px">
-          <div class="card-header"><span class="card-title"><i data-lucide="user-check" style="color:var(--cyan)"></i> Presidential Dossier</span></div>
+          <div class="card-header"><span class="card-title"><i data-lucide="user-check" style="color:var(--cyan)"></i> Presidential Profile</span></div>
           <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
             <img id="profile-avatar-img" src="https://api.dicebear.com/7.x/shapes/svg?seed=AV" alt="Portrait" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--cyan)" />
             <div>
-              <label class="btn btn-secondary btn-sm" style="cursor:pointer">
-                <i data-lucide="camera"></i> Upload Portrait
-                <input type="file" id="avatar-file-input" accept="image/*" class="hidden" />
-              </label>
-              <div class="kpi-sub" style="margin-top:6px">PNG/JPG up to 2MB</div>
+              <div class="kpi-sub">Display Name</div>
+              <div id="prof-name-display" class="display-font" style="font-size:18px;font-weight:800">President</div>
             </div>
           </div>
           <form id="profile-form">
             <div class="form-group"><label>Display Name</label><input id="prof-display-name" required /></div>
             <div class="form-group"><label>Bio</label><textarea id="prof-bio" rows="3"></textarea></div>
-            <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save</button>
+            <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Profile</button>
           </form>
-        </div>
-      </section>
-
-      <!-- SETTINGS -->
-      <section id="view-settings" class="game-view hidden">
-        <div class="card" style="max-width:560px">
-          <div class="card-header"><span class="card-title"><i data-lucide="sliders" style="color:var(--cyan)"></i> Preferences</span></div>
-          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center">
-            <div><strong>Theme</strong><div class="kpi-sub">Dark / Light</div></div>
-            <button class="btn btn-secondary btn-sm" id="settings-theme-btn"><i data-lucide="sun-moon"></i> Toggle</button>
-          </div>
-          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center">
-            <div><strong>Sound Effects</strong><div class="kpi-sub">Chimes for actions</div></div>
-            <input type="checkbox" id="setting-sound" style="width:20px;height:20px" />
-          </div>
-          <div class="form-group" style="display:flex;justify-content:space-between;align-items:center">
-            <div><strong>Reduced Motion</strong><div class="kpi-sub">Disable animations</div></div>
-            <input type="checkbox" id="setting-motion" style="width:20px;height:20px" />
-          </div>
-        </div>
-      </section>
-
-      <!-- ADMIN -->
-      <section id="view-admin" class="game-view hidden">
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i data-lucide="shield-alert" style="color:var(--orange)"></i> Admin Console</span></div>
-          <p class="kpi-sub">Use admin.html for full management. This page is a read-only quick view.</p>
         </div>
       </section>
 
@@ -928,17 +845,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 
 <!-- NUKE MODAL -->
 <div id="nuke-modal" class="modal-overlay hidden">
-  <div class="modal-content nuke-modal">
+  <div class="modal-content" style="border-color:rgba(251,191,36,.5)">
     <button class="modal-close" id="nuke-modal-close"><i data-lucide="x"></i></button>
-    <h2 class="display-font" style="font-size:24px;color:#FBBF24;text-align:center">
-      ☢️ NUCLEAR LAUNCH AUTHORIZATION
-    </h2>
-    <p class="kpi-sub" style="text-align:center;margin:8px 0 16px">
-      This action will cause catastrophic damage and global fallout.
-    </p>
-    <div class="nuke-stage">
-      <div class="missile" id="nuke-missile"></div>
-      <div class="mushroom-cloud" id="nuke-cloud"></div>
+    <h2 class="display-font" style="font-size:24px;color:#FBBF24;text-align:center">☢️ NUCLEAR LAUNCH</h2>
+    <p class="kpi-sub" style="text-align:center;margin:8px 0 16px">This will cause catastrophic damage.</p>
+    <div id="nuke-stage" style="height:200px;margin:20px 0;border-radius:14px;background:radial-gradient(circle at 50% 100%,#1a0a0a 0%,#050810 100%);position:relative;overflow:hidden;border:1px solid rgba(251,191,36,.3)">
+      <div id="nuke-missile" style="position:absolute;bottom:20px;left:50%;width:8px;height:40px;background:linear-gradient(180deg,#FBBF24,#F43F5E);border-radius:2px;transform:translateX(-50%) rotate(45deg);box-shadow:0 0 15px #FBBF24"></div>
+      <div id="nuke-cloud" style="position:absolute;bottom:40%;left:50%;transform:translateX(-50%);width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,#FBBF24 0%,#F43F5E 40%,transparent 70%);display:none"></div>
     </div>
     <div id="nuke-result"></div>
   </div>
@@ -946,12 +859,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, updatePassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, updatePassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, collection, addDoc, updateDoc, writeBatch,
-  onSnapshot, query, where, orderBy, limit, serverTimestamp, increment
+  getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection,
+  onSnapshot, query, where, orderBy, limit, serverTimestamp, increment, writeBatch
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
 // ============ CONFIG ============
 const firebaseConfig = {
@@ -961,8 +874,7 @@ const firebaseConfig = {
   projectId: "my-tiktok-cbd6f",
   storageBucket: "my-tiktok-cbd6f.firebasestorage.app",
   messagingSenderId: "964441294320",
-  appId: "1:964441294320:web:4c8da74a0cee8ed2644935",
-  measurementId: "G-RYBWW6XB10"
+  appId: "1:964441294320:web:4c8da74a0cee8ed2644935"
 };
 
 const WORLD_COUNTRIES = [
@@ -1003,59 +915,49 @@ const CATALOG_BY_ISO = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.iso, c]));
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
 
+// ============ STATE ============
 const state = {
-  user: null, profile: null, isAdmin: false,
-  countries: {}, companies: [], marketOffers: [],
-  unreadNotifIds: [], selectedIso: null, activeDrawerTab: 'overview',
-  unsubscribers: [], soundEnabled: localStorage.getItem('av_sound') === 'true',
-  chartInstance: null, currentWarTarget: null
+  user: null,
+  profile: null,
+  countries: {},
+  companies: [],
+  marketOffers: [],
+  inventory: {},
+  myCompanies: [],
+  unreadNotifIds: [],
+  selectedIso: null,
+  activeDrawerTab: 'overview',
+  unsubscribers: []
 };
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-function populateCountryDropdowns(){
-  const opts = WORLD_COUNTRIES.map(c => `<option value="${c.iso}">${c.flag} ${c.name}</option>`).join('');
-  ['adm-country-select','adm-c-select','adm-comp-select'].forEach(id => {
-    const el = $(id); if (el) el.innerHTML = opts;
-  });
+// ============ HELPERS ============
+function getProductCategory(product){
+  const p = product.toLowerCase();
+  if (p.match(/phone|laptop|semi|tech|computer/)) return 'technology';
+  if (p.match(/oil|gas|energy|uranium|fuel/)) return 'energy';
+  if (p.match(/coffee|wheat|grain|food/)) return 'agriculture';
+  if (p.match(/car|vehicle|ev/)) return 'automotive';
+  return 'materials';
 }
-populateCountryDropdowns();
-
-function getProductVisual(name='', cat=''){
-  const k = `${name} ${cat}`.toLowerCase();
-  if (k.match(/phone|chip|semi|tech|computer|laptop/)) return {icon:'smartphone',cls:'cat-technology'};
-  if (k.match(/oil|gas|energy|fuel|uranium/)) return {icon:'flame',cls:'cat-energy'};
-  if (k.match(/car|auto|vehicle|ev/)) return {icon:'car-front',cls:'cat-automotive'};
-  if (k.match(/coffee|bean|food|wheat|grain/)) return {icon:'wheat',cls:'cat-agriculture'};
-  if (k.match(/steel|iron|lithium|material/)) return {icon:'anvil',cls:'cat-materials'};
-  return {icon:'package',cls:'cat-technology'};
+function getProductVisual(product){
+  const cat = getProductCategory(product);
+  const icons = {technology:'smartphone', energy:'flame', agriculture:'wheat', automotive:'car-front', materials:'anvil'};
+  const classes = {technology:'cat-technology', energy:'cat-energy', agriculture:'cat-agriculture', automotive:'cat-automotive', materials:'cat-materials'};
+  return {icon: icons[cat], cls: classes[cat], category: cat};
 }
 
-function playChime(freq=580){
-  if (!state.soundEnabled) return;
-  try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctx.createOscillator(), gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.05, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.18);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime+0.18);
-  } catch(_){}
-}
-
-function toast(msg, type='info', freq=580){
-  playChime(freq);
+function toast(msg, type='info'){
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `<i data-lucide="${type==='error'?'alert-circle':type==='success'?'check-circle':'sparkles'}" style="color:var(--${type==='error'?'danger':type==='success'?'green':'cyan'})"></i><span>${esc(msg)}</span>`;
+  const icon = type === 'error' ? 'alert-circle' : type === 'success' ? 'check-circle' : 'sparkles';
+  el.innerHTML = `<i data-lucide="${icon}"></i><span>${esc(msg)}</span>`;
   $('toast-container').appendChild(el);
   lucide.createIcons({root:el});
-  setTimeout(() => el.remove(), 3800);
+  setTimeout(() => el.remove(), 4000);
 }
 
 function confetti(count=40){
@@ -1067,7 +969,6 @@ function confetti(count=40){
     c.style.background = colors[Math.floor(Math.random()*colors.length)];
     c.style.animationDuration = (1.5 + Math.random()*2) + 's';
     c.style.animationDelay = Math.random()*0.3 + 's';
-    c.style.transform = `rotate(${Math.random()*360}deg)`;
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 3500);
   }
@@ -1092,31 +993,7 @@ function coinFly(fromEl, count=8){
   }
 }
 
-// ============ THEME / SETTINGS ============
-const savedTheme = localStorage.getItem('av_theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-$('settings-theme-btn').onclick = () => {
-  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('av_theme', next);
-};
-$('setting-sound').checked = state.soundEnabled;
-$('setting-sound').onchange = e => {
-  state.soundEnabled = e.target.checked;
-  localStorage.setItem('av_sound', String(state.soundEnabled));
-};
-const savedMotion = localStorage.getItem('av_reduced_motion') === 'true';
-if (savedMotion) document.body.classList.add('reduced-motion');
-$('setting-motion').checked = savedMotion;
-$('setting-motion').onchange = e => {
-  document.body.classList.toggle('reduced-motion', e.target.checked);
-  localStorage.setItem('av_reduced_motion', String(e.target.checked));
-};
-
-// ============ NAV ============
-$('sidebar-collapse-btn').onclick = () => $('sidebar').classList.toggle('collapsed');
-$('mobile-more-btn').onclick = () => $('mobile-more-sheet').classList.toggle('hidden');
-
+// ============ NAVIGATION ============
 function switchView(view){
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
@@ -1132,12 +1009,13 @@ $('mobile-more-sheet').addEventListener('click', e => {
   const btn = e.target.closest('[data-mobile-view]');
   if (btn) switchView(btn.dataset.mobileView);
 });
+$('mobile-more-btn').onclick = () => $('mobile-more-sheet').classList.toggle('hidden');
 $('quick-market-btn').onclick = () => switchView('market');
 $('quick-war-btn').onclick = () => switchView('war');
 $('focus-my-country-btn').onclick = () => {
   const iso = state.profile?.countryIso;
-  if (iso) openCountryDrawer(iso, CATALOG_BY_ISO[iso]?.name || iso);
-  else toast('No country assigned.', 'error');
+  if (iso) openCountryDrawer(iso);
+  else toast('No country assigned yet.', 'error');
 };
 
 window.addEventListener('offline', () => $('offline-banner').classList.remove('hidden'));
@@ -1156,13 +1034,11 @@ $('login-form').addEventListener('submit', async e => {
   btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i> Authenticating...';
   lucide.createIcons();
   try {
-    const email = usernameToEmail($('login-username').value);
-    await signInWithEmailAndPassword(auth, email, $('login-password').value);
+    await signInWithEmailAndPassword(auth, usernameToEmail($('login-username').value), $('login-password').value);
   } catch (err) {
-    console.error('Login error:', err.code, err.message);
     let msg = 'Invalid username or password.';
-    if (err.code === 'auth/user-not-found') msg = 'No account with that username. Ask admin to create it.';
-    else if (err.code === 'auth/wrong-password') msg = 'Wrong password. Try again.';
+    if (err.code === 'auth/user-not-found') msg = 'No account with that username.';
+    else if (err.code === 'auth/wrong-password') msg = 'Wrong password.';
     else if (err.code === 'auth/invalid-credential') msg = 'Wrong username or password.';
     else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Wait a minute.';
     else if (err.code === 'auth/invalid-email') msg = 'Username has invalid characters.';
@@ -1204,11 +1080,9 @@ onAuthStateChanged(auth, async user => {
   }
   state.user = user;
   try {
-    const tokenRes = await user.getIdTokenResult(true);
-    state.isAdmin = tokenRes.claims.admin === true;
     const userSnap = await getDoc(doc(db,'users',user.uid));
     if (!userSnap.exists()){
-      toast('Your user document is missing. Contact admin.', 'error');
+      toast('User profile missing. Contact admin.', 'error');
       await signOut(auth);
       return;
     }
@@ -1236,28 +1110,20 @@ async function bootGame(user){
   $('auth-screen').classList.add('hidden');
   $('app-shell').classList.remove('hidden');
 
-  if (state.isAdmin || state.profile.role === 'admin'){
-    $('nav-admin-btn').classList.remove('hidden');
-    $('mobile-admin-btn').classList.remove('hidden');
-  }
-
   const name = state.profile.displayName || state.profile.username || 'President';
   $('sidebar-user-name').textContent = name;
-  $('sidebar-user-role').textContent = state.isAdmin ? 'Administrator' : 'President';
+  $('sidebar-user-role').textContent = state.profile.role === 'admin' ? 'Administrator' : 'President';
   $('welcome-headline').textContent = `Welcome back, President ${name}`;
   $('prof-display-name').value = name;
+  $('prof-name-display').textContent = name;
   $('prof-bio').value = state.profile.bio || '';
-  if (state.profile.avatarUrl){
-    $('profile-avatar-img').src = state.profile.avatarUrl;
-    $('sidebar-avatar').src = state.profile.avatarUrl;
-  }
 
   lucide.createIcons();
   await initWorldMap();
-  attachRealtimeListeners();
+  attachListeners();
 }
 
-// ============ MAP ============
+// ============ WORLD MAP ============
 let mapSvg, mapG, zoomBehavior;
 async function initWorldMap(){
   if (mapSvg) return;
@@ -1298,13 +1164,12 @@ async function initWorldMap(){
       .on('mouseleave', () => tooltip.classList.add('hidden'))
       .on('click', (_, d) => {
         const iso = NUM_TO_ISO3[String(d.id).padStart(3,'0')] || String(d.id);
-        openCountryDrawer(iso, d.properties.name);
+        openCountryDrawer(iso);
       });
-
     refreshMapVisuals();
   } catch (err) {
     console.error('Map load failed:', err);
-    $('map-loading').innerHTML = '<span class="brand-badge" style="color:var(--danger)">Failed to load map. Check connection.</span>';
+    $('map-loading').innerHTML = '<span class="brand-badge" style="color:var(--danger)">Failed to load map.</span>';
   }
 }
 
@@ -1334,10 +1199,10 @@ function refreshMapVisuals(){
 $('map-search-input').addEventListener('input', refreshMapVisuals);
 $('map-filter-select').addEventListener('change', refreshMapVisuals);
 
-function openCountryDrawer(iso, fallback=''){
+function openCountryDrawer(iso){
   state.selectedIso = iso;
   const cat = CATALOG_BY_ISO[iso];
-  const c = state.countries[iso] || {iso, name: cat?.name || fallback || iso, flag: cat?.flag || '🏳️'};
+  const c = state.countries[iso] || {iso, name: cat?.name || iso, flag: cat?.flag || '🏳️'};
   $('drawer-flag').textContent = c.flag || cat?.flag || '🏳️';
   $('drawer-name').textContent = `${c.name || cat?.name || iso} (${iso})`;
   $('drawer-president').textContent = c.presidentName ? `President ${c.presidentName}` : 'Unclaimed Territory';
@@ -1377,187 +1242,109 @@ function renderDrawerTab(){
         <div class="card" style="padding:10px"><div class="kpi-sub">Nuclear</div><div class="mono" style="font-weight:800;color:var(--orange)">${c.nuclearWarheads||0}</div></div>
       </div>
       <div class="kpi-sub" style="margin-bottom:10px">Doctrine: <strong>${esc(c.nuclearStatus||'Non-Nuclear')}</strong></div>
-      ${(!c.presidentUid && c.purchasable) ? `<button class="btn btn-primary btn-full" id="claim-country-btn"><i data-lucide="flag"></i> Claim Nation</button>` : ''}
-      ${(!isMine && c.presidentUid) ? `<button class="btn btn-war btn-full" onclick="document.querySelector('[data-view=war]').click()"><i data-lucide="swords"></i> Attack in War Room</button>` : ''}
+      ${!isMine && c.presidentUid ? `<button class="btn btn-war btn-full" onclick="document.querySelector('[data-view=war]').click()"><i data-lucide="swords"></i> Attack in War Room</button>` : ''}
     `;
-    const claimBtn = $('claim-country-btn');
-    if (claimBtn) claimBtn.onclick = async () => {
-      try {
-        const fn = httpsCallable(functions, 'claimUnclaimedCountry');
-        await fn({targetIso: iso});
-        toast(`Sovereignty over ${c.name} acquired!`, 'success', 760);
-        confetti(50);
-      } catch (err) { toast(err.message, 'error'); }
-    };
   } else if (t === 'military'){
     body.innerHTML = `
-      <div class="card" style="padding:12px;margin-bottom:10px">
-        <div class="power-stat"><span>Military Score</span><strong class="mono">${c.militaryScore||10}</strong></div>
-        <div class="power-stat"><span>Nuclear Warheads</span><strong class="mono" style="color:var(--orange)">${c.nuclearWarheads||0}</strong></div>
-        <div class="power-stat"><span>Program</span><strong>${esc(c.nuclearStatus||'Non-Nuclear')}</strong></div>
-        <div class="power-stat"><span>Status</span><strong style="color:${c.atWar?'var(--danger)':'var(--green)'}">${c.atWar?'AT WAR':'PEACEFUL'}</strong></div>
+      <div class="card" style="padding:12px">
+        <div class="stat-line"><span>Military Score</span><strong class="mono">${c.militaryScore||10}</strong></div>
+        <div class="stat-line"><span>Nuclear Warheads</span><strong class="mono" style="color:var(--orange)">${c.nuclearWarheads||0}</strong></div>
+        <div class="stat-line"><span>Program</span><strong>${esc(c.nuclearStatus||'Non-Nuclear')}</strong></div>
+        <div class="stat-line"><span>Status</span><strong style="color:${c.atWar?'var(--danger)':'var(--green)'}">${c.atWar?'AT WAR':'PEACEFUL'}</strong></div>
       </div>
     `;
-  } else if (t === 'deals'){
-    const deals = state.marketOffers.filter(o => o.sellerIso === iso && o.visibility === 'public');
-    body.innerHTML = deals.length
-      ? deals.map(d => `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong>${esc(d.product)}</strong>: ${d.quantity} @ ${d.unitPrice}💰</div>`).join('')
-      : `<p class="kpi-sub">No public deals.</p>`;
   }
   lucide.createIcons({root:body});
 }
-
-// ============ BATTLE & NUKE ============
-function showBattleModal(attacker, defender, result){
-  const body = $('battle-modal-body');
-  body.innerHTML = `
-    <h2 class="display-font" style="font-size:22px;text-align:center;margin-bottom:8px">
-      ⚔️ BATTLE RESULT
-    </h2>
-    <div class="battle-arena">
-      <div class="battle-side">
-        <div class="battle-flag" id="atk-flag">${attacker.flag||'🏳️'}</div>
-        <div class="battle-name">${esc(attacker.name||attacker.iso)}</div>
-        <div class="battle-power" style="color:var(--cyan)">${attacker.power||0}</div>
-      </div>
-      <div class="battle-vs">VS</div>
-      <div class="battle-side">
-        <div class="battle-flag" id="def-flag">${defender.flag||'🏳️'}</div>
-        <div class="battle-name">${esc(defender.name||defender.iso)}</div>
-        <div class="battle-power" style="color:var(--danger)">${defender.power||0}</div>
-      </div>
-    </div>
-    <div style="text-align:center;padding:16px;border-radius:14px;background:${result.winner==='attacker'?'rgba(34,211,238,.1)':'rgba(244,63,94,.1)'};border:1px solid ${result.winner==='attacker'?'rgba(34,211,238,.4)':'rgba(244,63,94,.4)'}">
-      <div class="display-font" style="font-size:28px;font-weight:900;color:${result.winner==='attacker'?'var(--cyan)':'var(--danger)'}">
-        ${result.winner==='attacker'?'🏆 VICTORY':'💀 DEFEAT'}
-      </div>
-      <p style="margin-top:8px">${esc(result.message||'')}</p>
-      ${result.damage ? `<p class="kpi-sub" style="margin-top:6px">Damage dealt: <strong style="color:var(--danger)">${result.damage}</strong></p>` : ''}
-    </div>
-  `;
-  $('battle-modal').classList.remove('hidden');
-  lucide.createIcons({root:body});
-  // damage pop
-  const arena = body.querySelector('.battle-arena');
-  if (arena && result.damage){
-    const pop = document.createElement('div');
-    pop.className = 'damage-pop';
-    pop.textContent = '-' + result.damage;
-    pop.style.left = '50%';
-    pop.style.top = '50%';
-    arena.appendChild(pop);
-  }
-}
-
-function showNukeModal(){
-  $('nuke-modal').classList.remove('hidden');
-  $('nuke-result').innerHTML = '';
-  const missile = $('nuke-missile'), cloud = $('nuke-cloud');
-  missile.classList.remove('launch');
-  cloud.classList.remove('explode');
-  void missile.offsetWidth; // reset
-  setTimeout(() => {
-    missile.classList.add('launch');
-    setTimeout(() => {
-      cloud.classList.add('explode');
-      document.body.style.animation = 'flashScreen .4s';
-      setTimeout(() => document.body.style.animation = '', 400);
-      setTimeout(() => {
-        $('nuke-result').innerHTML = `
-          <div style="padding:16px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);text-align:center">
-            <div style="font-size:36px">☢️</div>
-            <h3 style="color:var(--orange);margin-top:8px">IMPACT CONFIRMED</h3>
-            <p class="kpi-sub" style="margin-top:6px">The world has changed. Global stability drops. You now have a nuclear target on your back.</p>
-          </div>
-        `;
-      }, 1500);
-    }, 1200);
-  }, 200);
-}
-$('nuke-modal-close').onclick = () => $('nuke-modal').classList.add('hidden');
-$('battle-modal-close').onclick = () => $('battle-modal').classList.add('hidden');
 
 // ============ REAL-TIME LISTENERS ============
-function attachRealtimeListeners(){
-  const myIso = state.profile.countryIso;
+function attachListeners(){
+  const myIso = state.profile?.countryIso;
+  if (!myIso) {
+    toast('No country assigned. Contact admin.', 'error');
+    return;
+  }
 
+  // 1. Countries
   state.unsubscribers.push(onSnapshot(collection(db,'countries'), snap => {
+    snap.forEach(d => {
+      const cat = CATALOG_BY_ISO[d.id];
+      state.countries[d.id] = {iso:d.id, name: cat?.name||d.id, flag: cat?.flag||'🏳️', ...d.data()};
+    });
+    // Populate dropdowns
     const diploSel = $('diplo-target-country');
     const warSel = $('war-target-select');
     const nukeSel = $('nuke-target-select');
     if (diploSel) diploSel.innerHTML = '';
     if (warSel) warSel.innerHTML = '';
     if (nukeSel) nukeSel.innerHTML = '';
-    const lbRows = [];
-    snap.forEach(d => {
-      const cat = CATALOG_BY_ISO[d.id];
-      const data = {iso:d.id, name: cat?.name||d.id, flag: cat?.flag||'🏳️', ...d.data()};
-      state.countries[d.id] = data;
-      lbRows.push(data);
-      if (d.id !== myIso){
-        const opt = `<option value="${d.id}">${data.flag} ${esc(data.name)}</option>`;
-        if (diploSel) diploSel.insertAdjacentHTML('beforeend', opt);
-        if (warSel) warSel.insertAdjacentHTML('beforeend', opt);
-        if (nukeSel) nukeSel.insertAdjacentHTML('beforeend', opt);
-      }
+    Object.values(state.countries).forEach(c => {
+      if (c.iso === myIso) return;
+      const opt = `<option value="${c.iso}">${c.flag} ${esc(c.name)}</option>`;
+      if (diploSel) diploSel.insertAdjacentHTML('beforeend', opt);
+      if (warSel) warSel.insertAdjacentHTML('beforeend', opt);
+      if (nukeSel) nukeSel.insertAdjacentHTML('beforeend', opt);
     });
 
-    if (myIso){
-      const cat = CATALOG_BY_ISO[myIso];
-      const mc = state.countries[myIso] || {iso:myIso, name:cat?.name||myIso, flag:cat?.flag||'🏳️', coins:0, level:1, stability:100, militaryScore:10, nuclearWarheads:0};
-      $('top-country-flag').textContent = mc.flag || cat?.flag || '🏳️';
-      $('top-country-name').textContent = mc.name || cat?.name || myIso;
+    // Update header stats
+    const me = state.countries[myIso];
+    if (me){
+      $('top-country-flag').textContent = me.flag || '🏳️';
+      $('top-country-name').textContent = me.name || myIso;
       $('top-role-label').textContent = `President ${state.profile.displayName||state.profile.username} • ${myIso}`;
-      $('top-coins').textContent = (mc.coins||0).toLocaleString();
-      $('top-level').textContent = mc.level||1;
-      $('top-stability').textContent = `${mc.stability??100}%`;
-      $('top-military').textContent = mc.militaryScore||10;
-      $('top-nukes').textContent = mc.nuclearWarheads||0;
-      const nukeStatus = mc.nuclearStatus || ((mc.nuclearWarheads||0)>0 ? 'Nuclear Power' : 'Non-Nuclear');
-      $('hero-nuclear-status').textContent = `☢️ ${nukeStatus} (${mc.nuclearWarheads||0})`;
-      const nextXp = (mc.level||1)*500;
-      const curXp = mc.xp||0;
-      $('hero-lvl-label').textContent = `Level ${mc.level||1}`;
+      $('top-coins').textContent = (me.coins||0).toLocaleString();
+      $('top-level').textContent = me.level||1;
+      $('top-stability').textContent = `${me.stability??100}%`;
+      $('top-military').textContent = me.militaryScore||10;
+      $('top-nukes').textContent = me.nuclearWarheads||0;
+      const nukeStatus = me.nuclearStatus || ((me.nuclearWarheads||0)>0 ? 'Nuclear Power' : 'Non-Nuclear');
+      $('hero-nuclear-status').textContent = `☢️ ${nukeStatus} (${me.nuclearWarheads||0})`;
+      const nextXp = (me.level||1)*500;
+      const curXp = me.xp||0;
+      $('hero-lvl-label').textContent = `Level ${me.level||1}`;
       $('hero-xp-label').textContent = `${curXp} / ${nextXp} XP`;
       $('hero-xp-fill').style.width = `${Math.min(100, Math.round((curXp % 500)/5))}%`;
-      $('mc-coins').textContent = (mc.coins||0).toLocaleString();
-      $('mc-gdp').textContent = (mc.gdp||1000).toLocaleString();
-      $('mc-nukes').textContent = `${mc.nuclearWarheads||0}`;
+      $('mc-coins').textContent = (me.coins||0).toLocaleString();
+      $('mc-gdp').textContent = (me.gdp||1000).toLocaleString();
+      $('mc-nukes').textContent = `${me.nuclearWarheads||0}`;
       $('mc-nuke-doctrine').textContent = `Doctrine: ${nukeStatus}`;
-      $('mc-xp').textContent = `Lvl ${mc.level||1} • Tier ${mc.techLevel||1}`;
-      $('war-my-power').textContent = (mc.militaryScore||10) + (mc.nuclearWarheads||0)*5;
-      $('war-my-nukes').textContent = mc.nuclearWarheads||0;
-      renderTelemetryChart(mc.telemetryHistory||[]);
+      $('mc-xp').textContent = `Lvl ${me.level||1} • Tier ${me.techLevel||1}`;
+      $('war-my-power').textContent = (me.militaryScore||10) + (me.nuclearWarheads||0)*5;
+      $('war-my-nukes').textContent = me.nuclearWarheads||0;
     }
 
-    renderLeaderboard(lbRows);
+    renderLeaderboard();
     renderEnemyGrid();
     refreshMapVisuals();
     if (state.selectedIso) renderDrawerTab();
-    lucide.createIcons();
   }));
 
+  // 2. Companies (all + mine)
   state.unsubscribers.push(onSnapshot(collection(db,'companies'), snap => {
     state.companies = snap.docs.map(d => ({id:d.id, ...d.data()}));
-    const list = $('mc-companies-list');
-    const mine = state.companies.filter(c => c.countryIso === myIso);
-    list.innerHTML = mine.length ? '' : '<div class="kpi-sub">No companies yet.</div>';
-    mine.forEach(comp => {
-      const vis = getProductVisual(comp.product);
-      list.insertAdjacentHTML('beforeend', `
-        <div style="padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated)">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="product-art-badge ${vis.cls}"><i data-lucide="${vis.icon}"></i></div>
-            <div><strong>${esc(comp.name)}</strong> <span class="kpi-sub">• ${esc(comp.product)}</span>
-            <div class="kpi-sub">${comp.outputRate} units / ${comp.intervalMinutes}min</div></div>
-          </div>
-          <span class="brand-badge" style="margin:0">${esc(comp.status||'ACTIVE')}</span>
-        </div>
-      `);
-    });
-    lucide.createIcons({root:list});
+    state.myCompanies = state.companies.filter(c => c.countryIso === myIso);
+    renderCompaniesPage();
+    renderCompaniesSummaryCard();
+    renderSellCompanyDropdown();
   }));
 
+  // 3. Inventory
+  state.unsubscribers.push(onSnapshot(collection(db,'countries',myIso,'inventory'), snap => {
+    state.inventory = {};
+    snap.forEach(d => state.inventory[d.id] = {id:d.id, ...d.data()});
+    renderInventoryTable();
+    renderSellStock();
+  }));
+
+  // 4. Market Offers
+  state.unsubscribers.push(onSnapshot(query(collection(db,'tradeOffers'), where('status','==','open')), snap => {
+    state.marketOffers = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    renderMarketCards();
+    renderMyListings();
+    renderHomeDeals();
+  }));
+
+  // 5. News
   state.unsubscribers.push(onSnapshot(query(collection(db,'announcements'), orderBy('createdAt','desc'), limit(20)), snap => {
     const el = $('home-news-list');
     el.innerHTML = snap.empty ? '<div class="kpi-sub">No dispatches yet.</div>' : '';
@@ -1567,65 +1354,22 @@ function attachRealtimeListeners(){
     });
   }));
 
-  state.unsubscribers.push(onSnapshot(query(collection(db,'tradeOffers'), where('status','==','open')), snap => {
-    state.marketOffers = snap.docs.map(d => ({id:d.id, ...d.data()}));
-    renderMarketCards();
-  }));
-
-  state.unsubscribers.push(onSnapshot(query(collection(db,'tradeOffers'), where('status','==','completed'), limit(20)), snap => {
-    const tbody = $('market-history-tbody');
-    tbody.innerHTML = snap.empty ? '<tr><td colspan="5" class="kpi-sub">No trades yet.</td></tr>' : '';
-    snap.forEach(d => {
-      const o = d.data();
-      tbody.insertAdjacentHTML('beforeend', `<tr><td><strong>${esc(o.product)}</strong></td><td>${esc(o.buyerIso||'-')}</td><td>${esc(o.sellerIso)}</td><td class="mono">${o.quantity}</td><td class="mono">${(o.quantity*o.unitPrice).toLocaleString()}</td></tr>`);
-    });
-  }));
-
-  if (!myIso) return;
-
-  state.unsubscribers.push(onSnapshot(collection(db,'countries',myIso,'inventory'), snap => {
-    const tbody = $('mc-inventory-tbody');
-    const select = $('trade-product-select');
-    const alertsEl = $('home-alerts-list');
-    tbody.innerHTML = ''; select.innerHTML = ''; alertsEl.innerHTML = '';
-    let alertCount = 0;
-    snap.forEach(d => {
-      const item = d.data();
-      const min = item.minThreshold||20;
-      const low = item.quantity < min;
-      if (low){
-        alertCount++;
-        alertsEl.insertAdjacentHTML('beforeend', `<div style="padding:10px;border-radius:10px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.35);margin-bottom:8px"><strong>${esc(d.id)} Shortage</strong><div class="kpi-sub">Stock: ${item.quantity}/${min}</div></div>`);
-      }
-      tbody.insertAdjacentHTML('beforeend', `<tr><td><strong>${esc(d.id)}</strong></td><td class="mono">${item.quantity}</td><td class="mono">${min}</td><td style="color:${low?'var(--danger)':'var(--green)'};font-weight:700">${low?'LOW':'OK'}</td></tr>`);
-      if (item.quantity > 0) select.insertAdjacentHTML('beforeend', `<option value="${esc(d.id)}">${esc(d.id)} (${item.quantity})</option>`);
-    });
-    $('nav-alert-badge').textContent = alertCount;
-    $('nav-alert-badge').classList.toggle('hidden', alertCount === 0);
-  }));
-
+  // 6. Missions
   state.unsubscribers.push(onSnapshot(collection(db,'countries',myIso,'missions'), snap => {
     const grid = $('missions-grid');
+    if (!grid) return;
     grid.innerHTML = snap.empty ? '<div class="kpi-sub">No missions yet.</div>' : '';
     snap.forEach(d => {
       const m = d.data();
       const pct = Math.min(100, Math.round(((m.progress||0)/(m.target||1))*100));
-      grid.insertAdjacentHTML('beforeend', `<div class="card"><div class="card-header"><span class="card-title">🎯 ${esc(m.title)}</span><span class="brand-badge" style="margin:0">+${m.rewardXp||100} XP</span></div><p class="kpi-sub" style="margin-bottom:10px">${esc(m.description||'')}</p><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span class="mono" style="font-size:12px">${m.progress||0}/${m.target||1}</span>${pct>=100&&!m.claimed?`<button class="btn btn-success btn-sm" onclick="claimMission('${d.id}')">Claim</button>`:`<span class="kpi-sub">${m.claimed?'Done':'In Progress'}</span>`}</div></div>`);
+      grid.insertAdjacentHTML('beforeend', `<div class="card"><div class="card-header"><span class="card-title">🎯 ${esc(m.title)}</span><span class="badge green">+${m.rewardXp||100} XP</span></div><p class="kpi-sub" style="margin-bottom:10px">${esc(m.description||'')}</p><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div></div>`);
     });
   }));
 
-  state.unsubscribers.push(onSnapshot(collection(db,'countries',myIso,'achievements'), snap => {
-    const grid = $('achievements-grid');
-    grid.innerHTML = snap.empty ? '<div class="kpi-sub">No achievements unlocked yet.</div>' : '';
-    snap.forEach(d => {
-      const a = d.data();
-      grid.insertAdjacentHTML('beforeend', `<div class="card"><div class="card-header"><span class="card-title">🏆 ${esc(a.name)}</span><span class="brand-badge" style="margin:0">${esc((a.rarity||'RARE').toUpperCase())}</span></div><p class="kpi-sub">${esc(a.description||'')}</p></div>`);
-    });
-  }));
-
+  // 7. Notifications
   state.unsubscribers.push(onSnapshot(collection(db,'countries',myIso,'notifications'), snap => {
     const list = $('notifications-list');
-    list.innerHTML = snap.empty ? '<div class="kpi-sub">No notifications yet.</div>' : '';
+    list.innerHTML = snap.empty ? '<div class="kpi-sub">No notifications.</div>' : '';
     state.unreadNotifIds = [];
     snap.forEach(d => {
       const n = d.data();
@@ -1636,55 +1380,429 @@ function attachRealtimeListeners(){
     $('nav-notif-badge').classList.toggle('hidden', state.unreadNotifIds.length === 0);
   }));
 
+  // 8. Diplomacy
   state.unsubscribers.push(onSnapshot(query(collection(db,'messages'), where('toIso','==',myIso)), snap => {
     const feed = $('diplomacy-feed');
     feed.innerHTML = snap.empty ? '<div class="kpi-sub">No dispatches.</div>' : '';
-    let pending = 0;
     snap.forEach(d => {
       const m = d.data();
-      if (m.status === 'pending') pending++;
       const flag = state.countries[m.fromIso]?.flag || CATALOG_BY_ISO[m.fromIso]?.flag || '🏳️';
-      feed.insertAdjacentHTML('beforeend', `<div class="product-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px"><strong>${flag} ${esc(m.fromIso)} • ${esc(m.type)}</strong><span class="brand-badge" style="margin:0">${esc(m.status)}</span></div><p style="font-size:13px">${esc(m.content)}</p></div>`);
+      feed.insertAdjacentHTML('beforeend', `<div class="product-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px"><strong>${flag} ${esc(m.fromIso)}</strong><span class="badge">${esc(m.type)}</span></div><p style="font-size:13px;margin-top:6px">${esc(m.content)}</p></div>`);
     });
-    $('nav-msg-badge').textContent = pending;
-    $('nav-msg-badge').classList.toggle('hidden', pending === 0);
   }));
 
+  // 9. Conflicts
   state.unsubscribers.push(onSnapshot(collection(db,'conflicts'), snap => {
     const list = $('war-active-list');
-    const homeDeals = $('home-deals-wars');
     list.innerHTML = snap.empty ? '<div class="kpi-sub">No active conflicts.</div>' : '';
-    if (homeDeals) homeDeals.innerHTML = '';
     let warCount = 0;
     snap.forEach(d => {
       const w = d.data();
-      const a = state.countries[w.attackerIso] || {name:w.attackerIso, militaryScore:10, nuclearWarheads:0, flag:'🏳️'};
-      const def = state.countries[w.defenderIso] || {name:w.defenderIso, militaryScore:10, nuclearWarheads:0, flag:'🏳️'};
+      if (w.status !== 'active') return;
+      warCount++;
+      const a = state.countries[w.attackerIso] || {name:w.attackerIso, flag:'🏳️', militaryScore:10, nuclearWarheads:0};
+      const def = state.countries[w.defenderIso] || {name:w.defenderIso, flag:'🏳️', militaryScore:10, nuclearWarheads:0};
       const atkScore = (a.militaryScore||10) + (a.nuclearWarheads||0)*5;
       const defScore = (def.militaryScore||10) + (def.nuclearWarheads||0)*5;
       const atkPct = Math.round((atkScore/(atkScore+defScore))*100);
-      if (w.status === 'active') warCount++;
-      list.insertAdjacentHTML('beforeend', `<div class="card" style="margin-bottom:12px;border-color:rgba(244,63,94,.3)"><div style="display:flex;justify-content:space-between;align-items:center"><strong>${a.flag||'🏳️'} ${esc(w.attackerIso)} vs ${def.flag||'🏳️'} ${esc(w.defenderIso)}</strong><span class="badge red">${esc((w.status||'').toUpperCase())}</span></div><div class="kpi-sub" style="margin-top:6px">${esc(w.reason||'')} • Power: ${atkScore} vs ${defScore}</div><div class="versus-bar"><div class="versus-fill-atk" style="width:${atkPct}%"></div></div>${(w.status==='active'&&(w.attackerIso===myIso||w.defenderIso===myIso))?`<button class="btn btn-war btn-sm" onclick="resolveWar('${d.id}')">Resolve Battle</button>`:''}</div>`);
-      if (w.status === 'active' && homeDeals){
-        homeDeals.insertAdjacentHTML('beforeend', `<div style="font-size:12px;padding:6px 0;color:#FCA5A5">⚔️ <strong>${esc(w.attackerIso)}</strong> vs <strong>${esc(w.defenderIso)}</strong></div>`);
-      }
+      list.insertAdjacentHTML('beforeend', `<div class="card" style="margin-bottom:12px;border-color:rgba(244,63,94,.3)"><div style="display:flex;justify-content:space-between;align-items:center"><strong>${a.flag} ${esc(w.attackerIso)} vs ${def.flag} ${esc(w.defenderIso)}</strong><span class="badge red">${esc((w.status||'').toUpperCase())}</span></div><div class="kpi-sub" style="margin-top:6px">${esc(w.reason||'')} • Power: ${atkScore} vs ${defScore}</div><div class="threat-meter"><div class="threat-fill" style="width:${atkPct}%"></div></div></div>`);
     });
     $('nav-war-badge').classList.toggle('hidden', warCount === 0);
-
-    // update ticker
-    const ticker = $('war-ticker-track');
-    if (ticker){
-      const wars = snap.docs.filter(d => d.data().status==='active').slice(0,5);
-      if (wars.length){
-        ticker.innerHTML = wars.map(d => {
-          const w = d.data();
-          return `<span>⚔️ ${esc(w.attackerIso)} vs ${esc(w.defenderIso)} — ${esc(w.reason||'Conflict')}</span>`;
-        }).join('') + ticker.innerHTML;
-      }
-    }
   }));
 }
 
+// ============ COMPANIES PAGE ============
+function renderCompaniesPage(){
+  const grid = $('companies-list');
+  const myIso = state.profile?.countryIso;
+  const mine = state.myCompanies;
+  if (!mine.length){
+    grid.innerHTML = '<div class="empty-state"><i data-lucide="factory"></i><div>No companies yet. Found one above!</div></div>';
+    lucide.createIcons({root:grid});
+    return;
+  }
+  grid.innerHTML = '';
+  mine.forEach(comp => {
+    const vis = getProductVisual(comp.product);
+    const totalProduced = comp.totalProduced || 0;
+    const revenue = comp.totalRevenue || 0;
+    const lastTick = comp.lastTick?.toDate?.()?.toLocaleString?.() || 'Never';
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="company-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="company-icon ${vis.cls}"><i data-lucide="${vis.icon}"></i></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:15px">${esc(comp.name)}</div>
+            <div class="kpi-sub">${esc(comp.product)}</div>
+          </div>
+          <span class="badge green">${esc(comp.status || 'ACTIVE')}</span>
+        </div>
+        <div class="stat-line"><span>📦 Units/Tick</span><strong class="mono">${comp.outputRate || 0}</strong></div>
+        <div class="stat-line"><span>⏱️ Interval</span><strong class="mono">${comp.intervalMinutes || 0} min</strong></div>
+        <div class="stat-line"><span>🏭 Total Produced</span><strong class="mono">${totalProduced.toLocaleString()}</strong></div>
+        <div class="stat-line"><span>💰 Revenue</span><strong class="mono" style="color:var(--green)">${revenue.toLocaleString()}</strong></div>
+        <div class="kpi-sub" style="margin-top:8px;font-size:10px">Last tick: ${esc(lastTick)}</div>
+        <button class="btn btn-secondary btn-sm btn-full" style="margin-top:10px" data-remove-comp="${comp.id}">
+          🗑️ Sell Company
+        </button>
+      </div>
+    `);
+  });
+  lucide.createIcons({root:grid});
+
+  grid.querySelectorAll('[data-remove-comp]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Sell this company? You receive 5,000 coins.')) return;
+      try {
+        const myIso = state.profile.countryIso;
+        await deleteDoc(doc(db,'companies',btn.dataset.removeComp));
+        await updateDoc(doc(db,'countries',myIso), {coins: increment(5000)});
+        toast('Company sold for 5,000 coins.', 'success');
+      } catch (err){ toast(err.message, 'error'); }
+    };
+  });
+}
+
+function renderCompaniesSummaryCard(){
+  const el = $('comp-summary');
+  const mine = state.myCompanies;
+  if (!mine.length){
+    el.innerHTML = '<div class="kpi-sub">No companies yet.</div>';
+    return;
+  }
+  let totalRate = 0, totalRevenue = 0, totalProduced = 0;
+  mine.forEach(c => {
+    totalRate += (c.outputRate || 0);
+    totalRevenue += (c.totalRevenue || 0);
+    totalProduced += (c.totalProduced || 0);
+  });
+  $('comp-total-value').textContent = totalRevenue.toLocaleString() + ' 💰';
+  el.innerHTML = `
+    <div class="stat-line"><span>🏭 Total Companies</span><strong class="mono">${mine.length}</strong></div>
+    <div class="stat-line"><span>📦 Units per Minute</span><strong class="mono">${(totalRate * (60/Math.max(1, mine[0]?.intervalMinutes || 20))).toFixed(1)}</strong></div>
+    <div class="stat-line"><span>🏗️ Total Produced</span><strong class="mono">${totalProduced.toLocaleString()}</strong></div>
+    <div class="stat-line"><span>💰 Lifetime Revenue</span><strong class="mono" style="color:var(--green)">${totalRevenue.toLocaleString()}</strong></div>
+  `;
+}
+
+$('create-company-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('create-company-btn');
+  const myIso = state.profile?.countryIso;
+  const me = state.countries[myIso];
+  if (!me || (me.coins||0) < 10000){
+    toast('Need 10,000 coins to found a company.', 'error');
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i> Creating...';
+  lucide.createIcons();
+  try {
+    await addDoc(collection(db,'companies'), {
+      name: $('comp-name').value,
+      product: $('comp-product').value,
+      countryIso: myIso,
+      outputRate: parseInt($('comp-rate').value) || 10,
+      intervalMinutes: parseInt($('comp-interval').value) || 20,
+      status: 'ACTIVE',
+      totalProduced: 0,
+      totalRevenue: 0,
+      createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db,'countries',myIso), { coins: increment(-10000) });
+    coinFly(btn);
+    toast('Company founded!', 'success');
+    confetti(30);
+    $('comp-name').value = '';
+  } catch (err){ toast(err.message, 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="building"></i> Found Company (10,000 💰)';
+  lucide.createIcons();
+});
+
+// ============ SELL PAGE ============
+function renderSellCompanyDropdown(){
+  const sel = $('sell-company');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Choose a company...</option>';
+  state.myCompanies.forEach(c => {
+    sel.insertAdjacentHTML('beforeend', `<option value="${c.id}">${esc(c.name)} (${esc(c.product)})</option>`);
+  });
+  if (current) sel.value = current;
+}
+
+$('sell-company').addEventListener('change', () => renderSellStock());
+
+function renderSellStock(){
+  const compId = $('sell-company').value;
+  if (!compId){
+    $('sell-product').value = '';
+    $('sell-stock').value = '';
+    $('sell-preview').textContent = '';
+    return;
+  }
+  const comp = state.myCompanies.find(c => c.id === compId);
+  if (!comp) return;
+  $('sell-product').value = comp.product;
+  const stock = state.inventory[comp.product]?.quantity || 0;
+  $('sell-stock').value = `${stock} units available`;
+  updateSellPreview();
+}
+$('sell-qty').addEventListener('input', updateSellPreview);
+$('sell-price').addEventListener('input', updateSellPreview);
+
+function updateSellPreview(){
+  const qty = parseInt($('sell-qty').value) || 0;
+  const price = parseInt($('sell-price').value) || 0;
+  if (qty > 0 && price > 0){
+    $('sell-preview').innerHTML = `Total: <strong class="mono" style="color:var(--orange)">${(qty * price).toLocaleString()} 💰</strong>`;
+  } else {
+    $('sell-preview').textContent = '';
+  }
+}
+
+$('sell-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const compId = $('sell-company').value;
+  const comp = state.myCompanies.find(c => c.id === compId);
+  if (!comp){ toast('Select a company first.', 'error'); return; }
+  const qty = parseInt($('sell-qty').value);
+  const price = parseInt($('sell-price').value);
+  const visibility = $('sell-visibility').value;
+  const product = comp.product;
+  const myIso = state.profile.countryIso;
+
+  if (!qty || qty < 1){ toast('Enter a valid quantity.', 'error'); return; }
+  if (!price || price < 1){ toast('Enter a valid price.', 'error'); return; }
+
+  const stock = state.inventory[product]?.quantity || 0;
+  if (stock < qty){
+    toast(`Not enough stock. You have ${stock} ${product}.`, 'error');
+    return;
+  }
+
+  const btn = $('sell-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i> Listing...';
+  lucide.createIcons();
+
+  try {
+    const batch = writeBatch(db);
+    // Create trade offer
+    const offerRef = doc(collection(db,'tradeOffers'));
+    batch.set(offerRef, {
+      product,
+      category: getProductCategory(product),
+      quantity: qty,
+      unitPrice: price,
+      visibility,
+      sellerIso: myIso,
+      sellerCompany: comp.name,
+      companyId: compId,
+      status: 'open',
+      createdAt: serverTimestamp()
+    });
+    // Deduct from inventory
+    batch.update(doc(db,'countries',myIso,'inventory',product), {
+      quantity: increment(-qty),
+      updatedAt: serverTimestamp()
+    });
+    await batch.commit();
+    coinFly(btn);
+    toast(`Listed ${qty} ${product} @ ${price}💰 each!`, 'success');
+    confetti(20);
+    $('sell-qty').value = 10;
+  } catch (err){ toast(err.message, 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="upload-cloud"></i> List on Global Market';
+  lucide.createIcons();
+});
+
+function renderMyListings(){
+  const el = $('my-listings');
+  const myIso = state.profile?.countryIso;
+  const mine = state.marketOffers.filter(o => o.sellerIso === myIso);
+  if (!mine.length){
+    el.innerHTML = '<div class="kpi-sub">No active listings. List one above.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  mine.forEach(o => {
+    const vis = getProductVisual(o.product);
+    el.insertAdjacentHTML('beforeend', `
+      <div style="padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--bg-elevated);display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div class="product-art-badge ${vis.cls}" style="width:38px;height:38px"><i data-lucide="${vis.icon}"></i></div>
+          <div style="flex:1;min-width:0">
+            <strong>${esc(o.product)}</strong>
+            <div class="kpi-sub">${o.quantity} units @ ${o.unitPrice}💰 • ${o.visibility}</div>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" data-cancel="${o.id}">✖ Cancel</button>
+      </div>
+    `);
+  });
+  lucide.createIcons({root:el});
+  el.querySelectorAll('[data-cancel]').forEach(btn => {
+    btn.onclick = async () => {
+      const offerId = btn.dataset.cancel;
+      const offer = state.marketOffers.find(o => o.id === offerId);
+      if (!offer) return;
+      if (!confirm(`Cancel listing and return ${offer.quantity} ${offer.product} to inventory?`)) return;
+      try {
+        const batch = writeBatch(db);
+        batch.update(doc(db,'tradeOffers',offerId), {status: 'cancelled', cancelledAt: serverTimestamp()});
+        batch.update(doc(db,'countries',offer.sellerIso,'inventory',offer.product), {
+          quantity: increment(offer.quantity),
+          updatedAt: serverTimestamp()
+        });
+        await batch.commit();
+        toast('Listing cancelled. Inventory restored.', 'success');
+      } catch (err){ toast(err.message, 'error'); }
+    };
+  });
+}
+
+// ============ GLOBAL MARKET ============
+function renderMarketCards(){
+  const grid = $('market-cards-grid');
+  if (!grid) return;
+  const myIso = state.profile?.countryIso;
+  const search = ($('market-search').value||'').toLowerCase();
+  const cat = $('market-cat-filter').value;
+  const sort = $('market-sort').value;
+
+  let offers = state.marketOffers.filter(o => o.sellerIso !== myIso || o.visibility === 'public');
+  if (search) offers = offers.filter(o => o.product.toLowerCase().includes(search) || o.sellerIso.toLowerCase().includes(search));
+  if (cat !== 'all') offers = offers.filter(o => o.category === cat);
+  if (sort === 'price-asc') offers.sort((a,b) => a.unitPrice - b.unitPrice);
+  else if (sort === 'price-desc') offers.sort((a,b) => b.unitPrice - a.unitPrice);
+
+  grid.innerHTML = offers.length ? '' : '<div class="empty-state"><i data-lucide="shopping-bag"></i><div>No listings match your filters.</div></div>';
+  offers.forEach(o => {
+    const vis = getProductVisual(o.product);
+    const seller = state.countries[o.sellerIso];
+    const isMine = o.sellerIso === myIso;
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="product-card" data-offer-id="${o.id}">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div class="product-art-badge ${vis.cls}"><i data-lucide="${vis.icon}"></i></div>
+          <div style="flex:1;min-width:0">
+            <strong>${esc(o.product)}</strong>
+            <div class="category-chip">${esc(o.category)}</div>
+            <div class="kpi-sub" style="margin-top:6px">${seller?.flag||'🏳️'} ${esc(seller?.name||o.sellerIso)}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px;gap:10px">
+          <div>
+            <div class="mono" style="font-size:18px;font-weight:800;color:var(--orange)">${o.unitPrice.toLocaleString()}💰</div>
+            <div class="kpi-sub">${o.quantity} available</div>
+          </div>
+          ${isMine ? '<span class="badge">YOURS</span>' : `<button class="btn btn-primary btn-sm" data-buy="${o.id}">🛒 Buy</button>`}
+        </div>
+      </div>
+    `);
+  });
+  lucide.createIcons({root:grid});
+  grid.querySelectorAll('[data-buy]').forEach(btn => {
+    btn.onclick = () => buyOffer(btn.dataset.buy, btn);
+  });
+}
+
+async function buyOffer(offerId, btnEl){
+  const offer = state.marketOffers.find(o => o.id === offerId);
+  if (!offer) return;
+  const myIso = state.profile.countryIso;
+  const me = state.countries[myIso];
+  const total = offer.quantity * offer.unitPrice;
+
+  if ((me.coins||0) < total){
+    toast(`Not enough coins! Need ${total.toLocaleString()}, have ${(me.coins||0).toLocaleString()}.`, 'error');
+    return;
+  }
+
+  if (!confirm(`Buy ${offer.quantity} ${offer.product} for ${total.toLocaleString()} 💰?`)) return;
+
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite"></i>';
+  lucide.createIcons();
+
+  try {
+    const batch = writeBatch(db);
+    // Buyer: deduct coins
+    batch.update(doc(db,'countries',myIso), { coins: increment(-total) });
+    // Seller: add coins
+    batch.update(doc(db,'countries',offer.sellerIso), { coins: increment(total) });
+    // Mark offer completed
+    batch.update(doc(db,'tradeOffers',offerId), {
+      status: 'completed',
+      buyerIso: myIso,
+      completedAt: serverTimestamp()
+    });
+    // Buyer: add inventory (need to check if exists - use setDoc with merge)
+    await batch.commit();
+    // Inventory update separately (since it needs merge)
+    const invRef = doc(db,'countries',myIso,'inventory',offer.product);
+    const invSnap = await getDoc(invRef);
+    if (invSnap.exists()){
+      await updateDoc(invRef, { quantity: increment(offer.quantity), updatedAt: serverTimestamp() });
+    } else {
+      await setDoc(invRef, { quantity: offer.quantity, minThreshold: 10, updatedAt: serverTimestamp() });
+    }
+    coinFly(btnEl);
+    toast(`Bought ${offer.quantity} ${offer.product}!`, 'success');
+    confetti(30);
+  } catch (err){
+    toast(err.message, 'error');
+    btnEl.disabled = false;
+    btnEl.innerHTML = '🛒 Buy';
+  }
+}
+
+['market-search','market-cat-filter','market-sort'].forEach(id => {
+  $(id)?.addEventListener('input', renderMarketCards);
+  $(id)?.addEventListener('change', renderMarketCards);
+});
+
+function renderHomeDeals(){
+  const el = $('home-deals');
+  if (!el) return;
+  const offers = state.marketOffers.slice(0, 5);
+  if (!offers.length){ el.innerHTML = '<div class="kpi-sub">No market listings yet.</div>'; return; }
+  el.innerHTML = '';
+  offers.forEach(o => {
+    const vis = getProductVisual(o.product);
+    el.insertAdjacentHTML('beforeend', `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px"><i data-lucide="${vis.icon}" style="color:var(--cyan);vertical-align:middle"></i> <strong>${esc(o.product)}</strong> — ${o.unitPrice}💰 (${o.quantity} left)</div>`);
+  });
+  lucide.createIcons({root:el});
+}
+
+// ============ INVENTORY ============
+function renderInventoryTable(){
+  const tbody = $('mc-inventory-tbody');
+  if (!tbody) return;
+  const items = Object.values(state.inventory);
+  if (!items.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="kpi-sub">No inventory. Buy or produce goods.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  items.forEach(item => {
+    const vis = getProductVisual(item.id);
+    const low = item.quantity < (item.minThreshold || 20);
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><i data-lucide="${vis.icon}" style="color:var(--cyan);vertical-align:middle;margin-right:6px"></i><strong>${esc(item.id)}</strong></td>
+        <td class="mono">${item.quantity}</td>
+        <td class="mono">${item.minThreshold || 20}</td>
+        <td style="color:${low?'var(--danger)':'var(--green)'};font-weight:700">${low?'LOW':'OK'}</td>
+      </tr>
+    `);
+  });
+  lucide.createIcons({root:tbody});
+}
+
+// ============ ENEMY GRID / LEADERBOARD ============
 function renderEnemyGrid(){
   const grid = $('enemy-grid');
   if (!grid) return;
@@ -1694,10 +1812,8 @@ function renderEnemyGrid(){
   grid.innerHTML = '';
   Object.values(state.countries).forEach(c => {
     if (c.iso === myIso) return;
-    if (!c.presidentUid && !c.purchasable) return;
     const power = (c.militaryScore||10) + (c.nuclearWarheads||0)*5;
     const threat = Math.min(100, Math.round((power/(myPower+power))*100));
-    const isWar = c.atWar;
     grid.insertAdjacentHTML('beforeend', `
       <div class="enemy-card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -1706,276 +1822,33 @@ function renderEnemyGrid(){
             <strong>${esc(c.name||c.iso)}</strong>
             <div class="kpi-sub">${c.presidentName ? `Pres. ${esc(c.presidentName)}` : 'Unclaimed'}</div>
           </div>
-          ${isWar ? '<span class="badge red">WAR</span>' : ''}
+          ${c.atWar ? '<span class="badge red">WAR</span>' : ''}
         </div>
         <div class="power-stat"><span>⚔️ Military</span><strong class="mono">${c.militaryScore||10}</strong></div>
         <div class="power-stat"><span>☢️ Nukes</span><strong class="mono" style="color:var(--orange)">${c.nuclearWarheads||0}</strong></div>
         <div class="power-stat"><span>🛡️ Power</span><strong class="mono">${power}</strong></div>
         <div style="font-size:11px;margin-top:6px;color:var(--text-secondary)">Threat: ${threat}%</div>
         <div class="threat-meter"><div class="threat-fill" style="width:${threat}%"></div></div>
-        ${c.presidentUid ? `<button class="btn btn-war btn-sm btn-full" style="margin-top:8px" onclick="quickDeclareWar('${c.iso}')">⚔️ Declare War</button>` : `<button class="btn btn-primary btn-sm btn-full" style="margin-top:8px" onclick="quickClaim('${c.iso}')">🏴 Claim Nation</button>`}
+        ${c.presidentUid ? `<button class="btn btn-war btn-sm btn-full" style="margin-top:8px" data-attack="${c.iso}">⚔️ Declare War</button>` : ''}
       </div>
     `);
   });
-}
-
-window.quickDeclareWar = (targetIso) => {
-  $('war-target-select').value = targetIso;
-  switchView('war');
-  toast('Target selected. Enter objective and declare war.', 'info');
-};
-
-window.quickClaim = async (targetIso) => {
-  try {
-    const fn = httpsCallable(functions, 'claimUnclaimedCountry');
-    await fn({targetIso});
-    toast('Nation claimed!', 'success', 760);
-    confetti(50);
-  } catch (err) { toast(err.message, 'error'); }
-};
-
-window.resolveWar = async (conflictId) => {
-  // Simulated client-side battle (in production use Cloud Function)
-  const myIso = state.profile.countryIso;
-  const me = state.countries[myIso];
-  const myPower = (me.militaryScore||10) + (me.nuclearWarheads||0)*5;
-  const conflictRef = doc(db, 'conflicts', conflictId);
-  try {
-    const conflictSnap = await getDoc(conflictRef);
-    if (!conflictSnap.exists()) return;
-    const w = conflictSnap.data();
-    const isAttacker = w.attackerIso === myIso;
-    const enemyIso = isAttacker ? w.defenderIso : w.attackerIso;
-    const enemy = state.countries[enemyIso] || {militaryScore:10, nuclearWarheads:0};
-    const enemyPower = (enemy.militaryScore||10) + (enemy.nuclearWarheads||0)*5;
-
-    // weighted random
-    const total = myPower + enemyPower;
-    const winChance = myPower / total;
-    const roll = Math.random();
-    const iWin = roll < winChance;
-    const damage = Math.round(20 + Math.random()*40);
-    const coinsStolen = Math.round(5000 + Math.random()*10000);
-
-    showBattleModal(
-      isAttacker ? {iso:myIso, name:me.name, flag:me.flag, power:myPower} : {iso:enemyIso, name:enemy.name, flag:enemy.flag, power:enemyPower},
-      isAttacker ? {iso:enemyIso, name:enemy.name, flag:enemy.flag, power:enemyPower} : {iso:myIso, name:me.name, flag:me.flag, power:myPower},
-      {winner: iWin ? (isAttacker?'attacker':'defender') : (isAttacker?'defender':'attacker'),
-       message: iWin ? 'Your forces overwhelmed the enemy!' : 'Your forces were repelled.',
-       damage}
-    );
-
-    const batch = writeBatch(db);
-    if (iWin){
-      batch.update(conflictRef, {status:'resolved', winnerIso:myIso, resolvedAt: serverTimestamp()});
-      batch.update(doc(db,'countries',myIso), {coins: increment(coinsStolen), militaryScore: increment(2)});
-    } else {
-      batch.update(conflictRef, {status:'resolved', winnerIso:enemyIso, resolvedAt: serverTimestamp()});
-      batch.update(doc(db,'countries',myIso), {militaryScore: increment(-1)});
-    }
-    await batch.commit();
-    document.body.style.animation = 'shake .5s';
-    setTimeout(() => document.body.style.animation = '', 500);
-    if (iWin) confetti(30);
-  } catch (err){ toast(err.message, 'error'); }
-};
-
-window.claimMission = async (id) => {
-  try {
-    const myIso = state.profile.countryIso;
-    await updateDoc(doc(db,'countries',myIso,'missions',id), {claimed: true, claimedAt: serverTimestamp()});
-    toast('Reward claimed!', 'success');
-    confetti(20);
-  } catch (err) { toast(err.message, 'error'); }
-};
-
-// ============ FORM HANDLERS ============
-$('declare-war-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const target = $('war-target-select').value;
-  const reason = $('war-reason').value;
-  if (!target || !reason) return;
-  try {
-    await addDoc(collection(db,'conflicts'), {
-      attackerIso: state.profile.countryIso,
-      defenderIso: target,
-      reason,
-      status: 'active',
-      createdAt: serverTimestamp()
-    });
-    toast('War declared!', 'success', 300);
-    document.body.style.animation = 'shake .4s';
-    setTimeout(() => document.body.style.animation = '', 400);
-    $('war-reason').value = '';
-  } catch (err) { toast(err.message, 'error'); }
-});
-
-$('nuke-launch-btn').onclick = async () => {
-  const target = $('nuke-target-select').value;
-  if (!target){ toast('Select a target first.', 'error'); return; }
-  const myIso = state.profile.countryIso;
-  const me = state.countries[myIso];
-  if ((me.nuclearWarheads||0) <= 0){ toast('No warheads available!', 'error'); return; }
-  if (!confirm(`☢️ LAUNCH NUCLEAR STRIKE ON ${target}? This will cause catastrophic damage.`)) return;
-  showNukeModal();
-  try {
-    await updateDoc(doc(db,'countries',myIso), {nuclearWarheads: increment(-1)});
-    await updateDoc(doc(db,'countries',target), {stability: increment(-40), militaryScore: increment(-20)});
-    toast('Nuclear strike launched!', 'success', 200);
-  } catch (err){ toast(err.message, 'error'); }
-};
-
-$('create-trade-offer-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const product = $('trade-product-select').value;
-  const category = $('trade-category-select').value;
-  const quantity = parseInt($('trade-qty').value);
-  const unitPrice = parseInt($('trade-price').value);
-  const visibility = $('trade-visibility').value;
-  if (!product || !quantity || !unitPrice) return;
-  try {
-    await addDoc(collection(db,'tradeOffers'), {
-      product, category, quantity, unitPrice, visibility,
-      sellerIso: state.profile.countryIso,
-      status: 'open',
-      createdAt: serverTimestamp()
-    });
-    toast('Deal listed on market!', 'success');
-    $('trade-qty').value = ''; $('trade-price').value = '';
-  } catch (err) { toast(err.message, 'error'); }
-});
-
-function renderMarketCards(){
-  const grid = $('market-cards-grid');
-  if (!grid) return;
-  const search = ($('market-search').value||'').toLowerCase();
-  const cat = $('market-cat-filter').value;
-  const sort = $('market-sort').value;
-  let offers = [...state.marketOffers];
-  if (search) offers = offers.filter(o => o.product.toLowerCase().includes(search) || o.sellerIso.toLowerCase().includes(search));
-  if (cat !== 'all') offers = offers.filter(o => o.category === cat);
-  if (sort === 'price-asc') offers.sort((a,b) => a.unitPrice - b.unitPrice);
-  else if (sort === 'price-desc') offers.sort((a,b) => b.unitPrice - a.unitPrice);
-  grid.innerHTML = offers.length ? '' : '<div class="kpi-sub">No deals match.</div>';
-  const myIso = state.profile?.countryIso;
-  offers.forEach(o => {
-    const vis = getProductVisual(o.product, o.category);
-    const isMine = o.sellerIso === myIso;
-    const seller = state.countries[o.sellerIso];
-    grid.insertAdjacentHTML('beforeend', `
-      <div class="product-card" data-offer-id="${o.id}">
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <div class="product-art-badge ${vis.cls}"><i data-lucide="${vis.icon}"></i></div>
-          <div style="flex:1">
-            <strong>${esc(o.product)}</strong>
-            <div class="category-chip">${esc(o.category)}</div>
-            <div class="kpi-sub" style="margin-top:6px">${seller?.flag||'🏳️'} ${esc(seller?.name||o.sellerIso)}</div>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-          <div>
-            <div class="mono" style="font-size:18px;font-weight:800;color:var(--orange)">${o.unitPrice.toLocaleString()}💰</div>
-            <div class="kpi-sub">${o.quantity} in stock</div>
-          </div>
-          ${isMine ? '<span class="badge">YOURS</span>' : `<button class="btn btn-primary btn-sm" data-buy="${o.id}">🛒 Buy</button>`}
-        </div>
-      </div>
-    `);
-  });
-  lucide.createIcons({root:grid});
-  grid.querySelectorAll('[data-buy]').forEach(btn => {
-    btn.onclick = async (e) => {
-      const offerId = btn.dataset.buy;
-      const offer = state.marketOffers.find(o => o.id === offerId);
-      if (!offer) return;
-      const card = btn.closest('.product-card');
-      card.classList.add('buying');
-      try {
-        const myIso = state.profile.countryIso;
-        const me = state.countries[myIso];
-        const total = offer.quantity * offer.unitPrice;
-        if ((me.coins||0) < total){ toast('Not enough coins!', 'error'); card.classList.remove('buying'); return; }
-        const batch = writeBatch(db);
-        batch.update(doc(db,'countries',myIso), {coins: increment(-total)});
-        batch.update(doc(db,'countries',offer.sellerIso), {coins: increment(total)});
-        batch.update(doc(db,'tradeOffers',offerId), {status:'completed', buyerIso: myIso, completedAt: serverTimestamp()});
-        await batch.commit();
-        coinFly(card);
-        toast(`Bought ${offer.quantity}× ${offer.product}!`, 'success', 760);
-        confetti(20);
-      } catch (err) { toast(err.message, 'error'); card.classList.remove('buying'); }
+  grid.querySelectorAll('[data-attack]').forEach(btn => {
+    btn.onclick = () => {
+      $('war-target-select').value = btn.dataset.attack;
+      switchView('war');
+      toast('Target selected. Enter objective.', 'info');
     };
   });
+  lucide.createIcons({root:grid});
 }
-['market-search','market-cat-filter','market-sort'].forEach(id => {
-  $(id)?.addEventListener('input', renderMarketCards);
-  $(id)?.addEventListener('change', renderMarketCards);
-});
 
-$('diplomacy-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const target = $('diplo-target-country').value;
-  const type = $('diplo-type').value;
-  const content = $('diplo-content').value;
-  if (!target || !content) return;
-  try {
-    await addDoc(collection(db,'messages'), {
-      fromIso: state.profile.countryIso, toIso: target, type, content,
-      status: 'pending', createdAt: serverTimestamp()
-    });
-    toast('Dispatch transmitted!', 'success');
-    $('diplo-content').value = '';
-  } catch (err) { toast(err.message, 'error'); }
-});
-
-$('profile-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  try {
-    await updateDoc(doc(db,'users',state.user.uid), {
-      displayName: $('prof-display-name').value,
-      bio: $('prof-bio').value,
-      updatedAt: serverTimestamp()
-    });
-    state.profile.displayName = $('prof-display-name').value;
-    $('sidebar-user-name').textContent = $('prof-display-name').value;
-    toast('Profile saved!', 'success');
-  } catch (err) { toast(err.message, 'error'); }
-});
-
-$('gov-identity-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  try {
-    await updateDoc(doc(db,'countries',state.profile.countryIso), {
-      governmentName: $('gov-state-name').value,
-      ideology: $('gov-party').value
-    });
-    toast('Charter updated!', 'success');
-  } catch (err) { toast(err.message, 'error'); }
-});
-
-$('mark-all-read-btn').onclick = async () => {
-  const myIso = state.profile.countryIso;
-  for (const id of state.unreadNotifIds){
-    try { await updateDoc(doc(db,'countries',myIso,'notifications',id), {read: true}); } catch(_){}
-  }
-  toast('All marked read.', 'success');
-};
-
-$('avatar-file-input').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > 2*1024*1024){ toast('File too large (max 2MB)', 'error'); return; }
-  toast('Uploading...', 'info');
-  // Placeholder: in production, upload to Supabase and save URL
-  toast('Avatar upload requires Supabase integration.', 'info');
-});
-
-// ============ LEADERBOARD ============
-function renderLeaderboard(rows){
+function renderLeaderboard(){
   const tbody = $('leaderboard-tbody');
   if (!tbody) return;
   const cat = $('lb-category').value;
-  const sorted = [...rows].sort((a,b) => {
+  const list = Object.values(state.countries);
+  const sorted = [...list].sort((a,b) => {
     if (cat === 'overall'){
       return ((b.militaryScore||0)+(b.techLevel||1)*10+(b.nuclearWarheads||0)*5+(b.level||1)*20) - ((a.militaryScore||0)+(a.techLevel||1)*10+(a.nuclearWarheads||0)*5+(a.level||1)*20);
     }
@@ -1987,32 +1860,111 @@ function renderLeaderboard(rows){
     return `<tr><td class="mono" style="font-weight:800">#${i+1}</td><td>${c.flag||'🏳️'} ${esc(c.name)}</td><td>${esc(c.presidentName||'—')}</td><td class="mono">${c.level||1}</td><td class="mono" style="font-weight:700;color:var(--cyan)">${score.toLocaleString()}</td></tr>`;
   }).join('');
 }
-$('lb-category').onchange = () => renderLeaderboard(Object.values(state.countries));
+$('lb-category').onchange = renderLeaderboard;
 
-// ============ CHART ============
-function renderTelemetryChart(history){
-  if (!history.length){ $('chart-empty-state').classList.remove('hidden'); $('country-telemetry-chart').classList.add('hidden'); return; }
-  $('chart-empty-state').classList.add('hidden');
-  $('country-telemetry-chart').classList.remove('hidden');
-  if (state.chartInstance) state.chartInstance.destroy();
-  const ctx = $('country-telemetry-chart').getContext('2d');
-  state.chartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: history.map(h => h.date || ''),
-      datasets: [
-        {label:'Coins', data: history.map(h => h.coins||0), borderColor:'#FBBF24', tension:.3},
-        {label:'Military', data: history.map(h => h.militaryScore||0), borderColor:'#22D3EE', tension:.3}
-      ]
-    },
-    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#94A3B8'}}},
-      scales:{x:{ticks:{color:'#94A3B8'}},y:{ticks:{color:'#94A3B8'}}}}
-  });
-}
+// ============ WAR ACTIONS ============
+$('declare-war-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const target = $('war-target-select').value;
+  const reason = $('war-reason').value.trim();
+  if (!target || !reason) return;
+  try {
+    await addDoc(collection(db,'conflicts'), {
+      attackerIso: state.profile.countryIso,
+      defenderIso: target,
+      reason,
+      status: 'active',
+      createdAt: serverTimestamp()
+    });
+    toast('War declared!', 'success');
+    document.body.style.animation = 'shake .4s';
+    setTimeout(() => document.body.style.animation = '', 400);
+    $('war-reason').value = '';
+  } catch (err){ toast(err.message, 'error'); }
+});
 
-// Inline lucide re-render on DOM mutations
-const observer = new MutationObserver(() => lucide.createIcons());
-observer.observe(document.body, {childList: true, subtree: true});
+$('nuke-launch-btn').onclick = async () => {
+  const target = $('nuke-target-select').value;
+  if (!target){ toast('Select a target.', 'error'); return; }
+  const myIso = state.profile.countryIso;
+  const me = state.countries[myIso];
+  if ((me.nuclearWarheads||0) <= 0){ toast('No warheads available!', 'error'); return; }
+  if (!confirm(`☢️ LAUNCH NUCLEAR STRIKE ON ${target}?`)) return;
+
+  const modal = $('nuke-modal');
+  modal.classList.remove('hidden');
+  const missile = $('nuke-missile');
+  const cloud = $('nuke-cloud');
+  missile.style.animation = 'none';
+  cloud.style.display = 'none';
+  void missile.offsetWidth;
+  missile.style.animation = 'missileLaunch 1.2s ease-out forwards';
+
+  try {
+    await updateDoc(doc(db,'countries',myIso), {nuclearWarheads: increment(-1)});
+    await updateDoc(doc(db,'countries',target), {
+      stability: increment(-40),
+      militaryScore: increment(-20)
+    });
+    setTimeout(() => {
+      cloud.style.display = 'block';
+      cloud.style.animation = 'mushroom 1.5s ease-out forwards';
+    }, 1200);
+    setTimeout(() => {
+      $('nuke-result').innerHTML = `<div style="padding:16px;border-radius:12px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);text-align:center"><div style="font-size:36px">☢️</div><h3 style="color:var(--orange);margin-top:8px">IMPACT CONFIRMED</h3></div>`;
+    }, 2800);
+    toast('Nuclear strike launched!', 'success');
+  } catch (err){ toast(err.message, 'error'); }
+};
+$('nuke-modal-close').onclick = () => $('nuke-modal').classList.add('hidden');
+
+// ============ DIPLOMACY ============
+$('diplomacy-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const target = $('diplo-target-country').value;
+  const type = $('diplo-type').value;
+  const content = $('diplo-content').value.trim();
+  if (!target || !content) return;
+  try {
+    await addDoc(collection(db,'messages'), {
+      fromIso: state.profile.countryIso,
+      toIso: target,
+      type,
+      content,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+    toast('Dispatch sent.', 'success');
+    $('diplo-content').value = '';
+  } catch (err){ toast(err.message, 'error'); }
+});
+
+// ============ PROFILE ============
+$('profile-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await updateDoc(doc(db,'users',state.user.uid), {
+      displayName: $('prof-display-name').value,
+      bio: $('prof-bio').value,
+      updatedAt: serverTimestamp()
+    });
+    state.profile.displayName = $('prof-display-name').value;
+    $('sidebar-user-name').textContent = $('prof-display-name').value;
+    $('prof-name-display').textContent = $('prof-display-name').value;
+    toast('Profile saved.', 'success');
+  } catch (err){ toast(err.message, 'error'); }
+});
+
+// ============ NOTIFICATIONS ============
+$('mark-all-read-btn').onclick = async () => {
+  const myIso = state.profile.countryIso;
+  for (const id of state.unreadNotifIds){
+    try { await updateDoc(doc(db,'countries',myIso,'notifications',id), {read: true}); } catch(_){}
+  }
+  toast('All marked read.', 'success');
+};
+
+// ============ INIT ============
 lucide.createIcons();
 </script>
 </body>
