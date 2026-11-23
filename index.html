@@ -333,6 +333,16 @@
     .kpi-value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
     .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
 
+    /* Nuclear Deterrence Badge */
+    .nuke-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 999px;
+      background: rgba(251, 191, 36, 0.14);
+      border: 1px solid rgba(251, 191, 36, 0.38);
+      color: var(--orange);
+    }
+
     /* Interactive Map & Filters */
     .map-toolbar {
       display: flex; flex-wrap: wrap; gap: 10px;
@@ -399,7 +409,7 @@
     }
     .legend-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 5px; }
 
-    /* Floating Country Inspector (Desktop Side Panel -> Mobile Bottom Sheet) */
+    /* Floating Country Inspector */
     .country-drawer {
       position: absolute;
       top: 14px; right: 14px; bottom: 14px;
@@ -438,7 +448,7 @@
     .drawer-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
     .drawer-body { padding: 16px; overflow-y: auto; flex: 1; font-size: 13px; }
 
-    /* Rich Product Marketplace Cards with Custom Product Artwork Badges */
+    /* Product Marketplace Cards */
     .market-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
@@ -464,8 +474,6 @@
       width: 52px; height: 52px;
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
-      position: relative;
-      overflow: hidden;
       flex-shrink: 0;
     }
     .product-art-badge svg { width: 26px; height: 26px; }
@@ -482,19 +490,14 @@
       background: rgba(255,255,255,0.06); color: var(--text-secondary);
     }
 
-    /* Achievement Rarity */
     .rarity-common { border-left: 3px solid var(--text-secondary); }
     .rarity-rare { border-left: 3px solid var(--cyan); }
     .rarity-epic { border-left: 3px solid var(--purple); }
     .rarity-legendary { border-left: 3px solid var(--orange); background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), var(--bg-elevated)); }
 
-    /* Conflict Versus Card */
-    .versus-bar {
-      height: 10px; border-radius: 999px; background: var(--danger); overflow: hidden; display: flex; margin: 8px 0;
-    }
+    .versus-bar { height: 10px; border-radius: 999px; background: var(--danger); overflow: hidden; display: flex; margin: 8px 0; }
     .versus-fill-atk { background: var(--cyan); height: 100%; transition: width 0.4s ease; }
 
-    /* Alerts, Tables & Toasts */
     .alert-item {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 12px; border-radius: 10px;
@@ -522,7 +525,6 @@
       display: flex; align-items: center; gap: 8px;
     }
 
-    /* Mobile Bottom Navigation + More Drawer */
     .mobile-more-sheet {
       position: fixed;
       bottom: 66px; left: 10px; right: 10px;
@@ -691,6 +693,7 @@
           <div class="pill" title="National Level"><i data-lucide="sparkles" style="color:var(--purple);"></i><span class="lbl">Lvl</span><span class="mono" id="top-level">1</span></div>
           <div class="pill" title="Stability"><i data-lucide="heart-pulse" style="color:var(--green);"></i><span class="mono" id="top-stability">100%</span></div>
           <div class="pill" title="Military Score"><i data-lucide="shield" style="color:var(--cyan);"></i><span class="mono" id="top-military">0</span></div>
+          <div class="pill" title="Strategic Nuclear Arsenal"><i data-lucide="radiation" style="color:var(--orange);"></i><span class="lbl">Nukes</span><span class="mono" id="top-nukes">0</span></div>
         </div>
       </header>
 
@@ -699,9 +702,12 @@
         <section id="view-world" class="game-view">
           <div class="hero-banner">
             <div>
-              <div class="brand-badge" style="margin-bottom:6px;"><i data-lucide="radio"></i> LIVE PERSISTENT WORLD</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+                <span class="brand-badge" style="margin:0;"><i data-lucide="radio"></i> LIVE PERSISTENT WORLD</span>
+                <span class="nuke-badge" id="hero-nuclear-status"><i data-lucide="radiation"></i> Non-Nuclear State</span>
+              </div>
               <h2 class="display-font" id="welcome-headline" style="font-size:20px;">Welcome back, President</h2>
-              <p class="kpi-sub" id="welcome-sub">Your nation is active on the world stage. Monitor markets, diplomacy, and live global shifts.</p>
+              <p class="kpi-sub" id="welcome-sub">Your nation is aligned with the global map. Monitor markets, diplomacy, and live strategic shifts.</p>
             </div>
             <div class="xp-bar-wrap">
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
@@ -715,16 +721,18 @@
           <div class="map-toolbar">
             <div style="display:flex; gap:8px; flex:1; min-width:240px; flex-wrap:wrap;">
               <input id="map-search-input" type="search" placeholder="Search country by name or ISO code..." style="max-width:260px;" />
-              <select id="map-filter-select" style="max-width:200px;">
+              <select id="map-filter-select" style="max-width:210px;">
                 <option value="all">All Nations</option>
                 <option value="players">Player-Controlled</option>
+                <option value="nuclear">Nuclear-Capable States</option>
                 <option value="unclaimed">Unclaimed / Purchasable</option>
                 <option value="war">Active Conflicts</option>
                 <option value="high-tech">High Tech (Tier 2+)</option>
               </select>
             </div>
             <div style="display:flex; gap:8px;">
-              <button class="btn btn-secondary btn-sm" id="quick-missions-btn"><i data-lucide="target"></i> Daily Missions</button>
+              <button class="btn btn-secondary btn-sm" id="focus-my-country-btn"><i data-lucide="crosshair"></i> My Nation</button>
+              <button class="btn btn-secondary btn-sm" id="quick-missions-btn"><i data-lucide="target"></i> Missions</button>
               <button class="btn btn-primary btn-sm" id="quick-market-btn"><i data-lucide="shopping-bag"></i> Global Market</button>
             </div>
           </div>
@@ -766,9 +774,7 @@
                 <button class="drawer-tab active" data-dtab="overview">Overview</button>
                 <button class="drawer-tab" data-dtab="economy">Economy</button>
                 <button class="drawer-tab" data-dtab="industries">Companies</button>
-                <button class="drawer-tab" data-dtab="resources">Resources</button>
-                <button class="drawer-tab" data-dtab="diplomacy">Diplomacy</button>
-                <button class="drawer-tab" data-dtab="military">Defense</button>
+                <button class="drawer-tab" data-dtab="military">Defense & Nuclear</button>
                 <button class="drawer-tab" data-dtab="deals">Deals</button>
               </div>
               <div class="drawer-body" id="drawer-body"></div>
@@ -803,8 +809,9 @@
               <div class="kpi-value mono" id="mc-gdp">0</div>
             </div>
             <div class="card">
-              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="users" style="color:var(--cyan);"></i> Population</div>
-              <div class="kpi-value mono" id="mc-pop">0</div>
+              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="radiation" style="color:var(--orange);"></i> Strategic Nuclear Arsenal</div>
+              <div class="kpi-value mono" id="mc-nukes">0 Warheads</div>
+              <div class="kpi-sub" id="mc-nuke-doctrine">Doctrine: Conventional</div>
             </div>
             <div class="card">
               <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="cpu" style="color:var(--purple);"></i> Tech & XP</div>
@@ -952,6 +959,7 @@
                     <option value="message">Diplomatic Message</option>
                     <option value="trade_pact">Bilateral Trade Agreement</option>
                     <option value="alliance">Mutual Defense Alliance</option>
+                    <option value="non_proliferation">Nuclear Non-Proliferation Pact</option>
                     <option value="peace">Peace Accord</option>
                     <option value="aid">Allied Assistance Request</option>
                   </select>
@@ -972,7 +980,7 @@
           <div class="grid-2">
             <div class="card">
               <div class="card-header"><span class="card-title"><i data-lucide="swords" style="color:var(--danger);"></i> Formal Conflict Declaration</span></div>
-              <p class="kpi-sub" style="margin-bottom:12px;">Abstract strategic simulation regulated by World Council rules. Outcomes weigh Military Score, Defense Bonus, Tech Level, Alliances, and Stability.</p>
+              <p class="kpi-sub" style="margin-bottom:12px;">Abstract strategic simulation regulated by World Council rules. Outcomes weigh Military Score, Strategic Deterrence, Defense Bonus, Tech Level, Alliances, and Stability.</p>
               <form id="declare-conflict-form">
                 <div class="form-group"><label>Target Country</label><select id="conflict-target" required></select></div>
                 <div class="form-group"><label>Strategic Objective</label><input type="text" id="conflict-reason" placeholder="e.g. Trade Route Dispute" required /></div>
@@ -1013,6 +1021,7 @@
                 <option value="overall">Overall Power Index</option>
                 <option value="coins">Treasury Wealth</option>
                 <option value="militaryScore">Military Score</option>
+                <option value="nuclearWarheads">Nuclear Deterrence</option>
                 <option value="techLevel">Technology Level</option>
                 <option value="level">National Level</option>
               </select>
@@ -1078,38 +1087,60 @@
           </div>
         </section>
 
-        <!-- VIEW 14: ADMIN CONSOLE (ROLE-GATED) -->
+        <!-- VIEW 14: ADMIN CONSOLE (ALIGNED LISTED COUNTRIES + NUCLEAR + COINS) -->
         <section id="view-admin" class="game-view hidden">
           <div class="grid-2" style="margin-bottom:16px;">
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="user-plus" style="color:var(--orange);"></i> 1. Provision Player & Assign Country</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="user-plus" style="color:var(--orange);"></i> 1. Provision Player & Align Country + Nuclear Arsenal</span></div>
               <form id="admin-create-player-form">
                 <div class="grid-2">
-                  <div class="form-group"><label>Username</label><input id="adm-username" placeholder="Hanif" required /></div>
-                  <div class="form-group"><label>Initial Temp Password</label><input id="adm-temp-pw" type="text" placeholder="TempPass2026!" required /></div>
+                  <div class="form-group"><label>Player Username</label><input id="adm-username" placeholder="e.g. Alex" required /></div>
+                  <div class="form-group"><label>Initial Password</label><input id="adm-temp-pw" type="text" placeholder="Pass2026!" minlength="8" required /></div>
                 </div>
-                <div class="grid-2">
-                  <div class="form-group"><label>Country ISO-3</label><input id="adm-iso" placeholder="USA" maxlength="3" required /></div>
-                  <div class="form-group"><label>Starting Coins</label><input id="adm-coins" type="number" value="50000" required /></div>
+                <div class="form-group">
+                  <label>Select Listed Country (Auto-Aligns Map & Flag)</label>
+                  <select id="adm-country-select" required></select>
                 </div>
-                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="server"></i> Provision via Cloud Function</button>
+                <div class="grid-3">
+                  <div class="form-group"><label>Starting Coins</label><input id="adm-coins" type="number" value="100000" required /></div>
+                  <div class="form-group"><label>Nuclear Warheads</label><input id="adm-nukes" type="number" value="0" min="0" required /></div>
+                  <div class="form-group"><label>Nuclear Status</label>
+                    <select id="adm-nuke-status">
+                      <option value="Non-Nuclear">Non-Nuclear</option>
+                      <option value="Threshold Research">Threshold Research</option>
+                      <option value="Tactical Deterrent">Tactical Deterrent</option>
+                      <option value="Strategic Nuclear Power">Strategic Nuclear Power</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="server"></i> Provision Player & Align Nation</button>
               </form>
             </div>
 
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="globe" style="color:var(--cyan);"></i> 2. Configure Country Record</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="globe" style="color:var(--cyan);"></i> 2. Update Listed Country & Strategic Stats</span></div>
               <form id="admin-country-form">
-                <div class="grid-3">
-                  <div class="form-group"><label>ISO-3</label><input id="adm-c-iso" placeholder="USA" maxlength="3" required /></div>
-                  <div class="form-group"><label>Name</label><input id="adm-c-name" placeholder="United States" required /></div>
-                  <div class="form-group"><label>Flag</label><input id="adm-c-flag" placeholder="🇺🇸" required /></div>
+                <div class="form-group">
+                  <label>Select Country from World List</label>
+                  <select id="adm-c-select" required></select>
                 </div>
                 <div class="grid-3">
-                  <div class="form-group"><label>Treasury</label><input id="adm-c-coins" type="number" value="100000" /></div>
-                  <div class="form-group"><label>Military</label><input id="adm-c-mil" type="number" value="80" /></div>
-                  <div class="form-group"><label>Purchasable?</label><select id="adm-c-purchasable"><option value="false">No</option><option value="true">Yes</option></select></div>
+                  <div class="form-group"><label>Treasury Coins</label><input id="adm-c-coins" type="number" value="100000" /></div>
+                  <div class="form-group"><label>Military Score</label><input id="adm-c-mil" type="number" value="80" /></div>
+                  <div class="form-group"><label>Nuclear Warheads</label><input id="adm-c-nukes" type="number" value="0" min="0" /></div>
                 </div>
-                <button type="submit" class="btn btn-secondary btn-full"><i data-lucide="save"></i> Save Country</button>
+                <div class="grid-2">
+                  <div class="form-group"><label>Nuclear Doctrine</label>
+                    <select id="adm-c-nuke-status">
+                      <option value="Non-Nuclear">Non-Nuclear</option>
+                      <option value="Threshold Research">Threshold Research</option>
+                      <option value="Tactical Deterrent">Tactical Deterrent</option>
+                      <option value="Strategic Nuclear Power">Strategic Nuclear Power</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label>Purchasable Unclaimed?</label><select id="adm-c-purchasable"><option value="false">No</option><option value="true">Yes</option></select></div>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-full"><i data-lucide="save"></i> Save & Align Country</button>
               </form>
             </div>
           </div>
@@ -1120,7 +1151,7 @@
               <form id="admin-company-form">
                 <div class="grid-2">
                   <div class="form-group"><label>Company Name</label><input id="adm-comp-name" placeholder="Apple" required /></div>
-                  <div class="form-group"><label>Country ISO-3</label><input id="adm-comp-iso" placeholder="USA" maxlength="3" required /></div>
+                  <div class="form-group"><label>Owner Country</label><select id="adm-comp-select" required></select></div>
                 </div>
                 <div class="grid-3">
                   <div class="form-group"><label>Product</label><input id="adm-comp-prod" placeholder="Smartphones" required /></div>
@@ -1136,7 +1167,7 @@
               <form id="admin-offer-form">
                 <div class="grid-2">
                   <div class="form-group"><label>Offer Title</label><input id="adm-off-title" placeholder="Aramco Refinery Stake" required /></div>
-                  <div class="form-group"><label>Target ISO-3 (Optional)</label><input id="adm-off-iso" placeholder="SAU" maxlength="3" /></div>
+                  <div class="form-group"><label>Target Country (Optional)</label><select id="adm-off-select"></select></div>
                 </div>
                 <div class="grid-3">
                   <div class="form-group"><label>Price</label><input id="adm-off-price" type="number" value="25000" required /></div>
@@ -1187,6 +1218,43 @@
       bucket: "campaign-images"
     };
 
+    // SHARED CANONICAL WORLD COUNTRY CATALOG (ALIGNS ADMIN SELECTION <-> MAP <-> COUNTRY DOCS)
+    const WORLD_COUNTRIES = [
+      { iso: "USA", num: "840", name: "United States", flag: "🇺🇸" },
+      { iso: "RUS", num: "643", name: "Russia", flag: "🇷🇺" },
+      { iso: "CHN", num: "156", name: "China", flag: "🇨🇳" },
+      { iso: "DEU", num: "276", name: "Germany", flag: "🇩🇪" },
+      { iso: "JPN", num: "392", name: "Japan", flag: "🇯🇵" },
+      { iso: "GBR", num: "826", name: "United Kingdom", flag: "🇬🇧" },
+      { iso: "FRA", num: "250", name: "France", flag: "🇫🇷" },
+      { iso: "IND", num: "356", name: "India", flag: "🇮🇳" },
+      { iso: "SAU", num: "682", name: "Saudi Arabia", flag: "🇸🇦" },
+      { iso: "ETH", num: "231", name: "Ethiopia", flag: "🇪🇹" },
+      { iso: "BRA", num: "076", name: "Brazil", flag: "🇧🇷" },
+      { iso: "COL", num: "170", name: "Colombia", flag: "🇨🇴" },
+      { iso: "EGY", num: "818", name: "Egypt", flag: "🇪🇬" },
+      { iso: "ZAF", num: "710", name: "South Africa", flag: "🇿🇦" },
+      { iso: "TUR", num: "792", name: "Turkey", flag: "🇹🇷" },
+      { iso: "KOR", num: "410", name: "South Korea", flag: "🇰🇷" },
+      { iso: "AUS", num: "036", name: "Australia", flag: "🇦🇺" },
+      { iso: "CAN", num: "124", name: "Canada", flag: "🇨🇦" },
+      { iso: "MEX", num: "484", name: "Mexico", flag: "🇲🇽" },
+      { iso: "ITA", num: "380", name: "Italy", flag: "🇮🇹" },
+      { iso: "ISR", num: "376", name: "Israel", flag: "🇮🇱" },
+      { iso: "IRN", num: "364", name: "Iran", flag: "🇮🇷" },
+      { iso: "PAK", num: "586", name: "Pakistan", flag: "🇵🇰" },
+      { iso: "NGA", num: "566", name: "Nigeria", flag: "🇳🇬" },
+      { iso: "KEN", num: "404", name: "Kenya", flag: "🇰🇪" },
+      { iso: "ARE", num: "784", name: "United Arab Emirates", flag: "🇦🇪" },
+      { iso: "ESP", num: "724", name: "Spain", flag: "🇪🇸" },
+      { iso: "IDN", num: "360", name: "Indonesia", flag: "🇮🇩" },
+      { iso: "ARG", num: "032", name: "Argentina", flag: "🇦🇷" },
+      { iso: "UKR", num: "804", name: "Ukraine", flag: "🇺🇦" }
+    ];
+
+    const NUM_TO_ISO3 = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.num, c.iso]));
+    const CATALOG_BY_ISO = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.iso, c]));
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -1207,20 +1275,23 @@
       chartInstance: null
     };
 
-    const NUM_TO_ISO3 = {
-      "840": "USA", "643": "RUS", "156": "CHN", "276": "DEU", "392": "JPN",
-      "682": "SAU", "231": "ETH", "076": "BRA", "170": "COL", "826": "GBR",
-      "250": "FRA", "356": "IND", "818": "EGY", "710": "ZAF", "792": "TUR",
-      "410": "KOR", "036": "AUS", "124": "CAN", "484": "MEX", "380": "ITA"
-    };
+    function populateCountryDropdowns() {
+      const optionsHtml = WORLD_COUNTRIES.map(c => `<option value="${c.iso}">${c.flag} ${c.name} (${c.iso})</option>`).join('');
+      ['adm-country-select', 'adm-c-select', 'adm-comp-select'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = optionsHtml;
+      });
+      const offSel = document.getElementById('adm-off-select');
+      if (offSel) offSel.innerHTML = `<option value="">🌐 Global (All Countries)</option>` + optionsHtml;
+    }
+    populateCountryDropdowns();
 
-    // Rich Product Visual Metadata (Icons + Category Styling)
     function getProductVisual(productName = '', category = '') {
-      const key = `${productName}${category}`.toLowerCase();
+      const key = `${productName} ${category}`.toLowerCase();
       if (key.includes('phone') || key.includes('chip') || key.includes('semi') || key.includes('tech')) {
         return { icon: 'smartphone', catClass: 'cat-technology', label: 'Technology' };
       }
-      if (key.includes('oil') || key.includes('gas') || key.includes('energy') || key.includes('fuel') || key.includes('solar')) {
+      if (key.includes('oil') || key.includes('gas') || key.includes('energy') || key.includes('fuel') || key.includes('uranium')) {
         return { icon: 'flame', catClass: 'cat-energy', label: 'Energy' };
       }
       if (key.includes('car') || key.includes('auto') || key.includes('vehicle') || key.includes('ev')) {
@@ -1242,7 +1313,6 @@
       return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
-    // Subtle Web Audio UI Chime (Conservative, opt-in)
     function playChime(freq = 580) {
       if (!state.soundEnabled) return;
       try {
@@ -1270,7 +1340,6 @@
       setTimeout(() => el.remove(), 3600);
     }
 
-    // Persist Theme & Motion Settings
     const savedTheme = localStorage.getItem('av_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     function toggleTheme() {
@@ -1292,7 +1361,6 @@
       localStorage.setItem('av_reduced_motion', String(e.target.checked));
     };
 
-    // Collapsible Desktop Sidebar & Mobile More Sheet
     document.getElementById('sidebar-collapse-btn').onclick = () => {
       document.getElementById('sidebar').classList.toggle('collapsed');
     };
@@ -1318,6 +1386,15 @@
     });
     document.getElementById('quick-missions-btn').onclick = () => switchView('missions');
     document.getElementById('quick-market-btn').onclick = () => switchView('market');
+    document.getElementById('focus-my-country-btn').onclick = () => {
+      const myIso = state.profile?.countryIso;
+      if (myIso) {
+        const meta = CATALOG_BY_ISO[myIso];
+        openCountryDrawer(myIso, meta?.name || myIso);
+      } else {
+        toast('No country assigned to your profile yet.');
+      }
+    };
 
     window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
     window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
@@ -1393,7 +1470,7 @@
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('app-shell').classList.remove('hidden');
 
-      if (state.isAdmin) {
+      if (state.isAdmin || state.profile.role === 'admin') {
         document.getElementById('nav-admin-btn').classList.remove('hidden');
         document.getElementById('mobile-admin-btn').classList.remove('hidden');
       }
@@ -1422,7 +1499,7 @@
       const width = container.clientWidth || 960;
       const height = container.clientHeight || 550;
 
-      mapSvg = d3.select('#world-map-svg').attr('viewBox', `0 0 ${width}${height}`);
+      mapSvg = d3.select('#world-map-svg').attr('viewBox', `0 0 ${width} ${height}`);
       mapG = mapSvg.append('g');
       zoomBehavior = d3.zoom().scaleExtent([1, 8]).on('zoom', (e) => mapG.attr('transform', e.transform));
       mapSvg.call(zoomBehavior);
@@ -1449,10 +1526,12 @@
         .on('mousemove', (event, d) => {
           const iso = NUM_TO_ISO3[String(d.id).padStart(3, '0')] || '';
           const c = state.countries[iso];
+          const cat = CATALOG_BY_ISO[iso];
           tooltip.classList.remove('hidden');
           tooltip.style.left = `${event.offsetX}px`;
           tooltip.style.top = `${event.offsetY}px`;
-          tooltip.textContent = `${c?.flag || '🏳️'} ${c?.name || d.properties.name} ${c?.presidentName ? `• Pres. ${c.presidentName}` : ''}`;
+          const nukeTag = (c?.nuclearWarheads || 0) > 0 ? ` • ☢️ ${c.nuclearWarheads}` : '';
+          tooltip.textContent = `${c?.flag || cat?.flag || '🏳️'} ${c?.name || cat?.name || d.properties.name}${c?.presidentName ? ` • Pres. ${c.presidentName}` : ''}${nukeTag}`;
         })
         .on('mouseleave', () => tooltip.classList.add('hidden'))
         .on('click', (event, d) => {
@@ -1483,6 +1562,7 @@
         let matches = true;
         if (term && !iso.toLowerCase().includes(term) && !name.includes(term)) matches = false;
         if (filter === 'players' && !c?.presidentUid) matches = false;
+        if (filter === 'nuclear' && (c?.nuclearWarheads || 0) <= 0) matches = false;
         if (filter === 'unclaimed' && (c?.presidentUid || !c?.purchasable)) matches = false;
         if (filter === 'war' && !c?.atWar) matches = false;
         if (filter === 'high-tech' && (c?.techLevel || 1) < 2) matches = false;
@@ -1496,9 +1576,10 @@
     // FLOATING COUNTRY INSPECTOR
     function openCountryDrawer(iso, fallbackName = '') {
       state.selectedIso = iso;
-      const c = state.countries[iso] || { iso, name: fallbackName || iso, flag: '🏳️' };
-      document.getElementById('drawer-flag').textContent = c.flag || '🏳️';
-      document.getElementById('drawer-name').textContent = `${c.name} (${iso})`;
+      const cat = CATALOG_BY_ISO[iso];
+      const c = state.countries[iso] || { iso, name: cat?.name || fallbackName || iso, flag: cat?.flag || '🏳️' };
+      document.getElementById('drawer-flag').textContent = c.flag || cat?.flag || '🏳️';
+      document.getElementById('drawer-name').textContent = `${c.name || cat?.name || iso} (${iso})`;
       document.getElementById('drawer-president').textContent = c.presidentName ? `President ${c.presidentName}` : 'Unclaimed Territory';
       const drawer = document.getElementById('country-drawer');
       drawer.classList.remove('hidden', 'minimized');
@@ -1523,7 +1604,8 @@
 
     function renderDrawerTab() {
       const iso = state.selectedIso;
-      const c = state.countries[iso] || { iso, name: iso };
+      const cat = CATALOG_BY_ISO[iso];
+      const c = state.countries[iso] || { iso, name: cat?.name || iso };
       const body = document.getElementById('drawer-body');
       const isMine = iso === state.profile?.countryIso;
       const t = state.activeDrawerTab;
@@ -1534,8 +1616,9 @@
             <div class="card" style="padding:10px;"><div class="kpi-sub">Level</div><div class="mono" style="font-weight:700;">Lvl ${c.level || 1}</div></div>
             <div class="card" style="padding:10px;"><div class="kpi-sub">Stability</div><div class="mono" style="font-weight:700; color:var(--green);">${c.stability ?? 100}%</div></div>
             <div class="card" style="padding:10px;"><div class="kpi-sub">Treasury</div><div class="mono" style="font-weight:700;">${isMine ? (c.coins || 0).toLocaleString() : 'Classified'}</div></div>
-            <div class="card" style="padding:10px;"><div class="kpi-sub">Tech Tier</div><div class="mono" style="font-weight:700; color:var(--purple);">Tier ${c.techLevel || 1}</div></div>
+            <div class="card" style="padding:10px;"><div class="kpi-sub">Nuclear Arsenal</div><div class="mono" style="font-weight:700; color:var(--orange);">${c.nuclearWarheads || 0} Warheads</div></div>
           </div>
+          <div class="kpi-sub" style="margin-bottom:10px;">Strategic Doctrine: <strong>${escapeHtml(c.nuclearStatus || 'Non-Nuclear')}</strong></div>
           ${(!c.presidentUid && c.purchasable) ? `<button class="btn btn-primary btn-full" id="claim-country-btn"><i data-lucide="flag"></i> Acquire Mandate (${(c.purchasePrice || 50000).toLocaleString()} Coins)</button>` : ''}
         `;
         const claimBtn = document.getElementById('claim-country-btn');
@@ -1562,10 +1645,13 @@
           ? deals.map(d => `<div style="padding:8px 0; border-bottom:1px solid var(--border);"><strong>${escapeHtml(d.product)}</strong>: ${d.quantity} units @ ${d.unitPrice} coins</div>`).join('')
           : `<p class="kpi-sub">No public export deals listed by ${escapeHtml(c.name || iso)}.</p>`;
       } else if (t === 'military') {
-        body.innerHTML = `<p>Abstract Defense & Military Score: <strong class="mono">${c.militaryScore || 10}</strong></p>
-          <p class="kpi-sub" style="margin-top:6px;">Status: ${c.atWar ? 'Active Strategic Conflict' : 'Peacetime Readiness'}</p>`;
-      } else {
-        body.innerHTML = `<p class="kpi-sub">Real-time ${escapeHtml(t)} telemetry for <strong>${escapeHtml(c.name || iso)}</strong>.</p>`;
+        body.innerHTML = `
+          <div class="card" style="padding:12px; margin-bottom:10px;">
+            <div>Conventional Military Score: <strong class="mono">${c.militaryScore || 10}</strong></div>
+            <div style="margin-top:6px;">Strategic Nuclear Arsenal: <strong class="mono" style="color:var(--orange);">${c.nuclearWarheads || 0} Warheads</strong></div>
+            <div class="kpi-sub" style="margin-top:4px;">Program Status: ${escapeHtml(c.nuclearStatus || 'Non-Nuclear')}</div>
+          </div>
+          <p class="kpi-sub">Status: ${c.atWar ? 'Active Strategic Conflict' : 'Peacetime Readiness'}</p>`;
       }
       lucide.createIcons({ root: body });
     }
@@ -1574,7 +1660,7 @@
     function attachRealtimeListeners() {
       const myIso = state.profile.countryIso;
 
-      // 1. Countries
+      // 1. Countries (Aligns assigned country, flag, coins, military, and nuclear data immediately)
       state.unsubscribers.push(onSnapshot(collection(db, 'countries'), (snap) => {
         const diploSel = document.getElementById('diplo-target-country');
         const warSel = document.getElementById('conflict-target');
@@ -1583,38 +1669,46 @@
         const lbRows = [];
 
         snap.forEach(d => {
-          const data = { iso: d.id, ...d.data() };
+          const cat = CATALOG_BY_ISO[d.id];
+          const data = { iso: d.id, name: cat?.name || d.id, flag: cat?.flag || '🏳️', ...d.data() };
           state.countries[d.id] = data;
           lbRows.push(data);
           if (d.id !== myIso) {
-            const opt = `<option value="${d.id}">${data.flag || ''}${escapeHtml(data.name)} (${d.id})</option>`;
+            const opt = `<option value="${d.id}">${data.flag || ''} ${escapeHtml(data.name)} (${d.id})</option>`;
             diploSel.insertAdjacentHTML('beforeend', opt);
             warSel.insertAdjacentHTML('beforeend', opt);
           }
         });
 
-        if (myIso && state.countries[myIso]) {
-          const mc = state.countries[myIso];
-          document.getElementById('top-country-flag').textContent = mc.flag || '🏳️';
-          document.getElementById('top-country-name').textContent = mc.name;
-          document.getElementById('top-role-label').textContent = `President ${state.profile.displayName || state.profile.username}`;
+        if (myIso) {
+          const cat = CATALOG_BY_ISO[myIso];
+          const mc = state.countries[myIso] || { iso: myIso, name: cat?.name || myIso, flag: cat?.flag || '🏳️', coins: 0, level: 1, stability: 100, militaryScore: 10, nuclearWarheads: 0, nuclearStatus: 'Non-Nuclear' };
+          document.getElementById('top-country-flag').textContent = mc.flag || cat?.flag || '🏳️';
+          document.getElementById('top-country-name').textContent = mc.name || cat?.name || myIso;
+          document.getElementById('top-role-label').textContent = `President ${state.profile.displayName || state.profile.username} • ${myIso}`;
           document.getElementById('top-coins').textContent = (mc.coins || 0).toLocaleString();
           document.getElementById('top-level').textContent = mc.level || 1;
           document.getElementById('top-stability').textContent = `${mc.stability ?? 100}%`;
           document.getElementById('top-military').textContent = mc.militaryScore || 10;
+          document.getElementById('top-nukes').textContent = mc.nuclearWarheads || 0;
+
+          const nukeStatus = mc.nuclearStatus || ((mc.nuclearWarheads || 0) > 0 ? 'Strategic Nuclear Power' : 'Non-Nuclear State');
+          document.getElementById('hero-nuclear-status').innerHTML = `<i data-lucide="radiation"></i> ${escapeHtml(nukeStatus)} (${mc.nuclearWarheads || 0})`;
 
           const nextXp = (mc.level || 1) * 500;
           const curXp = mc.xp || 0;
           document.getElementById('hero-lvl-label').textContent = `Level ${mc.level || 1}`;
-          document.getElementById('hero-xp-label').textContent = `${curXp} /${nextXp} XP`;
+          document.getElementById('hero-xp-label').textContent = `${curXp} / ${nextXp} XP`;
           document.getElementById('hero-xp-fill').style.width = `${Math.min(100, Math.round((curXp % 500) / 5))}%`;
 
           document.getElementById('mc-coins').textContent = (mc.coins || 0).toLocaleString();
           document.getElementById('mc-gdp').textContent = (mc.gdp || 1000).toLocaleString();
-          document.getElementById('mc-pop').textContent = `${(mc.population || 10).toFixed(1)}M`;
+          document.getElementById('mc-nukes').textContent = `${mc.nuclearWarheads || 0} Warheads`;
+          document.getElementById('mc-nuke-doctrine').textContent = `Doctrine: ${nukeStatus}`;
           document.getElementById('mc-xp').textContent = `Lvl ${mc.level || 1} • Tier ${mc.techLevel || 1}`;
 
           renderTelemetryChart(mc.telemetryHistory || []);
+          lucide.createIcons();
         }
 
         renderLeaderboard(lbRows);
@@ -1622,7 +1716,7 @@
         if (state.selectedIso) renderDrawerTab();
       }));
 
-      // 2. All Companies (for both My Country & Country Drawer inspection)
+      // 2. All Companies
       state.unsubscribers.push(onSnapshot(collection(db, 'companies'), (snap) => {
         state.companies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const list = document.getElementById('mc-companies-list');
@@ -1654,7 +1748,7 @@
           const n = d.data();
           el.insertAdjacentHTML('beforeend', `
             <div style="padding:8px 0; border-bottom:1px solid var(--border); font-size:12px;">
-              <span style="color:var(--cyan); font-weight:700;">[${escapeHtml(n.type || 'WORLD')}]</span>${escapeHtml(n.message)}
+              <span style="color:var(--cyan); font-weight:700;">[${escapeHtml(n.type || 'WORLD')}]</span> ${escapeHtml(n.message)}
             </div>
           `);
         });
@@ -1707,7 +1801,7 @@
             alertCount++;
             alertsEl.insertAdjacentHTML('beforeend', `
               <div class="alert-item critical">
-                <div><strong>${escapeHtml(d.id)} Shortage</strong><div class="kpi-sub">Stock: ${item.quantity} / Min:${min}</div></div>
+                <div><strong>${escapeHtml(d.id)} Shortage</strong><div class="kpi-sub">Stock: ${item.quantity} / Min: ${min}</div></div>
                 <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-view=market]').click()">Source</button>
               </div>
             `);
@@ -1766,7 +1860,8 @@
               <p class="kpi-sub" style="margin-bottom:10px;">${escapeHtml(m.description)}</p>
               <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                <span class="mono" style="font-size:12px;">${m.progress || 0} / ${m.target || 1}</span>${(pct >= 100 && !m.claimed) ? `<button class="btn btn-success btn-sm" data-claim-mission="${m.id}">Claim Reward</button>` : `<span class="kpi-sub">${m.claimed ? 'Completed' : 'In Progress'}</span>`}
+                <span class="mono" style="font-size:12px;">${m.progress || 0} / ${m.target || 1}</span>
+                ${(pct >= 100 && !m.claimed) ? `<button class="btn btn-success btn-sm" data-claim-mission="${m.id}">Claim Reward</button>` : `<span class="kpi-sub">${m.claimed ? 'Completed' : 'In Progress'}</span>`}
               </div>
             </div>
           `);
@@ -1801,7 +1896,8 @@
           if (!n.read) state.unreadNotifIds.push(d.id);
           list.insertAdjacentHTML('beforeend', `
             <div style="padding:10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; opacity:${n.read ? '0.65' : '1'};">
-              <div><strong>${escapeHtml(n.title || 'World Update')}</strong><div class="kpi-sub">${escapeHtml(n.body || '')}</div></div>${!n.read ? '<span class="badge">NEW</span>' : ''}
+              <div><strong>${escapeHtml(n.title || 'World Update')}</strong><div class="kpi-sub">${escapeHtml(n.body || '')}</div></div>
+              ${!n.read ? '<span class="badge">NEW</span>' : ''}
             </div>
           `);
         });
@@ -1818,14 +1914,15 @@
         snap.forEach(d => {
           const m = { id: d.id, ...d.data() };
           if (m.status === 'pending') pending++;
-          const senderFlag = state.countries[m.fromIso]?.flag || '🏳️';
+          const senderFlag = state.countries[m.fromIso]?.flag || CATALOG_BY_ISO[m.fromIso]?.flag || '🏳️';
           feed.insertAdjacentHTML('beforeend', `
             <div class="product-card" style="margin-bottom:10px;">
               <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <strong>${senderFlag} ${escapeHtml(m.fromIso)} •${escapeHtml(m.type)}</strong>
+                <strong>${senderFlag} ${escapeHtml(m.fromIso)} • ${escapeHtml(m.type)}</strong>
                 <span class="brand-badge" style="margin:0;">${escapeHtml(m.status)}</span>
               </div>
-              <p style="font-size:13px;">${escapeHtml(m.content)}</p>${m.status === 'pending' ? `<button class="btn btn-success btn-sm" data-accept-diplo="${m.id}">Ratify Agreement</button>` : ''}
+              <p style="font-size:13px;">${escapeHtml(m.content)}</p>
+              ${m.status === 'pending' ? `<button class="btn btn-success btn-sm" data-accept-diplo="${m.id}">Ratify Agreement</button>` : ''}
             </div>
           `);
         });
@@ -1840,10 +1937,10 @@
         list.innerHTML = snap.empty ? '<div class="kpi-sub">No active conflicts on the world map.</div>' : '';
         snap.forEach(d => {
           const w = { id: d.id, ...d.data() };
-          const a = state.countries[w.attackerIso] || { name: w.attackerIso, militaryScore: 10, stability: 100 };
-          const def = state.countries[w.defenderIso] || { name: w.defenderIso, militaryScore: 10, stability: 100 };
-          const atkScore = a.militaryScore || 10;
-          const defScore = def.militaryScore || 10;
+          const a = state.countries[w.attackerIso] || { name: w.attackerIso, militaryScore: 10, nuclearWarheads: 0 };
+          const def = state.countries[w.defenderIso] || { name: w.defenderIso, militaryScore: 10, nuclearWarheads: 0 };
+          const atkScore = (a.militaryScore || 10) + (a.nuclearWarheads || 0) * 5;
+          const defScore = (def.militaryScore || 10) + (def.nuclearWarheads || 0) * 5;
           const atkPct = Math.round((atkScore / (atkScore + defScore)) * 100);
 
           list.insertAdjacentHTML('beforeend', `
@@ -1852,7 +1949,7 @@
                 <strong>${a.flag || '🏳️'} ${escapeHtml(w.attackerIso)} vs ${def.flag || '🏳️'} ${escapeHtml(w.defenderIso)}</strong>
                 <span class="badge">${escapeHtml(w.status.toUpperCase())}</span>
               </div>
-              <div class="kpi-sub">${escapeHtml(w.reason)} • Strength: ${atkScore} vs${defScore}</div>
+              <div class="kpi-sub">${escapeHtml(w.reason)} • Strategic Power: ${atkScore} vs ${defScore}</div>
               <div class="versus-bar"><div class="versus-fill-atk" style="width:${atkPct}%;"></div></div>
               ${(w.status === 'active' && (w.attackerIso === myIso || w.defenderIso === myIso))
                 ? `<button class="btn btn-primary btn-sm" data-resolve-war="${w.id}">Resolve Strategic Turn</button>` : ''}
@@ -1867,7 +1964,7 @@
       renderResearchAndCabinet();
     }
 
-    // MARKETPLACE CARD RENDERER (WITH PRODUCT ARTWORK BADGES, CATEGORY CHIPS & FILTERS)
+    // MARKETPLACE CARD RENDERER
     function renderMarketCards() {
       const myIso = state.profile?.countryIso;
       const grid = document.getElementById('market-cards-grid');
@@ -1890,7 +1987,7 @@
       homeDeals.innerHTML = '';
 
       items.forEach(o => {
-        const seller = state.countries[o.sellerIso] || { flag: '🏳️', name: o.sellerIso };
+        const seller = state.countries[o.sellerIso] || CATALOG_BY_ISO[o.sellerIso] || { flag: '🏳️', name: o.sellerIso };
         const vis = getProductVisual(o.product, o.category);
         const total = o.quantity * o.unitPrice;
         const canBuy = myIso && o.sellerIso !== myIso;
@@ -1909,7 +2006,8 @@
               <div class="kpi-sub">Stock: <strong class="mono">${o.quantity}</strong> units @ <strong class="mono">${o.unitPrice}</strong>/unit</div>
             </div>
             <div style="border-top:1px solid var(--border); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
-              <div><div class="kpi-sub">Total Price</div><div class="mono" style="font-weight:700; color:var(--orange);">${total.toLocaleString()}</div></div>${canBuy
+              <div><div class="kpi-sub">Total Price</div><div class="mono" style="font-weight:700; color:var(--orange);">${total.toLocaleString()}</div></div>
+              ${canBuy
                 ? `<button class="btn btn-primary btn-sm" data-buy-offer="${o.id}"><i data-lucide="shopping-cart"></i> Buy Now</button>`
                 : `<span class="kpi-sub">Your Export</span>`}
             </div>
@@ -1920,7 +2018,7 @@
           homeDeals.insertAdjacentHTML('beforeend', `
             <div style="font-size:12px; padding:6px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px;">
               <i data-lucide="${vis.icon}" style="color:var(--cyan);"></i>
-              <span><strong>${escapeHtml(o.sellerIso)}</strong> listed${o.quantity} ${escapeHtml(o.product)} (${total.toLocaleString()} coins)</span>
+              <span><strong>${escapeHtml(o.sellerIso)}</strong> listed ${o.quantity} ${escapeHtml(o.product)} (${total.toLocaleString()} coins)</span>
             </div>
           `);
         }
@@ -2051,13 +2149,12 @@
       } catch (err) { toast(err.message, 240); }
     };
 
-    // Research & Cabinet
     function renderResearchAndCabinet() {
       const rGrid = document.getElementById('research-grid');
       const techs = [
         { id: 'ind_auto', title: 'Automated Smart Factories', desc: '+15% national industrial output efficiency.', cost: 15000, icon: 'cpu' },
         { id: 'agri_hydro', title: 'Hydroponic Food Reserves', desc: '+25% agricultural yield & stability protection.', cost: 12000, icon: 'sprout' },
-        { id: 'cyber_def', title: 'Sovereign Defense Grid', desc: '+20% national defensive score.', cost: 20000, icon: 'shield-check' }
+        { id: 'cyber_def', title: 'Sovereign Defense Grid', desc: '+20% national defensive score & early warning.', cost: 20000, icon: 'shield-check' }
       ];
       rGrid.innerHTML = techs.map(t => `
         <div class="product-card">
@@ -2090,7 +2187,6 @@
       } catch (err) { toast(err.message, 240); }
     });
 
-    // Telemetry Chart (Empty state if no history yet)
     function renderTelemetryChart(history) {
       const emptyEl = document.getElementById('chart-empty-state');
       const canvas = document.getElementById('country-telemetry-chart');
@@ -2119,7 +2215,7 @@
       });
     }
 
-    // SUPABASE AVATAR UPLOAD (EXCLUSIVELY FOR PROFILE PICTURES)
+    // SUPABASE AVATAR UPLOAD
     document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -2155,17 +2251,16 @@
       toast('Presidential profile saved.');
     });
 
-    // Leaderboards
     function renderLeaderboard(rows) {
       const cat = document.getElementById('lb-category').value;
       const calc = (c) => cat === 'overall'
-        ? Math.round((c.coins || 0) / 1000 + (c.militaryScore || 0) * 10 + (c.level || 1) * 100)
+        ? Math.round((c.coins || 0) / 1000 + (c.militaryScore || 0) * 10 + (c.nuclearWarheads || 0) * 25 + (c.level || 1) * 100)
         : (c[cat] || 0);
       const sorted = [...rows].sort((a, b) => calc(b) - calc(a));
       document.getElementById('leaderboard-tbody').innerHTML = sorted.slice(0, 25).map((c, i) => `
         <tr>
           <td class="mono">#${i + 1}</td>
-          <td>${c.flag \vert{}\vert{} '🏳️'} <strong>${escapeHtml(c.name)}</strong></td>
+          <td>${c.flag || '🏳️'} <strong>${escapeHtml(c.name)}</strong></td>
           <td>${escapeHtml(c.presidentName || 'AI State')}</td>
           <td class="mono">Lvl ${c.level || 1}</td>
           <td class="mono">${calc(c).toLocaleString()}</td>
@@ -2174,55 +2269,69 @@
     }
     document.getElementById('lb-category').addEventListener('change', () => renderLeaderboard(Object.values(state.countries)));
 
-    // Admin Console Handlers
+    // ADMIN CONSOLE HANDLERS (ALIGNED LISTED COUNTRY + NUCLEAR + COINS)
     document.getElementById('admin-create-player-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const iso = document.getElementById('adm-country-select').value;
+      const meta = CATALOG_BY_ISO[iso];
+      const nukes = Number(document.getElementById('adm-nukes').value) || 0;
+      const nukeStatus = document.getElementById('adm-nuke-status').value;
+      const coins = Number(document.getElementById('adm-coins').value) || 50000;
+
       try {
         const fn = httpsCallable(functions, 'adminProvisionPlayer');
         await fn({
           username: document.getElementById('adm-username').value.trim(),
           tempPassword: document.getElementById('adm-temp-pw').value,
-          countryIso: document.getElementById('adm-iso').value.trim().toUpperCase(),
-          startingCoins: Number(document.getElementById('adm-coins').value)
+          countryIso: iso,
+          countryName: meta?.name || iso,
+          countryFlag: meta?.flag || '🏳️',
+          startingCoins: coins,
+          nuclearWarheads: nukes,
+          nuclearStatus: nukeStatus
         });
-        toast('Player provisioned & assigned!');
+        toast(`Player provisioned & aligned with ${meta?.flag || ''} ${meta?.name || iso}!`, 760);
         e.target.reset();
       } catch (err) { toast(err.message, 240); }
     });
 
     document.getElementById('admin-country-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const iso = document.getElementById('adm-c-iso').value.trim().toUpperCase();
+      const iso = document.getElementById('adm-c-select').value;
+      const meta = CATALOG_BY_ISO[iso];
       await setDoc(doc(db, 'countries', iso), {
-        name: document.getElementById('adm-c-name').value.trim(),
-        flag: document.getElementById('adm-c-flag').value.trim(),
+        name: meta?.name || iso,
+        flag: meta?.flag || '🏳️',
         coins: Number(document.getElementById('adm-c-coins').value),
         militaryScore: Number(document.getElementById('adm-c-mil').value),
+        nuclearWarheads: Number(document.getElementById('adm-c-nukes').value) || 0,
+        nuclearStatus: document.getElementById('adm-c-nuke-status').value,
         purchasable: document.getElementById('adm-c-purchasable').value === 'true',
         level: 1, xp: 0, stability: 100, techLevel: 1
       }, { merge: true });
-      toast(`Country ${iso} updated.`);
+      toast(`${meta?.flag || ''} ${meta?.name || iso} aligned & updated.`);
     });
 
     document.getElementById('admin-company-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const iso = document.getElementById('adm-comp-select').value;
       await addDoc(collection(db, 'companies'), {
         name: document.getElementById('adm-comp-name').value.trim(),
-        countryIso: document.getElementById('adm-comp-iso').value.trim().toUpperCase(),
+        countryIso: iso,
         product: document.getElementById('adm-comp-prod').value.trim(),
         outputRate: Number(document.getElementById('adm-comp-rate').value),
         intervalMinutes: Number(document.getElementById('adm-comp-mins').value),
         lastProducedAt: serverTimestamp(),
         status: 'ACTIVE'
       });
-      toast('Company registered.');
+      toast(`Company registered to ${iso}.`);
     });
 
     document.getElementById('admin-offer-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       await addDoc(collection(db, 'companyOffers'), {
         title: document.getElementById('adm-off-title').value.trim(),
-        targetIso: document.getElementById('adm-off-iso').value.trim().toUpperCase(),
+        targetIso: document.getElementById('adm-off-select').value,
         price: Number(document.getElementById('adm-off-price').value),
         quantity: Number(document.getElementById('adm-off-qty').value),
         unique: document.getElementById('adm-off-unique').value === 'true',
