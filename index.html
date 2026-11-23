@@ -6,12 +6,9 @@
   <title>AV GAME — Global Geopolitical Strategy Simulation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
-  <!-- D3 & TopoJSON for real-world interactive vector map -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Chart.js for historical telemetry -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -35,6 +32,7 @@
       --grad-primary: linear-gradient(135deg, #38BDF8 0%, #6366F1 100%);
       --grad-epic: linear-gradient(135deg, #6366F1 0%, #A78BFA 50%, #F472B6 100%);
       --grad-gold: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+      --grad-danger: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
       --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.55);
       --radius: 14px;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -43,588 +41,357 @@
     }
 
     [data-theme="light"] {
-      --bg-base: #F3F6FC;
-      --bg-surface: #FFFFFF;
-      --bg-card: #FFFFFF;
-      --bg-elevated: #F1F5F9;
-      --bg-hover: #E2E8F0;
-      --border: rgba(23, 32, 51, 0.10);
-      --border-strong: rgba(2, 132, 199, 0.45);
-      --text-primary: #172033;
-      --text-secondary: #475569;
-      --text-muted: #64748B;
-      --cyan: #0284C7;
-      --blue: #4F46E5;
-      --purple: #7C3AED;
-      --green: #059669;
-      --orange: #D97706;
-      --pink: #DB2777;
+      --bg-base: #F3F6FC; --bg-surface: #FFFFFF; --bg-card: #FFFFFF;
+      --bg-elevated: #F1F5F9; --bg-hover: #E2E8F0;
+      --border: rgba(23, 32, 51, 0.10); --border-strong: rgba(2, 132, 199, 0.45);
+      --text-primary: #172033; --text-secondary: #475569; --text-muted: #64748B;
+      --cyan: #0284C7; --blue: #4F46E5; --purple: #7C3AED; --green: #059669;
+      --orange: #D97706; --pink: #DB2777;
       --shadow-card: 0 8px 24px -8px rgba(15, 23, 42, 0.08);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: var(--font-sans);
-      background: var(--bg-base);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-      font-feature-settings: "tnum" 1;
+      font-family: var(--font-sans); background: var(--bg-base); color: var(--text-primary);
+      min-height: 100vh; overflow-x: hidden; font-feature-settings: "tnum" 1;
+    }
+    body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
+      animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;
     }
 
-    body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
+    /* ANIMATED BACKGROUND ORBS (teen-friendly) */
+    .bg-orbs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .bg-orbs::before, .bg-orbs::after {
+      content: ''; position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55;
+      animation: floatOrb 18s ease-in-out infinite;
     }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
+    .bg-orbs::before { width: 520px; height: 520px; background: radial-gradient(circle, rgba(99,102,241,0.5), transparent 70%); top: -180px; left: -140px; }
+    .bg-orbs::after { width: 600px; height: 600px; background: radial-gradient(circle, rgba(56,189,248,0.4), transparent 70%); bottom: -200px; right: -160px; animation-delay: -9s; }
+    @keyframes floatOrb { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,-40px) scale(1.15); } }
 
     .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
     .display-font { font-family: var(--font-display); }
     .hidden { display: none !important; }
     svg.lucide { width: 16px; height: 16px; stroke-width: 2; flex-shrink: 0; }
 
-    /* Auth Screen */
+    /* AUTH SCREEN */
     #auth-screen {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.2) 0%, transparent 45%),
-        radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
-        var(--bg-base);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+      background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.25) 0%, transparent 45%),
+                  radial-gradient(circle at 80% 80%, rgba(56,189,248,0.2) 0%, transparent 45%), var(--bg-base);
+      position: relative; z-index: 1;
     }
     .auth-card {
-      width: 100%;
-      max-width: 430px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-strong);
-      border-radius: 18px;
-      padding: 34px;
-      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+      width: 100%; max-width: 440px; background: rgba(17,26,45,0.85);
+      backdrop-filter: blur(18px); border: 1px solid var(--border-strong);
+      border-radius: 20px; padding: 36px; box-shadow: 0 28px 70px rgba(0,0,0,0.7);
+      animation: fadeUp 0.5s ease;
     }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     .brand-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--cyan);
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      padding: 5px 11px;
-      border-radius: 999px;
-      margin-bottom: 14px;
+      display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan);
+      background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25);
+      padding: 5px 11px; border-radius: 999px; margin-bottom: 14px;
     }
-    .auth-card h1 { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+    .auth-card h1 { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin-bottom: 6px; }
     .auth-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 22px; line-height: 1.5; }
 
-    /* Form Inputs & Buttons */
     .form-group { margin-bottom: 14px; }
     .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
     input, select, textarea {
-      width: 100%;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-family: var(--font-sans);
-      outline: none;
+      width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+      color: var(--text-primary); padding: 10px 12px; border-radius: 10px;
+      font-size: 13px; font-family: var(--font-sans); outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: var(--cyan);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+      border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(56,189,248,0.15);
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 9px 15px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: transform 0.12s ease, filter 0.15s ease, background 0.15s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid transparent;
+      transition: transform 0.12s, filter 0.15s, background 0.15s;
     }
-    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-primary { background: var(--grad-primary); color: #fff; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); }
-    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn-primary { background: var(--grad-primary); color: #fff; box-shadow: 0 4px 14px rgba(99,102,241,0.4); }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-danger { background: var(--grad-danger); color: #fff; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
+    .btn-danger:hover:not(:disabled) { filter: brightness(1.1); }
     .btn-secondary { background: var(--bg-elevated); border-color: var(--border); color: var(--text-primary); }
     .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-strong); }
-    .btn-success { background: rgba(52, 211, 153, 0.16); border-color: rgba(52, 211, 153, 0.35); color: var(--green); }
-    .btn-danger { background: rgba(239, 68, 68, 0.16); border-color: rgba(239, 68, 68, 0.35); color: #FCA5A5; }
+    .btn-success { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.4); color: var(--green); }
     .btn-sm { padding: 6px 11px; font-size: 12px; border-radius: 8px; }
     .btn-full { width: 100%; }
+    .btn-bomb {
+      background: linear-gradient(135deg, #FBBF24 0%, #EF4444 100%);
+      color: #fff; font-weight: 800; letter-spacing: 0.04em;
+      box-shadow: 0 6px 20px rgba(239,68,68,0.5);
+      animation: pulseBomb 1.8s infinite;
+    }
+    @keyframes pulseBomb { 0%,100% { box-shadow: 0 6px 20px rgba(239,68,68,0.5); } 50% { box-shadow: 0 6px 32px rgba(239,68,68,0.85); } }
 
-    /* Shell & Collapsible Sidebar */
-    #app-shell { display: flex; min-height: 100vh; }
+    /* SHELL & SIDEBAR */
+    #app-shell { display: flex; min-height: 100vh; position: relative; z-index: 1; }
     .sidebar {
-      width: 256px;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0; bottom: 0; left: 0;
-      z-index: 50;
-      transition: width 0.22s ease;
+      width: 256px; background: rgba(17,26,45,0.92); backdrop-filter: blur(14px);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transition: width 0.22s ease;
     }
     .sidebar.collapsed { width: 74px; }
-    .sidebar.collapsed .nav-label,
-    .sidebar.collapsed .logo-label,
+    .sidebar.collapsed .nav-label, .sidebar.collapsed .logo-label,
     .sidebar.collapsed .sidebar-profile-text { display: none; }
-    .sidebar-header {
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .sidebar-header { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .logo-wrap { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 17px; }
     .logo-orb {
-      width: 28px; height: 28px; border-radius: 8px;
-      background: var(--grad-primary);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+      width: 30px; height: 30px; border-radius: 9px; background: var(--grad-primary);
+      display: flex; align-items: center; justify-content: center; color: #fff;
+      box-shadow: 0 0 18px rgba(56,189,248,0.6);
     }
-
     .nav-list { flex: 1; padding: 12px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
     .nav-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      background: transparent;
-      border: 1px solid transparent;
-      width: 100%;
-      text-align: left;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 500;
+      color: var(--text-secondary); cursor: pointer; background: transparent;
+      border: 1px solid transparent; width: 100%; text-align: left;
       transition: all 0.15s ease;
     }
     .nav-item-left { display: flex; align-items: center; gap: 11px; }
     .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
     .nav-item.active {
-      background: linear-gradient(90deg, rgba(56, 189, 248, 0.16), rgba(99, 102, 241, 0.12));
-      border-color: rgba(56, 189, 248, 0.3);
-      color: var(--cyan);
-      font-weight: 600;
+      background: linear-gradient(90deg, rgba(56,189,248,0.16), rgba(99,102,241,0.12));
+      border-color: rgba(56,189,248,0.3); color: var(--cyan); font-weight: 600;
     }
-    .badge {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: var(--pink);
-      color: #fff;
-      font-weight: 700;
-    }
+    .nav-item.war-tab.active { background: linear-gradient(90deg, rgba(239,68,68,0.2), rgba(251,191,36,0.12)); border-color: rgba(239,68,68,0.4); color: #FCA5A5; }
+    .badge { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: var(--pink); color: #fff; font-weight: 700; }
 
     .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
-    .sidebar-profile-card {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px; border-radius: 10px; background: var(--bg-elevated);
-      margin-bottom: 8px;
-    }
+    .sidebar-profile-card { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; background: var(--bg-elevated); margin-bottom: 8px; }
     .sidebar-profile-card img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--cyan); }
 
-    /* Main Area & Topbar */
-    .main-area {
-      flex: 1;
-      margin-left: 256px;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      transition: margin-left 0.22s ease;
-    }
+    .main-area { flex: 1; margin-left: 256px; display: flex; flex-direction: column; min-width: 0; transition: margin-left 0.22s ease; }
     .sidebar.collapsed + .main-area { margin-left: 74px; }
 
     .topbar {
-      height: 62px;
-      background: rgba(17, 26, 45, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 40;
+      height: 64px; background: rgba(17,26,45,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border); padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; position: sticky; top: 0; z-index: 40;
     }
-    [data-theme="light"] .topbar { background: rgba(255, 255, 255, 0.88); }
-
     .stat-pills { display: flex; align-items: center; gap: 8px; overflow-x: auto; }
     .pill {
-      display: flex; align-items: center; gap: 6px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 6px 11px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px; background: var(--bg-card);
+      border: 1px solid var(--border); padding: 6px 11px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+      transition: border-color 0.2s;
     }
+    .pill:hover { border-color: var(--border-strong); }
     .pill .lbl { color: var(--text-secondary); font-weight: 500; }
 
     .view-container { padding: 20px; max-width: 1520px; width: 100%; margin: 0 auto; }
 
-    /* Hero Welcome Banner */
+    /* HERO */
     .hero-banner {
-      background: linear-gradient(120deg, rgba(99, 102, 241, 0.22) 0%, rgba(56, 189, 248, 0.14) 55%, rgba(167, 139, 250, 0.18) 100%);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius);
-      padding: 18px 22px;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
+      background: linear-gradient(120deg, rgba(99,102,241,0.25) 0%, rgba(56,189,248,0.15) 55%, rgba(167,139,250,0.2) 100%);
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      padding: 20px 24px; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px; position: relative; overflow: hidden;
     }
-    .xp-bar-wrap { width: 240px; max-width: 100%; }
-    .progress-track {
-      height: 8px;
-      background: rgba(15, 23, 42, 0.55);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 6px;
+    .hero-banner::after {
+      content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(56,189,248,0.3), transparent 70%);
+      border-radius: 50%; filter: blur(40px); animation: floatOrb 12s infinite;
     }
-    .progress-fill {
-      height: 100%;
-      background: var(--grad-primary);
-      border-radius: 999px;
-      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    }
+    .xp-bar-wrap { width: 240px; max-width: 100%; position: relative; z-index: 1; }
+    .progress-track { height: 9px; background: rgba(15,23,42,0.6); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { height: 100%; background: var(--grad-primary); border-radius: 999px; transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
 
-    /* Grids & Cards */
-    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    /* GRIDS */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
     .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow-card);
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px; box-shadow: var(--shadow-card);
       transition: border-color 0.2s, transform 0.2s;
     }
-    .card:hover { border-color: rgba(148, 163, 184, 0.26); }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; }
+    .card:hover { border-color: rgba(148,163,184,0.28); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; flex-wrap: wrap; }
     .card-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     .kpi-value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
     .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
-
-    /* Nuclear Deterrence Badge */
     .nuke-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; font-weight: 700;
-      padding: 3px 9px; border-radius: 999px;
-      background: rgba(251, 191, 36, 0.14);
-      border: 1px solid rgba(251, 191, 36, 0.38);
-      color: var(--orange);
+      display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 999px; background: rgba(251,191,36,0.14);
+      border: 1px solid rgba(251,191,36,0.38); color: var(--orange);
     }
 
-    /* Interactive Map & Filters */
-    .map-toolbar {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      margin-bottom: 12px;
-      align-items: center;
-      justify-content: space-between;
-    }
+    /* MAP */
+    .map-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between; }
     .map-wrapper {
-      position: relative;
-      width: 100%;
-      height: 550px;
+      position: relative; width: 100%; height: 550px;
       background: radial-gradient(circle at 50% 45%, #0F1A30 0%, #060913 100%);
-      border: 1px solid var(--border-strong);
-      border-radius: var(--radius);
-      overflow: hidden;
+      border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden;
     }
     #world-map-svg { width: 100%; height: 100%; cursor: grab; display: block; }
     #world-map-svg:active { cursor: grabbing; }
-    .country-path {
-      fill: #1A2742;
-      stroke: #2C3F66;
-      stroke-width: 0.65px;
-      transition: fill 0.2s, stroke 0.2s, filter 0.2s, opacity 0.2s;
-    }
+    .country-path { fill: #1A2742; stroke: #2C3F66; stroke-width: 0.65px; transition: fill 0.2s, stroke 0.2s, filter 0.2s, opacity 0.2s; }
     .country-path:hover { fill: #2B4270; stroke: var(--cyan); stroke-width: 1.2px; }
     .country-path.dimmed { opacity: 0.22; }
     .country-path.owned-player { fill: #263875; stroke: #818CF8; }
-    .country-path.owned-self { fill: #0E586E; stroke: #38BDF8; stroke-width: 1.4px; filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4)); }
+    .country-path.owned-self { fill: #0E586E; stroke: #38BDF8; stroke-width: 1.4px; filter: drop-shadow(0 0 6px rgba(56,189,248,0.5)); }
     .country-path.selected-country { stroke: #FBBF24; stroke-width: 1.8px; }
-    .country-path.at-war {
-      fill: #581824;
-      stroke: #EF4444;
-      stroke-width: 1.6px;
-      animation: warPulse 1.8s infinite ease-in-out;
-    }
-    @keyframes warPulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.3; } }
+    .country-path.at-war { fill: #581824; stroke: #EF4444; stroke-width: 1.6px; animation: warPulse 1.8s infinite ease-in-out; }
+    @keyframes warPulse { 0%,100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.3; } }
 
     .map-tooltip {
-      position: absolute;
-      pointer-events: none;
-      background: rgba(9, 13, 24, 0.94);
-      border: 1px solid var(--cyan);
-      color: #F8FAFC;
-      padding: 7px 11px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      z-index: 25;
-      transform: translate(12px, -12px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+      position: absolute; pointer-events: none; background: rgba(9,13,24,0.94);
+      border: 1px solid var(--cyan); color: #F8FAFC; padding: 7px 11px;
+      border-radius: 8px; font-size: 12px; font-weight: 600; z-index: 25;
+      transform: translate(12px,-12px); box-shadow: 0 8px 20px rgba(0,0,0,0.45);
     }
     .map-controls { position: absolute; bottom: 14px; left: 14px; display: flex; gap: 6px; z-index: 15; }
     .map-legend {
-      position: absolute; top: 14px; left: 14px;
-      background: rgba(17, 26, 45, 0.88);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 11px;
-      color: #F8FAFC;
-      display: flex; flex-wrap: wrap; gap: 12px;
-      z-index: 15;
+      position: absolute; top: 14px; left: 14px; background: rgba(17,26,45,0.88);
+      backdrop-filter: blur(10px); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 10px; font-size: 11px; color: #F8FAFC;
+      display: flex; flex-wrap: wrap; gap: 12px; z-index: 15;
     }
     .legend-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 5px; }
 
-    /* Floating Country Inspector */
+    /* COUNTRY DRAWER */
     .country-drawer {
-      position: absolute;
-      top: 14px; right: 14px; bottom: 14px;
-      width: 420px;
-      max-width: calc(100% - 28px);
-      background: rgba(17, 26, 45, 0.96);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border-strong);
-      border-radius: 16px;
-      display: flex;
-      flex-direction: column;
-      z-index: 30;
+      position: absolute; top: 14px; right: 14px; bottom: 14px; width: 420px;
+      max-width: calc(100% - 28px); background: rgba(17,26,45,0.97);
+      backdrop-filter: blur(16px); border: 1px solid var(--border-strong);
+      border-radius: 16px; display: flex; flex-direction: column; z-index: 30;
       box-shadow: 0 24px 60px rgba(0,0,0,0.7);
       transition: transform 0.25s ease, height 0.25s ease;
+      animation: slideIn 0.25s ease;
     }
-    [data-theme="light"] .country-drawer { background: rgba(255, 255, 255, 0.96); }
-    .country-drawer.minimized { height: 64px; bottom: auto; overflow: hidden; }
-    .drawer-header {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .drawer-tabs {
-      display: flex; overflow-x: auto;
-      border-bottom: 1px solid var(--border);
-      padding: 0 8px; gap: 4px;
-    }
+    @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .drawer-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .drawer-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); padding: 0 8px; gap: 4px; }
     .drawer-tab {
-      padding: 9px 10px;
-      font-size: 11px; font-weight: 600;
-      color: var(--text-secondary);
-      background: none; border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer; white-space: nowrap;
+      padding: 9px 10px; font-size: 11px; font-weight: 600; color: var(--text-secondary);
+      background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
     }
     .drawer-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
     .drawer-body { padding: 16px; overflow-y: auto; flex: 1; font-size: 13px; }
 
-    /* Product Marketplace Cards */
-    .market-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
-      gap: 14px;
-    }
+    /* MARKET CARDS */
+    .market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px,1fr)); gap: 14px; }
     .product-card {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 12px;
-      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+      transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
     }
-    .product-card:hover {
-      transform: translateY(-3px);
-      border-color: var(--cyan);
-      box-shadow: 0 12px 24px -10px rgba(56, 189, 248, 0.28);
-    }
+    .product-card:hover { transform: translateY(-4px); border-color: var(--cyan); box-shadow: 0 14px 30px -10px rgba(56,189,248,0.3); }
     .product-art-badge {
-      width: 52px; height: 52px;
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .product-art-badge svg { width: 26px; height: 26px; }
-    .cat-technology { background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.3)); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.35); }
-    .cat-energy { background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(245, 158, 11, 0.3)); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.35); }
-    .cat-agriculture { background: linear-gradient(135deg, rgba(52, 211, 153, 0.22), rgba(16, 185, 129, 0.3)); color: #34D399; border: 1px solid rgba(52, 211, 153, 0.35); }
-    .cat-automotive { background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(244, 114, 182, 0.3)); color: #A78BFA; border: 1px solid rgba(167, 139, 250, 0.35); }
-    .cat-materials { background: linear-gradient(135deg, rgba(148, 163, 184, 0.22), rgba(71, 85, 105, 0.3)); color: #CBD5E1; border: 1px solid rgba(148, 163, 184, 0.35); }
-
-    .category-chip {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-      padding: 3px 8px; border-radius: 6px;
-      background: rgba(255,255,255,0.06); color: var(--text-secondary);
-    }
-
-    .rarity-common { border-left: 3px solid var(--text-secondary); }
-    .rarity-rare { border-left: 3px solid var(--cyan); }
-    .rarity-epic { border-left: 3px solid var(--purple); }
-    .rarity-legendary { border-left: 3px solid var(--orange); background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), var(--bg-elevated)); }
-
-    .versus-bar { height: 10px; border-radius: 999px; background: var(--danger); overflow: hidden; display: flex; margin: 8px 0; }
-    .versus-fill-atk { background: var(--cyan); height: 100%; transition: width 0.4s ease; }
+    .cat-technology { background: linear-gradient(135deg, rgba(56,189,248,0.22), rgba(99,102,241,0.3)); color: #38BDF8; border: 1px solid rgba(56,189,248,0.35); }
+    .cat-energy { background: linear-gradient(135deg, rgba(251,191,36,0.22), rgba(245,158,11,0.3)); color: #FBBF24; border: 1px solid rgba(251,191,36,0.35); }
+    .cat-agriculture { background: linear-gradient(135deg, rgba(52,211,153,0.22), rgba(16,185,129,0.3)); color: #34D399; border: 1px solid rgba(52,211,153,0.35); }
+    .cat-automotive { background: linear-gradient(135deg, rgba(167,139,250,0.22), rgba(244,114,182,0.3)); color: #A78BFA; border: 1px solid rgba(167,139,250,0.35); }
+    .cat-materials { background: linear-gradient(135deg, rgba(148,163,184,0.22), rgba(71,85,105,0.3)); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.35); }
 
     .alert-item {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 12px; border-radius: 10px;
-      background: rgba(251, 191, 36, 0.1);
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      margin-bottom: 8px; gap: 10px;
+      padding: 10px 12px; border-radius: 10px; background: rgba(251,191,36,0.1);
+      border: 1px solid rgba(251,191,36,0.3); margin-bottom: 8px; gap: 10px;
     }
-    .alert-item.critical { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); }
+    .alert-item.critical { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.35); }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
     th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
 
-    .offline-banner { background: var(--danger); color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 6px; }
-    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    /* TOAST */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
     .toast {
-      background: var(--bg-surface);
-      border: 1px solid var(--cyan);
-      color: var(--text-primary);
-      padding: 11px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.55);
-      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-surface); border: 1px solid var(--cyan); color: var(--text-primary);
+      padding: 11px 16px; border-radius: 12px; font-size: 13px; font-weight: 500;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.55); display: flex; align-items: center; gap: 8px;
+      animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1);
     }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    .toast.error { border-color: var(--danger); }
+    .toast.success { border-color: var(--green); }
 
-    .mobile-more-sheet {
-      position: fixed;
-      bottom: 66px; left: 10px; right: 10px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-strong);
-      border-radius: 16px;
-      padding: 12px;
-      z-index: 60;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.65);
+    /* BOMB MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .bomb-modal {
+      width: 100%; max-width: 520px; background: linear-gradient(135deg, #1A0A0A 0%, #2D1111 100%);
+      border: 2px solid #EF4444; border-radius: 20px; padding: 28px;
+      box-shadow: 0 0 80px rgba(239,68,68,0.6);
+      animation: bombIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes bombIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+    .bomb-modal h2 { font-family: var(--font-display); color: #FCA5A5; font-size: 24px; margin-bottom: 8px; }
+    .bomb-target { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; }
+    .bomb-target strong { color: var(--orange); }
+
+    /* CONFLICT ANIMATION */
+    .conflict-flash { animation: conflictFlash 0.6s ease; }
+    @keyframes conflictFlash {
+      0%,100% { box-shadow: var(--shadow-card); }
+      50% { box-shadow: 0 0 40px rgba(239,68,68,0.8); }
     }
 
     @media (max-width: 960px) {
-      .sidebar {
-        position: fixed;
-        bottom: 0; top: auto; left: 0; right: 0;
-        width: 100% !important;
-        height: 62px;
-        flex-direction: row;
-        border-right: none;
-        border-top: 1px solid var(--border);
-      }
+      .sidebar { position: fixed; bottom: 0; top: auto; left: 0; right: 0; width: 100% !important; height: 62px; flex-direction: row; border-right: none; border-top: 1px solid var(--border); }
       .sidebar-header, .sidebar-footer { display: none; }
-      .nav-list {
-        flex-direction: row;
-        padding: 4px 6px;
-        justify-content: space-around;
-        align-items: center;
-        overflow: hidden;
-      }
+      .nav-list { flex-direction: row; padding: 4px 6px; justify-content: space-around; align-items: center; overflow: hidden; }
       .nav-item.desktop-only { display: none; }
-      .nav-item {
-        flex-direction: column;
-        padding: 4px 6px;
-        font-size: 10px;
-        width: auto;
-        justify-content: center;
-      }
+      .nav-item { flex-direction: column; padding: 4px 6px; font-size: 10px; width: auto; justify-content: center; }
       .nav-item-left { flex-direction: column; gap: 3px; }
       .main-area { margin-left: 0 !important; padding-bottom: 74px; }
       .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
       .map-wrapper { height: 460px; }
-      .country-drawer {
-        top: auto; left: 8px; right: 8px; bottom: 8px;
-        width: calc(100% - 16px);
-        max-height: 68%;
-        border-radius: 18px;
-      }
+      .country-drawer { top: auto; left: 8px; right: 8px; bottom: 8px; width: calc(100% - 16px); max-height: 68%; border-radius: 18px; }
     }
-    @media (min-width: 961px) {
-      #mobile-more-btn, #mobile-more-sheet { display: none !important; }
-    }
+    @media (min-width: 961px) { #mobile-more-btn, #mobile-more-sheet { display: none !important; } }
   </style>
 </head>
 <body>
-  <div id="offline-banner" class="offline-banner hidden">Connection Lost — Reconnecting to AV GAME World Servers...</div>
+  <div class="bg-orbs"></div>
   <div id="toast-container"></div>
 
-  <!-- AUTHENTICATION & FORCED FIRST-LOGIN PASSWORD CHANGE -->
+  <!-- AUTH SCREEN -->
   <section id="auth-screen">
     <div class="auth-card" id="login-box">
       <div class="brand-badge"><i data-lucide="globe"></i> AV GAME • WORLD SIMULATION</div>
       <h1>Presidential Command</h1>
-      <p>Private persistent geopolitical simulation. Enter your administrator-issued presidential credentials.</p>
+      <p>Enter the credentials issued by your World Administrator. First-time users: set your private password on first login.</p>
       <form id="login-form">
         <div class="form-group">
-          <label for="login-username">Assigned Username</label>
+          <label for="login-username">Username</label>
           <input id="login-username" type="text" placeholder="e.g. Hanif" autocomplete="username" required />
         </div>
         <div class="form-group">
           <label for="login-password">Password</label>
           <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
-        <div id="login-error" class="kpi-sub" style="color:var(--danger); margin-bottom:10px;"></div>
-        <button type="submit" class="btn btn-primary btn-full" id="login-btn"><i data-lucide="shield-check"></i> Enter World Simulation</button>
-      </form>
-    </div>
-
-    <div class="auth-card hidden" id="force-password-box">
-      <div class="brand-badge"><i data-lucide="key-round"></i> FIRST-LOGIN SECURITY</div>
-      <h1>Set Private Password</h1>
-      <p>Your account was provisioned with a temporary password. Create a permanent private password to unlock command.</p>
-      <form id="change-password-form">
-        <div class="form-group">
-          <label for="new-password">New Password (min 8 characters)</label>
-          <input id="new-password" type="password" minlength="8" required />
-        </div>
-        <div class="form-group">
-          <label for="confirm-password">Confirm Password</label>
-          <input id="confirm-password" type="password" minlength="8" required />
-        </div>
-        <div id="pw-error" class="kpi-sub" style="color:var(--danger); margin-bottom:10px;"></div>
-        <button type="submit" class="btn btn-primary btn-full"><i data-lucide="check-circle"></i> Activate Account</button>
+        <div id="login-error" class="kpi-sub" style="color:var(--danger); margin-bottom:10px; min-height:16px;"></div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn"><i data-lucide="shield-check"></i> Enter World</button>
       </form>
     </div>
   </section>
 
-  <!-- MAIN PERSISTENT GAME SHELL -->
+  <!-- MAIN APP SHELL -->
   <div id="app-shell" class="hidden">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
@@ -632,27 +399,18 @@
           <div class="logo-orb"><i data-lucide="globe-2"></i></div>
           <span class="logo-label">AV GAME</span>
         </div>
-        <button class="btn btn-secondary btn-sm" id="sidebar-collapse-btn" title="Collapse Sidebar"><i data-lucide="panel-left-close"></i></button>
+        <button class="btn btn-secondary btn-sm" id="sidebar-collapse-btn"><i data-lucide="panel-left-close"></i></button>
       </div>
-
       <nav class="nav-list" id="main-nav">
         <button class="nav-item active" data-view="world"><span class="nav-item-left"><i data-lucide="map"></i><span class="nav-label">World Map</span></span></button>
-        <button class="nav-item" data-view="country"><span class="nav-item-left"><i data-lucide="landmark"></i><span class="nav-label">My Country</span></span><span id="nav-alert-badge" class="badge hidden">0</span></button>
-        <button class="nav-item" data-view="market"><span class="nav-item-left"><i data-lucide="shopping-bag"></i><span class="nav-label">Global Market</span></span></button>
-        <button class="nav-item" data-view="missions"><span class="nav-item-left"><i data-lucide="target"></i><span class="nav-label">Missions</span></span></button>
-        <button class="nav-item desktop-only" data-view="diplomacy"><span class="nav-item-left"><i data-lucide="handshake"></i><span class="nav-label">Diplomacy</span></span><span id="nav-msg-badge" class="badge hidden">0</span></button>
-        <button class="nav-item desktop-only" data-view="conflicts"><span class="nav-item-left"><i data-lucide="swords"></i><span class="nav-label">Conflicts</span></span></button>
-        <button class="nav-item desktop-only" data-view="research"><span class="nav-item-left"><i data-lucide="cpu"></i><span class="nav-label">Research</span></span></button>
-        <button class="nav-item desktop-only" data-view="government"><span class="nav-item-left"><i data-lucide="building-2"></i><span class="nav-label">Government</span></span></button>
-        <button class="nav-item desktop-only" data-view="achievements"><span class="nav-item-left"><i data-lucide="award"></i><span class="nav-label">Achievements</span></span></button>
-        <button class="nav-item desktop-only" data-view="leaderboard"><span class="nav-item-left"><i data-lucide="trophy"></i><span class="nav-label">Leaderboard</span></span></button>
-        <button class="nav-item desktop-only" data-view="notifications"><span class="nav-item-left"><i data-lucide="bell"></i><span class="nav-label">Notifications</span></span><span id="nav-notif-badge" class="badge hidden">0</span></button>
-        <button class="nav-item desktop-only" data-view="profile"><span class="nav-item-left"><i data-lucide="user-circle"></i><span class="nav-label">Profile</span></span></button>
+        <button class="nav-item" data-view="country"><span class="nav-item-left"><i data-lucide="landmark"></i><span class="nav-label">My Country</span></span></button>
+        <button class="nav-item" data-view="market"><span class="nav-item-left"><i data-lucide="shopping-bag"></i><span class="nav-label">Market</span></span></button>
+        <button class="nav-item war-tab" data-view="war"><span class="nav-item-left"><i data-lucide="bomb"></i><span class="nav-label">War Room</span></span><span class="badge hidden" id="war-badge">!</span></button>
+        <button class="nav-item desktop-only" data-view="diplomacy"><span class="nav-item-left"><i data-lucide="handshake"></i><span class="nav-label">Diplomacy</span></span></button>
+        <button class="nav-item desktop-only" data-view="leaderboard"><span class="nav-item-left"><i data-lucide="trophy"></i><span class="nav-label">Rankings</span></span></button>
+        <button class="nav-item desktop-only" data-view="notifications"><span class="nav-item-left"><i data-lucide="bell"></i><span class="nav-label">Alerts</span></span><span class="badge hidden" id="notif-badge">0</span></button>
         <button class="nav-item desktop-only" data-view="settings"><span class="nav-item-left"><i data-lucide="settings"></i><span class="nav-label">Settings</span></span></button>
-        <button class="nav-item desktop-only hidden" id="nav-admin-btn" data-view="admin" style="color:var(--orange);"><span class="nav-item-left"><i data-lucide="shield-alert"></i><span class="nav-label">Admin Console</span></span></button>
-        <button class="nav-item" id="mobile-more-btn" type="button"><span class="nav-item-left"><i data-lucide="layout-grid"></i><span class="nav-label">More</span></span></button>
       </nav>
-
       <div class="sidebar-footer">
         <div class="sidebar-profile-card">
           <img id="sidebar-avatar" src="https://api.dicebear.com/7.x/shapes/svg?seed=AV" alt="Avatar" />
@@ -665,18 +423,12 @@
       </div>
     </aside>
 
-    <!-- MOBILE "MORE" DRAWER -->
-    <div id="mobile-more-sheet" class="mobile-more-sheet hidden">
-      <button class="btn btn-secondary btn-sm" data-mobile-view="diplomacy"><i data-lucide="handshake"></i> Diplomacy</button>
-      <button class="btn btn-secondary btn-sm" data-mobile-view="conflicts"><i data-lucide="swords"></i> Conflicts</button>
-      <button class="btn btn-secondary btn-sm" data-mobile-view="research"><i data-lucide="cpu"></i> Research</button>
-      <button class="btn btn-secondary btn-sm" data-mobile-view="government"><i data-lucide="building-2"></i> Gov</button>
-      <button class="btn btn-secondary btn-sm" data-mobile-view="achievements"><i data-lucide="award"></i> Awards</button>
+    <div id="mobile-more-sheet" class="hidden" style="position:fixed; bottom:66px; left:10px; right:10px; background:var(--bg-surface); border:1px solid var(--border-strong); border-radius:16px; padding:12px; z-index:60; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; box-shadow:0 -10px 40px rgba(0,0,0,0.65);">
+      <button class="btn btn-secondary btn-sm" data-mobile-view="war"><i data-lucide="bomb"></i> War</button>
+      <button class="btn btn-secondary btn-sm" data-mobile-view="diplomacy"><i data-lucide="handshake"></i> Diplo</button>
       <button class="btn btn-secondary btn-sm" data-mobile-view="leaderboard"><i data-lucide="trophy"></i> Ranks</button>
       <button class="btn btn-secondary btn-sm" data-mobile-view="notifications"><i data-lucide="bell"></i> Alerts</button>
-      <button class="btn btn-secondary btn-sm" data-mobile-view="profile"><i data-lucide="user-circle"></i> Profile</button>
       <button class="btn btn-secondary btn-sm" data-mobile-view="settings"><i data-lucide="settings"></i> Settings</button>
-      <button class="btn btn-secondary btn-sm hidden" id="mobile-admin-btn" data-mobile-view="admin" style="color:var(--orange);"><i data-lucide="shield-alert"></i> Admin</button>
     </div>
 
     <div class="main-area">
@@ -684,30 +436,30 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span id="top-country-flag" style="font-size:24px;">🌐</span>
           <div>
-            <div id="top-country-name" class="display-font" style="font-size:15px; font-weight:700;">Observer State</div>
-            <div id="top-role-label" style="font-size:11px; color:var(--text-secondary);">Awaiting Country Assignment</div>
+            <div id="top-country-name" class="display-font" style="font-size:15px; font-weight:700;">Loading...</div>
+            <div id="top-role-label" style="font-size:11px; color:var(--text-secondary);">Syncing</div>
           </div>
         </div>
         <div class="stat-pills">
-          <div class="pill" title="National Treasury"><i data-lucide="coins" style="color:var(--orange);"></i><span class="mono" id="top-coins">0</span></div>
-          <div class="pill" title="National Level"><i data-lucide="sparkles" style="color:var(--purple);"></i><span class="lbl">Lvl</span><span class="mono" id="top-level">1</span></div>
+          <div class="pill" title="Treasury"><i data-lucide="coins" style="color:var(--orange);"></i><span class="mono" id="top-coins">0</span></div>
+          <div class="pill" title="Level"><i data-lucide="sparkles" style="color:var(--purple);"></i><span class="lbl">Lvl</span><span class="mono" id="top-level">1</span></div>
           <div class="pill" title="Stability"><i data-lucide="heart-pulse" style="color:var(--green);"></i><span class="mono" id="top-stability">100%</span></div>
-          <div class="pill" title="Military Score"><i data-lucide="shield" style="color:var(--cyan);"></i><span class="mono" id="top-military">0</span></div>
-          <div class="pill" title="Strategic Nuclear Arsenal"><i data-lucide="radiation" style="color:var(--orange);"></i><span class="lbl">Nukes</span><span class="mono" id="top-nukes">0</span></div>
+          <div class="pill" title="Military"><i data-lucide="shield" style="color:var(--cyan);"></i><span class="mono" id="top-military">0</span></div>
+          <div class="pill" title="Nukes"><i data-lucide="radiation" style="color:var(--orange);"></i><span class="lbl">Nukes</span><span class="mono" id="top-nukes">0</span></div>
         </div>
       </header>
 
       <main class="view-container">
-        <!-- VIEW 1: WORLD MAP & COMMAND HOME -->
+        <!-- WORLD -->
         <section id="view-world" class="game-view">
           <div class="hero-banner">
             <div>
               <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-                <span class="brand-badge" style="margin:0;"><i data-lucide="radio"></i> LIVE PERSISTENT WORLD</span>
-                <span class="nuke-badge" id="hero-nuclear-status"><i data-lucide="radiation"></i> Non-Nuclear State</span>
+                <span class="brand-badge" style="margin:0;"><i data-lucide="radio"></i> LIVE WORLD</span>
+                <span class="nuke-badge" id="hero-nuclear-status"><i data-lucide="radiation"></i> Non-Nuclear</span>
               </div>
-              <h2 class="display-font" id="welcome-headline" style="font-size:20px;">Welcome back, President</h2>
-              <p class="kpi-sub" id="welcome-sub">Your nation is aligned with the global map. Monitor markets, diplomacy, and live strategic shifts.</p>
+              <h2 class="display-font" id="welcome-headline" style="font-size:22px;">Welcome, President</h2>
+              <p class="kpi-sub" id="welcome-sub">Conquer, trade, and dominate the globe.</p>
             </div>
             <div class="xp-bar-wrap">
               <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
@@ -720,42 +472,39 @@
 
           <div class="map-toolbar">
             <div style="display:flex; gap:8px; flex:1; min-width:240px; flex-wrap:wrap;">
-              <input id="map-search-input" type="search" placeholder="Search country by name or ISO code..." style="max-width:260px;" />
+              <input id="map-search-input" type="search" placeholder="Search country..." style="max-width:260px;" />
               <select id="map-filter-select" style="max-width:210px;">
                 <option value="all">All Nations</option>
                 <option value="players">Player-Controlled</option>
-                <option value="nuclear">Nuclear-Capable States</option>
-                <option value="unclaimed">Unclaimed / Purchasable</option>
-                <option value="war">Active Conflicts</option>
-                <option value="high-tech">High Tech (Tier 2+)</option>
+                <option value="nuclear">Nuclear States</option>
+                <option value="unclaimed">Unclaimed</option>
+                <option value="war">At War</option>
               </select>
             </div>
             <div style="display:flex; gap:8px;">
               <button class="btn btn-secondary btn-sm" id="focus-my-country-btn"><i data-lucide="crosshair"></i> My Nation</button>
-              <button class="btn btn-secondary btn-sm" id="quick-missions-btn"><i data-lucide="target"></i> Missions</button>
-              <button class="btn btn-primary btn-sm" id="quick-market-btn"><i data-lucide="shopping-bag"></i> Global Market</button>
+              <button class="btn btn-danger btn-sm" id="quick-war-btn"><i data-lucide="bomb"></i> Launch Strike</button>
             </div>
           </div>
 
           <div class="map-wrapper">
             <div id="map-loading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(9,13,24,0.8); z-index:20;">
-              <span class="brand-badge"><i data-lucide="loader-2"></i> Loading Real-World Geopolitical Boundaries...</span>
+              <span class="brand-badge"><i data-lucide="loader-2"></i> Loading World...</span>
             </div>
             <div id="map-tooltip" class="map-tooltip hidden"></div>
             <div class="map-legend">
               <span><i class="legend-dot" style="background:#0E586E; border:1px solid #38BDF8;"></i>Your Nation</span>
-              <span><i class="legend-dot" style="background:#263875; border:1px solid #818CF8;"></i>Player President</span>
-              <span><i class="legend-dot" style="background:#1A2742;"></i>Unclaimed / AI</span>
-              <span><i class="legend-dot" style="background:#581824; border:1px solid #EF4444;"></i>Active Conflict</span>
+              <span><i class="legend-dot" style="background:#263875; border:1px solid #818CF8;"></i>Player</span>
+              <span><i class="legend-dot" style="background:#1A2742;"></i>Unclaimed</span>
+              <span><i class="legend-dot" style="background:#581824; border:1px solid #EF4444;"></i>At War</span>
             </div>
             <svg id="world-map-svg"></svg>
             <div class="map-controls">
-              <button class="btn btn-secondary btn-sm" id="zoom-in" title="Zoom In"><i data-lucide="plus"></i></button>
-              <button class="btn btn-secondary btn-sm" id="zoom-out" title="Zoom Out"><i data-lucide="minus"></i></button>
-              <button class="btn btn-secondary btn-sm" id="zoom-reset" title="Reset View"><i data-lucide="maximize-2"></i></button>
+              <button class="btn btn-secondary btn-sm" id="zoom-in"><i data-lucide="plus"></i></button>
+              <button class="btn btn-secondary btn-sm" id="zoom-out"><i data-lucide="minus"></i></button>
+              <button class="btn btn-secondary btn-sm" id="zoom-reset"><i data-lucide="maximize-2"></i></button>
             </div>
 
-            <!-- FLOATING COUNTRY INSPECTOR -->
             <div id="country-drawer" class="country-drawer hidden">
               <div class="drawer-header">
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -766,16 +515,14 @@
                   </div>
                 </div>
                 <div style="display:flex; gap:6px;">
-                  <button class="btn btn-secondary btn-sm" id="minimize-drawer" title="Minimize"><i data-lucide="chevron-down"></i></button>
-                  <button class="btn btn-secondary btn-sm" id="close-drawer" title="Close"><i data-lucide="x"></i></button>
+                  <button class="btn btn-secondary btn-sm" id="minimize-drawer"><i data-lucide="chevron-down"></i></button>
+                  <button class="btn btn-secondary btn-sm" id="close-drawer"><i data-lucide="x"></i></button>
                 </div>
               </div>
               <div class="drawer-tabs" id="drawer-tabs">
                 <button class="drawer-tab active" data-dtab="overview">Overview</button>
-                <button class="drawer-tab" data-dtab="economy">Economy</button>
-                <button class="drawer-tab" data-dtab="industries">Companies</button>
-                <button class="drawer-tab" data-dtab="military">Defense & Nuclear</button>
-                <button class="drawer-tab" data-dtab="deals">Deals</button>
+                <button class="drawer-tab" data-dtab="military">Military</button>
+                <button class="drawer-tab" data-dtab="actions">Actions</button>
               </div>
               <div class="drawer-body" id="drawer-body"></div>
             </div>
@@ -783,424 +530,192 @@
 
           <div class="grid-3" style="margin-top:18px;">
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="alert-triangle" style="color:var(--orange);"></i> Shortage & National Alerts</span></div>
-              <div id="home-alerts-list"><div class="kpi-sub">All strategic reserves nominal.</div></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="alert-triangle" style="color:var(--orange);"></i> Alerts</span></div>
+              <div id="home-alerts-list"><div class="kpi-sub">All nominal.</div></div>
             </div>
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="newspaper" style="color:var(--cyan);"></i> Live Global News</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="newspaper" style="color:var(--cyan);"></i> Live News</span></div>
               <div id="home-news-list" style="max-height:230px; overflow-y:auto;"></div>
             </div>
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="trending-up" style="color:var(--green);"></i> Live Public Market & Conflicts</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="trending-up" style="color:var(--green);"></i> Market & Wars</span></div>
               <div id="home-deals-wars" style="max-height:230px; overflow-y:auto;"></div>
             </div>
           </div>
         </section>
 
-        <!-- VIEW 2: MY COUNTRY DASHBOARD & CHARTS -->
+        <!-- MY COUNTRY -->
         <section id="view-country" class="game-view hidden">
           <div class="grid-4" style="margin-bottom:16px;">
-            <div class="card">
-              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="coins" style="color:var(--orange);"></i> National Treasury</div>
-              <div class="kpi-value mono" id="mc-coins">0</div>
-            </div>
-            <div class="card">
-              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="bar-chart-3" style="color:var(--green);"></i> GDP Index</div>
-              <div class="kpi-value mono" id="mc-gdp">0</div>
-            </div>
-            <div class="card">
-              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="radiation" style="color:var(--orange);"></i> Strategic Nuclear Arsenal</div>
-              <div class="kpi-value mono" id="mc-nukes">0 Warheads</div>
-              <div class="kpi-sub" id="mc-nuke-doctrine">Doctrine: Conventional</div>
-            </div>
-            <div class="card">
-              <div class="kpi-sub" style="display:flex; align-items:center; gap:6px;"><i data-lucide="cpu" style="color:var(--purple);"></i> Tech & XP</div>
-              <div class="kpi-value mono" id="mc-xp">Lvl 1</div>
-            </div>
+            <div class="card"><div class="kpi-sub"><i data-lucide="coins" style="color:var(--orange);"></i> Treasury</div><div class="kpi-value mono" id="mc-coins">0</div></div>
+            <div class="card"><div class="kpi-sub"><i data-lucide="bar-chart-3" style="color:var(--green);"></i> GDP</div><div class="kpi-value mono" id="mc-gdp">0</div></div>
+            <div class="card"><div class="kpi-sub"><i data-lucide="radiation" style="color:var(--orange);"></i> Nukes</div><div class="kpi-value mono" id="mc-nukes">0</div><div class="kpi-sub" id="mc-nuke-doctrine">Conventional</div></div>
+            <div class="card"><div class="kpi-sub"><i data-lucide="cpu" style="color:var(--purple);"></i> Tech & XP</div><div class="kpi-value mono" id="mc-xp">Lvl 1</div></div>
           </div>
-
-          <div class="grid-2" style="margin-bottom:16px;">
+          <div class="grid-2">
             <div class="card">
-              <div class="card-header">
-                <span class="card-title"><i data-lucide="factory" style="color:var(--cyan);"></i> National Industries & Server Production</span>
-                <button class="btn btn-secondary btn-sm" id="sync-production-btn"><i data-lucide="refresh-cw"></i> Sync Tick</button>
-              </div>
+              <div class="card-header"><span class="card-title"><i data-lucide="factory" style="color:var(--cyan);"></i> Industries</span></div>
               <div id="mc-companies-list"></div>
             </div>
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="packages" style="color:var(--green);"></i> Strategic Inventory</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="packages" style="color:var(--green);"></i> Inventory</span></div>
               <div class="table-wrap">
-                <table>
-                  <thead><tr><th>Product</th><th>Stock</th><th>Min Alert</th><th>Status</th></tr></thead>
-                  <tbody id="mc-inventory-tbody"></tbody>
-                </table>
+                <table><thead><tr><th>Product</th><th>Stock</th><th>Status</th></tr></thead><tbody id="mc-inventory-tbody"></tbody></table>
               </div>
-            </div>
-          </div>
-
-          <div class="grid-2" style="margin-bottom:16px;">
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="line-chart" style="color:var(--purple);"></i> National Telemetry History</span></div>
-              <div id="chart-empty-state" class="kpi-sub" style="padding:24px; text-align:center;">Historical telemetry snapshots will appear here as server production and market ticks record snapshots in Firestore.</div>
-              <canvas id="country-telemetry-chart" class="hidden" height="160"></canvas>
-            </div>
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="briefcase" style="color:var(--orange);"></i> Admin Corporate & Asset Offers</span></div>
-              <div id="mc-offers-grid" class="grid-2"></div>
             </div>
           </div>
         </section>
 
-        <!-- VIEW 3: GLOBAL MARKETPLACE (ICON PRODUCT CARDS + FILTERS) -->
+        <!-- MARKET -->
         <section id="view-market" class="game-view hidden">
           <div class="grid-3" style="margin-bottom:18px;">
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="upload-cloud" style="color:var(--cyan);"></i> Publish Export Offer</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="upload-cloud" style="color:var(--cyan);"></i> Sell Product</span></div>
               <form id="create-trade-offer-form">
-                <div class="form-group">
-                  <label>Product from National Inventory</label>
-                  <select id="trade-product-select" required></select>
-                </div>
-                <div class="form-group">
-                  <label>Product Category</label>
-                  <select id="trade-category-select">
-                    <option value="technology">Technology & Electronics</option>
-                    <option value="energy">Energy, Oil & Gas</option>
-                    <option value="agriculture">Food, Grain & Coffee</option>
-                    <option value="automotive">Automotive & Vehicles</option>
-                    <option value="materials">Industrial Metals & Materials</option>
-                  </select>
-                </div>
+                <div class="form-group"><label>Product</label><select id="trade-product-select" required></select></div>
                 <div class="grid-2">
-                  <div class="form-group"><label>Quantity</label><input type="number" id="trade-qty" min="1" required /></div>
+                  <div class="form-group"><label>Qty</label><input type="number" id="trade-qty" min="1" required /></div>
                   <div class="form-group"><label>Unit Price</label><input type="number" id="trade-price" min="1" required /></div>
                 </div>
-                <div class="form-group">
-                  <label>Deal Visibility</label>
-                  <select id="trade-visibility">
-                    <option value="public">Public Global Market</option>
-                    <option value="private">Private Bilateral Offer</option>
-                  </select>
-                </div>
-                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="tag"></i> List on Global Market</button>
+                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="tag"></i> List on Market</button>
               </form>
             </div>
-
             <div class="card" style="grid-column: span 2;">
-              <div class="card-header" style="flex-wrap:wrap;">
-                <span class="card-title"><i data-lucide="store" style="color:var(--green);"></i> Live International Marketplace</span>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <input id="market-search" type="search" placeholder="Search product or country..." style="width:180px;" />
-                  <select id="market-cat-filter" style="width:155px;">
-                    <option value="all">All Categories</option>
-                    <option value="technology">Technology</option>
-                    <option value="energy">Energy & Oil</option>
-                    <option value="agriculture">Food & Coffee</option>
-                    <option value="automotive">Automotive</option>
-                    <option value="materials">Materials</option>
-                  </select>
-                  <select id="market-sort" style="width:150px;">
-                    <option value="newest">Newest First</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="qty-desc">Highest Quantity</option>
-                  </select>
-                </div>
+              <div class="card-header">
+                <span class="card-title"><i data-lucide="store" style="color:var(--green);"></i> Live Marketplace</span>
+                <input id="market-search" type="search" placeholder="Search..." style="width:180px;" />
               </div>
               <div id="market-cards-grid" class="market-grid"></div>
             </div>
           </div>
+        </section>
 
-          <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="receipt" style="color:var(--purple);"></i> Verified International Trade Ledger</span></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Product</th><th>Buyer</th><th>Seller</th><th>Quantity</th><th>Total Settled</th></tr></thead>
-                <tbody id="market-history-tbody"></tbody>
-              </table>
+        <!-- WAR ROOM -->
+        <section id="view-war" class="game-view hidden">
+          <div class="hero-banner" style="background: linear-gradient(120deg, rgba(239,68,68,0.25) 0%, rgba(251,191,36,0.18) 100%); border-color: rgba(239,68,68,0.5);">
+            <div>
+              <h2 class="display-font" style="font-size:24px; color:#FCA5A5;"><i data-lucide="bomb"></i> War Room</h2>
+              <p class="kpi-sub">Declare war, launch strikes, and defend your nation. Use nukes sparingly — they draw global condemnation.</p>
             </div>
           </div>
-        </section>
 
-        <!-- VIEW 4: MISSIONS & DAILY CHALLENGES -->
-        <section id="view-missions" class="game-view hidden">
-          <div class="card-header">
-            <span class="card-title" style="font-size:18px;"><i data-lucide="target" style="color:var(--cyan);"></i> Presidential Missions & Daily Challenges</span>
-          </div>
-          <div id="missions-grid" class="grid-3"></div>
-        </section>
-
-        <!-- VIEW 5: ACHIEVEMENTS & COLLECTIBLE AWARDS -->
-        <section id="view-achievements" class="game-view hidden">
-          <div class="card-header">
-            <span class="card-title" style="font-size:18px;"><i data-lucide="award" style="color:var(--orange);"></i> Presidential Achievements & Honors</span>
-          </div>
-          <div id="achievements-grid" class="grid-3"></div>
-        </section>
-
-        <!-- VIEW 6: RESEARCH & TECHNOLOGY TREE -->
-        <section id="view-research" class="game-view hidden">
-          <div class="card-header">
-            <span class="card-title" style="font-size:18px;"><i data-lucide="cpu" style="color:var(--purple);"></i> National Research & Innovation</span>
-          </div>
-          <div id="research-grid" class="grid-3"></div>
-        </section>
-
-        <!-- VIEW 7: DIPLOMACY & SOCIAL MESSAGING -->
-        <section id="view-diplomacy" class="game-view hidden">
-          <div class="grid-2">
+          <div class="grid-2" style="margin-bottom:16px;">
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="send" style="color:var(--cyan);"></i> Diplomatic Dispatch & Treaties</span></div>
-              <form id="diplomacy-form">
-                <div class="form-group"><label>Recipient Nation</label><select id="diplo-target-country" required></select></div>
-                <div class="form-group">
-                  <label>Treaty / Dispatch Type</label>
-                  <select id="diplo-type">
-                    <option value="message">Diplomatic Message</option>
-                    <option value="trade_pact">Bilateral Trade Agreement</option>
-                    <option value="alliance">Mutual Defense Alliance</option>
-                    <option value="non_proliferation">Nuclear Non-Proliferation Pact</option>
-                    <option value="peace">Peace Accord</option>
-                    <option value="aid">Allied Assistance Request</option>
+              <div class="card-header"><span class="card-title"><i data-lucide="target" style="color:var(--danger);"></i> Declare War / Attack</span></div>
+              <form id="declare-war-form">
+                <div class="form-group"><label>Target Nation</label><select id="war-target-select" required></select></div>
+                <div class="form-group"><label>Attack Type</label>
+                  <select id="war-attack-type">
+                    <option value="conventional">⚔️ Conventional Strike</option>
+                    <option value="air">✈️ Air Assault</option>
+                    <option value="cyber">💻 Cyber Attack</option>
+                    <option value="nuclear">☢️ NUCLEAR STRIKE (Costs 1 Nuke)</option>
                   </select>
                 </div>
-                <div class="form-group"><label>Terms & Proposal</label><textarea id="diplo-content" rows="3" required></textarea></div>
-                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="mail-check"></i> Transmit Dispatch</button>
+                <button type="submit" class="btn btn-danger btn-full"><i data-lucide="swords"></i> Launch Attack</button>
               </form>
             </div>
             <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="inbox" style="color:var(--green);"></i> Diplomatic Inbox & Active Treaties</span></div>
+              <div class="card-header"><span class="card-title"><i data-lucide="activity" style="color:var(--orange);"></i> Active Wars</span></div>
+              <div id="active-wars-list"><div class="kpi-sub">No active wars.</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title"><i data-lucide="scroll-text" style="color:var(--purple);"></i> Battle Log</span></div>
+            <div id="battle-log-list" style="max-height:340px; overflow-y:auto;"></div>
+          </div>
+        </section>
+
+        <!-- DIPLOMACY -->
+        <section id="view-diplomacy" class="game-view hidden">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><span class="card-title"><i data-lucide="send" style="color:var(--cyan);"></i> Send Message</span></div>
+              <form id="diplomacy-form">
+                <div class="form-group"><label>Recipient</label><select id="diplo-target-country" required></select></div>
+                <div class="form-group"><label>Type</label>
+                  <select id="diplo-type">
+                    <option value="message">Diplomatic Message</option>
+                    <option value="trade_pact">Trade Agreement</option>
+                    <option value="alliance">Mutual Defense Pact</option>
+                    <option value="peace">Peace Offer</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Message</label><textarea id="diplo-content" rows="3" required></textarea></div>
+                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="mail-check"></i> Transmit</button>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-header"><span class="card-title"><i data-lucide="inbox" style="color:var(--green);"></i> Inbox</span></div>
               <div id="diplomacy-feed" style="max-height:430px; overflow-y:auto;"></div>
             </div>
           </div>
         </section>
 
-        <!-- VIEW 8: ABSTRACT CONFLICTS -->
-        <section id="view-conflicts" class="game-view hidden">
-          <div class="grid-2">
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="swords" style="color:var(--danger);"></i> Formal Conflict Declaration</span></div>
-              <p class="kpi-sub" style="margin-bottom:12px;">Abstract strategic simulation regulated by World Council rules. Outcomes weigh Military Score, Strategic Deterrence, Defense Bonus, Tech Level, Alliances, and Stability.</p>
-              <form id="declare-conflict-form">
-                <div class="form-group"><label>Target Country</label><select id="conflict-target" required></select></div>
-                <div class="form-group"><label>Strategic Objective</label><input type="text" id="conflict-reason" placeholder="e.g. Trade Route Dispute" required /></div>
-                <button type="submit" class="btn btn-danger btn-full"><i data-lucide="flag"></i> File Formal Declaration</button>
-              </form>
-            </div>
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="activity" style="color:var(--orange);"></i> Active Global Conflicts</span></div>
-              <div id="active-conflicts-list"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- VIEW 9: GOVERNMENT & MINISTERS -->
-        <section id="view-government" class="game-view hidden">
-          <div class="grid-2">
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="landmark" style="color:var(--cyan);"></i> State Charter & Political Identity</span></div>
-              <form id="gov-identity-form">
-                <div class="form-group"><label>Official Government Name</label><input id="gov-state-name" placeholder="e.g. Federal Republic" /></div>
-                <div class="form-group"><label>Ideology / Ruling Party</label><input id="gov-party" placeholder="e.g. Innovation Coalition" /></div>
-                <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Update Charter</button>
-              </form>
-            </div>
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="users" style="color:var(--purple);"></i> Cabinet Ministries</span></div>
-              <div id="cabinet-list" class="grid-2"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- VIEW 10: LEADERBOARD -->
+        <!-- LEADERBOARD -->
         <section id="view-leaderboard" class="game-view hidden">
           <div class="card">
             <div class="card-header">
-              <span class="card-title"><i data-lucide="trophy" style="color:var(--orange);"></i> Global Power Rankings</span>
+              <span class="card-title"><i data-lucide="trophy" style="color:var(--orange);"></i> Global Rankings</span>
               <select id="lb-category" style="width:210px;">
-                <option value="overall">Overall Power Index</option>
-                <option value="coins">Treasury Wealth</option>
-                <option value="militaryScore">Military Score</option>
-                <option value="nuclearWarheads">Nuclear Deterrence</option>
-                <option value="techLevel">Technology Level</option>
-                <option value="level">National Level</option>
+                <option value="overall">Overall Power</option>
+                <option value="coins">Wealth</option>
+                <option value="militaryScore">Military</option>
+                <option value="nuclearWarheads">Nukes</option>
               </select>
             </div>
             <div class="table-wrap">
-              <table>
-                <thead><tr><th>Rank</th><th>Nation</th><th>President</th><th>Level</th><th>Score</th></tr></thead>
-                <tbody id="leaderboard-tbody"></tbody>
-              </table>
+              <table><thead><tr><th>Rank</th><th>Nation</th><th>President</th><th>Level</th><th>Score</th></tr></thead><tbody id="leaderboard-tbody"></tbody></table>
             </div>
           </div>
         </section>
 
-        <!-- VIEW 11: NOTIFICATION CENTER -->
+        <!-- NOTIFICATIONS -->
         <section id="view-notifications" class="game-view hidden">
           <div class="card">
-            <div class="card-header">
-              <span class="card-title"><i data-lucide="bell-ring" style="color:var(--cyan);"></i> Presidential Notification Center</span>
-              <button class="btn btn-secondary btn-sm" id="mark-all-read-btn"><i data-lucide="check-check"></i> Mark All Read</button>
-            </div>
+            <div class="card-header"><span class="card-title"><i data-lucide="bell-ring" style="color:var(--cyan);"></i> Notifications</span></div>
             <div id="notifications-list"></div>
           </div>
         </section>
 
-        <!-- VIEW 12: PRESIDENTIAL PROFILE (SUPABASE AVATAR STORAGE) -->
-        <section id="view-profile" class="game-view hidden">
-          <div class="card" style="max-width:640px;">
-            <div class="card-header"><span class="card-title"><i data-lucide="user-check" style="color:var(--cyan);"></i> Presidential Dossier</span></div>
-            <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px;">
-              <img id="profile-avatar-img" src="https://api.dicebear.com/7.x/shapes/svg?seed=AV" alt="Portrait" style="width:76px; height:76px; border-radius:50%; object-fit:cover; border:2px solid var(--cyan);" />
-              <div>
-                <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
-                  <i data-lucide="camera"></i> Upload Portrait (Supabase)
-                  <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" class="hidden" />
-                </label>
-                <div class="kpi-sub" style="margin-top:6px;">PNG/JPG/WEBP up to 2MB • Stored in Supabase Storage; URL saved in Firestore.</div>
-              </div>
-            </div>
-            <form id="profile-form">
-              <div class="form-group"><label>Presidential Display Name</label><input id="prof-display-name" required /></div>
-              <div class="form-group"><label>Biography & Vision</label><textarea id="prof-bio" rows="3"></textarea></div>
-              <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Profile</button>
-            </form>
-          </div>
-        </section>
-
-        <!-- VIEW 13: SETTINGS (THEME, SOUND & REDUCED MOTION) -->
+        <!-- SETTINGS -->
         <section id="view-settings" class="game-view hidden">
           <div class="card" style="max-width:540px;">
-            <div class="card-header"><span class="card-title"><i data-lucide="sliders" style="color:var(--cyan);"></i> Interface & Audio Preferences</span></div>
+            <div class="card-header"><span class="card-title"><i data-lucide="sliders" style="color:var(--cyan);"></i> Preferences</span></div>
             <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
-              <div><strong>Visual Theme</strong><div class="kpi-sub">Switch between Midnight Navy Dark and Daylight modes</div></div>
-              <button class="btn btn-secondary btn-sm" id="settings-theme-btn"><i data-lucide="sun-moon"></i> Toggle Theme</button>
+              <div><strong>Theme</strong><div class="kpi-sub">Dark / Light</div></div>
+              <button class="btn btn-secondary btn-sm" id="settings-theme-btn"><i data-lucide="sun-moon"></i> Toggle</button>
             </div>
-            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
-              <div><strong>Tactile UI Sound Effects</strong><div class="kpi-sub">Subtle chimes for purchases, missions, and level-ups (Off by default)</div></div>
-              <input type="checkbox" id="setting-sound" style="width:20px; height:20px;" />
-            </div>
-            <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
-              <div><strong>Reduced Motion</strong><div class="kpi-sub">Disable map border pulses and card hover lifts</div></div>
-              <input type="checkbox" id="setting-motion" style="width:20px; height:20px;" />
-            </div>
-          </div>
-        </section>
-
-        <!-- VIEW 14: ADMIN CONSOLE (ALIGNED LISTED COUNTRIES + NUCLEAR + COINS) -->
-        <section id="view-admin" class="game-view hidden">
-          <div class="grid-2" style="margin-bottom:16px;">
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="user-plus" style="color:var(--orange);"></i> 1. Provision Player & Align Country + Nuclear Arsenal</span></div>
-              <form id="admin-create-player-form">
-                <div class="grid-2">
-                  <div class="form-group"><label>Player Username</label><input id="adm-username" placeholder="e.g. Alex" required /></div>
-                  <div class="form-group"><label>Initial Password</label><input id="adm-temp-pw" type="text" placeholder="Pass2026!" minlength="8" required /></div>
-                </div>
-                <div class="form-group">
-                  <label>Select Listed Country (Auto-Aligns Map & Flag)</label>
-                  <select id="adm-country-select" required></select>
-                </div>
-                <div class="grid-3">
-                  <div class="form-group"><label>Starting Coins</label><input id="adm-coins" type="number" value="100000" required /></div>
-                  <div class="form-group"><label>Nuclear Warheads</label><input id="adm-nukes" type="number" value="0" min="0" required /></div>
-                  <div class="form-group"><label>Nuclear Status</label>
-                    <select id="adm-nuke-status">
-                      <option value="Non-Nuclear">Non-Nuclear</option>
-                      <option value="Threshold Research">Threshold Research</option>
-                      <option value="Tactical Deterrent">Tactical Deterrent</option>
-                      <option value="Strategic Nuclear Power">Strategic Nuclear Power</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="server"></i> Provision Player & Align Nation</button>
-              </form>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="globe" style="color:var(--cyan);"></i> 2. Update Listed Country & Strategic Stats</span></div>
-              <form id="admin-country-form">
-                <div class="form-group">
-                  <label>Select Country from World List</label>
-                  <select id="adm-c-select" required></select>
-                </div>
-                <div class="grid-3">
-                  <div class="form-group"><label>Treasury Coins</label><input id="adm-c-coins" type="number" value="100000" /></div>
-                  <div class="form-group"><label>Military Score</label><input id="adm-c-mil" type="number" value="80" /></div>
-                  <div class="form-group"><label>Nuclear Warheads</label><input id="adm-c-nukes" type="number" value="0" min="0" /></div>
-                </div>
-                <div class="grid-2">
-                  <div class="form-group"><label>Nuclear Doctrine</label>
-                    <select id="adm-c-nuke-status">
-                      <option value="Non-Nuclear">Non-Nuclear</option>
-                      <option value="Threshold Research">Threshold Research</option>
-                      <option value="Tactical Deterrent">Tactical Deterrent</option>
-                      <option value="Strategic Nuclear Power">Strategic Nuclear Power</option>
-                    </select>
-                  </div>
-                  <div class="form-group"><label>Purchasable Unclaimed?</label><select id="adm-c-purchasable"><option value="false">No</option><option value="true">Yes</option></select></div>
-                </div>
-                <button type="submit" class="btn btn-secondary btn-full"><i data-lucide="save"></i> Save & Align Country</button>
-              </form>
-            </div>
-          </div>
-
-          <div class="grid-2" style="margin-bottom:16px;">
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="factory" style="color:var(--green);"></i> 3. Register Scarcity Company & Production</span></div>
-              <form id="admin-company-form">
-                <div class="grid-2">
-                  <div class="form-group"><label>Company Name</label><input id="adm-comp-name" placeholder="Apple" required /></div>
-                  <div class="form-group"><label>Owner Country</label><select id="adm-comp-select" required></select></div>
-                </div>
-                <div class="grid-3">
-                  <div class="form-group"><label>Product</label><input id="adm-comp-prod" placeholder="Smartphones" required /></div>
-                  <div class="form-group"><label>Units / Tick</label><input id="adm-comp-rate" type="number" value="10" required /></div>
-                  <div class="form-group"><label>Interval (Mins)</label><input id="adm-comp-mins" type="number" value="20" required /></div>
-                </div>
-                <button type="submit" class="btn btn-secondary btn-full"><i data-lucide="plus-circle"></i> Add Company</button>
-              </form>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><span class="card-title"><i data-lucide="briefcase" style="color:var(--purple);"></i> 4. Publish Corporate / Asset Offer</span></div>
-              <form id="admin-offer-form">
-                <div class="grid-2">
-                  <div class="form-group"><label>Offer Title</label><input id="adm-off-title" placeholder="Aramco Refinery Stake" required /></div>
-                  <div class="form-group"><label>Target Country (Optional)</label><select id="adm-off-select"></select></div>
-                </div>
-                <div class="grid-3">
-                  <div class="form-group"><label>Price</label><input id="adm-off-price" type="number" value="25000" required /></div>
-                  <div class="form-group"><label>Quantity</label><input id="adm-off-qty" type="number" value="1" required /></div>
-                  <div class="form-group"><label>Unique?</label><select id="adm-off-unique"><option value="true">Yes</option><option value="false">No</option></select></div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-full"><i data-lucide="send"></i> Publish Offer</button>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><span class="card-title"><i data-lucide="megaphone" style="color:var(--orange);"></i> 5. Broadcast World Decree</span></div>
-            <form id="admin-news-form" style="display:flex; gap:10px;">
-              <input id="adm-news-text" placeholder="Publish global World Council event..." required />
-              <button type="submit" class="btn btn-primary">Broadcast</button>
-            </form>
           </div>
         </section>
       </main>
     </div>
   </div>
 
+  <!-- BOMB MODAL -->
+  <div id="bomb-modal" class="modal-overlay hidden">
+    <div class="bomb-modal">
+      <h2><i data-lucide="radiation"></i> NUCLEAR LAUNCH AUTHORIZATION</h2>
+      <div class="bomb-target">Target: <strong id="bomb-target-name">—</strong></div>
+      <p style="color:#FCA5A5; font-size:13px; margin-bottom:20px; line-height:1.6;">
+        ⚠️ You are about to launch a nuclear weapon. This will devastate the target nation, cost 1 warhead, and may trigger global condemnation and retaliation.
+      </p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" id="bomb-cancel" style="flex:1;">ABORT</button>
+        <button class="btn btn-danger" id="bomb-confirm" style="flex:2;"><i data-lucide="radiation"></i> CONFIRM LAUNCH</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, updatePassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc, collection, addDoc, updateDoc, writeBatch,
-      onSnapshot, query, where, orderBy, limit, serverTimestamp
+      getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc,
+      onSnapshot, query, where, orderBy, limit, serverTimestamp, increment, arrayUnion
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
-    // PRESERVED EXISTING CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyCayGcfnpCAGNDph3YTyEA9_KDdD2C5Fg0",
       authDomain: "my-tiktok-cbd6f.firebaseapp.com",
@@ -1212,1145 +727,776 @@
       measurementId: "G-RYBWW6XB10"
     };
 
-    const SUPABASE_CONFIG = {
-      storageUrl: "https://akoddbuemubeorwfwonv.supabase.co/storage/v1",
-      publishableKey: "sb_publishable_e433Ao5lccy9spSTVpMqOw_hw25ae_f",
-      bucket: "campaign-images"
-    };
-
-    // SHARED CANONICAL WORLD COUNTRY CATALOG (ALIGNS ADMIN SELECTION <-> MAP <-> COUNTRY DOCS)
     const WORLD_COUNTRIES = [
-      { iso: "USA", num: "840", name: "United States", flag: "🇺🇸" },
-      { iso: "RUS", num: "643", name: "Russia", flag: "🇷🇺" },
-      { iso: "CHN", num: "156", name: "China", flag: "🇨🇳" },
-      { iso: "DEU", num: "276", name: "Germany", flag: "🇩🇪" },
-      { iso: "JPN", num: "392", name: "Japan", flag: "🇯🇵" },
-      { iso: "GBR", num: "826", name: "United Kingdom", flag: "🇬🇧" },
-      { iso: "FRA", num: "250", name: "France", flag: "🇫🇷" },
-      { iso: "IND", num: "356", name: "India", flag: "🇮🇳" },
-      { iso: "SAU", num: "682", name: "Saudi Arabia", flag: "🇸🇦" },
-      { iso: "ETH", num: "231", name: "Ethiopia", flag: "🇪🇹" },
-      { iso: "BRA", num: "076", name: "Brazil", flag: "🇧🇷" },
-      { iso: "COL", num: "170", name: "Colombia", flag: "🇨🇴" },
-      { iso: "EGY", num: "818", name: "Egypt", flag: "🇪🇬" },
-      { iso: "ZAF", num: "710", name: "South Africa", flag: "🇿🇦" },
-      { iso: "TUR", num: "792", name: "Turkey", flag: "🇹🇷" },
-      { iso: "KOR", num: "410", name: "South Korea", flag: "🇰🇷" },
-      { iso: "AUS", num: "036", name: "Australia", flag: "🇦🇺" },
-      { iso: "CAN", num: "124", name: "Canada", flag: "🇨🇦" },
-      { iso: "MEX", num: "484", name: "Mexico", flag: "🇲🇽" },
-      { iso: "ITA", num: "380", name: "Italy", flag: "🇮🇹" },
-      { iso: "ISR", num: "376", name: "Israel", flag: "🇮🇱" },
-      { iso: "IRN", num: "364", name: "Iran", flag: "🇮🇷" },
-      { iso: "PAK", num: "586", name: "Pakistan", flag: "🇵🇰" },
-      { iso: "NGA", num: "566", name: "Nigeria", flag: "🇳🇬" },
-      { iso: "KEN", num: "404", name: "Kenya", flag: "🇰🇪" },
-      { iso: "ARE", num: "784", name: "United Arab Emirates", flag: "🇦🇪" },
-      { iso: "ESP", num: "724", name: "Spain", flag: "🇪🇸" },
-      { iso: "IDN", num: "360", name: "Indonesia", flag: "🇮🇩" },
-      { iso: "ARG", num: "032", name: "Argentina", flag: "🇦🇷" },
-      { iso: "UKR", num: "804", name: "Ukraine", flag: "🇺🇦" }
+      { iso: "USA", name: "United States", flag: "🇺🇸" }, { iso: "RUS", name: "Russia", flag: "🇷🇺" },
+      { iso: "CHN", name: "China", flag: "🇨🇳" }, { iso: "DEU", name: "Germany", flag: "🇩🇪" },
+      { iso: "JPN", name: "Japan", flag: "🇯🇵" }, { iso: "GBR", name: "United Kingdom", flag: "🇬🇧" },
+      { iso: "FRA", name: "France", flag: "🇫🇷" }, { iso: "IND", name: "India", flag: "🇮🇳" },
+      { iso: "SAU", name: "Saudi Arabia", flag: "🇸🇦" }, { iso: "ETH", name: "Ethiopia", flag: "🇪🇹" },
+      { iso: "BRA", name: "Brazil", flag: "🇧🇷" }, { iso: "COL", name: "Colombia", flag: "🇨🇴" },
+      { iso: "EGY", name: "Egypt", flag: "🇪🇬" }, { iso: "ZAF", name: "South Africa", flag: "🇿🇦" },
+      { iso: "TUR", name: "Turkey", flag: "🇹🇷" }, { iso: "KOR", name: "South Korea", flag: "🇰🇷" },
+      { iso: "AUS", name: "Australia", flag: "🇦🇺" }, { iso: "CAN", name: "Canada", flag: "🇨🇦" },
+      { iso: "MEX", name: "Mexico", flag: "🇲🇽" }, { iso: "ITA", name: "Italy", flag: "🇮🇹" },
+      { iso: "ISR", name: "Israel", flag: "🇮🇱" }, { iso: "IRN", name: "Iran", flag: "🇮🇷" },
+      { iso: "PAK", name: "Pakistan", flag: "🇵🇰" }, { iso: "NGA", name: "Nigeria", flag: "🇳🇬" },
+      { iso: "KEN", name: "Kenya", flag: "🇰🇪" }, { iso: "ARE", name: "UAE", flag: "🇦🇪" },
+      { iso: "ESP", name: "Spain", flag: "🇪🇸" }, { iso: "IDN", name: "Indonesia", flag: "🇮🇩" },
+      { iso: "ARG", name: "Argentina", flag: "🇦🇷" }, { iso: "UKR", name: "Ukraine", flag: "🇺🇦" }
     ];
-
-    const NUM_TO_ISO3 = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.num, c.iso]));
-    const CATALOG_BY_ISO = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.iso, c]));
+    const CATALOG = Object.fromEntries(WORLD_COUNTRIES.map(c => [c.iso, c]));
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const functions = getFunctions(app);
 
-    const state = {
-      user: null,
-      profile: null,
-      isAdmin: false,
-      countries: {},
-      companies: [],
-      marketOffers: [],
-      unreadNotifIds: [],
-      selectedIso: null,
-      activeDrawerTab: 'overview',
-      unsubscribers: [],
-      soundEnabled: localStorage.getItem('av_sound') === 'true',
-      chartInstance: null
-    };
+    let currentUser = null;
+    let currentCountry = null;
+    let currentCountryIso = null;
+    let countriesCache = {};
+    let unsubscribes = [];
 
-    function populateCountryDropdowns() {
-      const optionsHtml = WORLD_COUNTRIES.map(c => `<option value="${c.iso}">${c.flag} ${c.name} (${c.iso})</option>`).join('');
-      ['adm-country-select', 'adm-c-select', 'adm-comp-select'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = optionsHtml;
-      });
-      const offSel = document.getElementById('adm-off-select');
-      if (offSel) offSel.innerHTML = `<option value="">🌐 Global (All Countries)</option>` + optionsHtml;
-    }
-    populateCountryDropdowns();
-
-    function getProductVisual(productName = '', category = '') {
-      const key = `${productName} ${category}`.toLowerCase();
-      if (key.includes('phone') || key.includes('chip') || key.includes('semi') || key.includes('tech')) {
-        return { icon: 'smartphone', catClass: 'cat-technology', label: 'Technology' };
-      }
-      if (key.includes('oil') || key.includes('gas') || key.includes('energy') || key.includes('fuel') || key.includes('uranium')) {
-        return { icon: 'flame', catClass: 'cat-energy', label: 'Energy' };
-      }
-      if (key.includes('car') || key.includes('auto') || key.includes('vehicle') || key.includes('ev')) {
-        return { icon: 'car-front', catClass: 'cat-automotive', label: 'Automotive' };
-      }
-      if (key.includes('coffee') || key.includes('bean')) {
-        return { icon: 'coffee', catClass: 'cat-agriculture', label: 'Agriculture' };
-      }
-      if (key.includes('food') || key.includes('wheat') || key.includes('grain') || key.includes('agri')) {
-        return { icon: 'wheat', catClass: 'cat-agriculture', label: 'Food & Agri' };
-      }
-      if (key.includes('steel') || key.includes('iron') || key.includes('lithium') || key.includes('material')) {
-        return { icon: 'anvil', catClass: 'cat-materials', label: 'Materials' };
-      }
-      return { icon: 'package-check', catClass: 'cat-technology', label: category || 'Commodity' };
-    }
-
-    function escapeHtml(str = '') {
-      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-    }
-
-    function playChime(freq = 580) {
-      if (!state.soundEnabled) return;
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.18);
-      } catch (_) {}
-    }
-
-    function toast(msg, chimeFreq = 580) {
-      playChime(chimeFreq);
+    // ============ UTILITIES ============
+    function escapeHtml(s = '') { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function toast(msg, type = '') {
       const el = document.createElement('div');
-      el.className = 'toast';
-      el.innerHTML = `<i data-lucide="sparkles" style="color:var(--cyan);"></i><span>${escapeHtml(msg)}</span>`;
+      el.className = 'toast ' + type;
+      const icon = type === 'error' ? 'alert-circle' : type === 'success' ? 'check-circle' : 'info';
+      el.innerHTML = `<i data-lucide="${icon}"></i><span>${escapeHtml(msg)}</span>`;
       document.getElementById('toast-container').appendChild(el);
       lucide.createIcons({ root: el });
-      setTimeout(() => el.remove(), 3600);
+      setTimeout(() => el.remove(), 3800);
     }
 
-    const savedTheme = localStorage.getItem('av_theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    function toggleTheme() {
-      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('av_theme', next);
+    // ============ LOGIN ============
+    const loginForm = document.getElementById('login-form');
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      errEl.textContent = '';
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2"></i> Signing in...';
+      lucide.createIcons();
+
+      try {
+        // Username -> Email lookup via Firestore 'usernames' collection
+        const usernameRef = doc(db, 'usernames', username.toLowerCase());
+        const usernameSnap = await getDoc(usernameRef);
+        let email;
+        if (usernameSnap.exists()) {
+          email = usernameSnap.data().email;
+        } else {
+          // Fallback: try username@avgame.local
+          email = `${username.toLowerCase()}@avgame.local`;
+        }
+
+        await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged handles the rest
+      } catch (err) {
+        errEl.textContent = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'Invalid username or password.'
+          : err.code === 'auth/user-not-found' ? 'No account with that username.'
+          : err.message;
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="shield-check"></i> Enter World';
+        lucide.createIcons();
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await signOut(auth);
+      location.reload();
+    });
+
+    // ============ AUTH STATE ============
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('app-shell').classList.add('hidden');
+        return;
+      }
+      currentUser = user;
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-shell').classList.remove('hidden');
+      lucide.createIcons();
+
+      // Load player profile
+      const userSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!userSnap.exists()) {
+        toast('No player profile found. Contact the World Administrator.', 'error');
+        return;
+      }
+      const profile = userSnap.data();
+      currentCountryIso = profile.countryIso;
+
+      // Subscribe to own country
+      subscribeCountry(currentCountryIso);
+      subscribeAllCountries();
+      subscribeNews();
+      subscribeMarket();
+      subscribeWars();
+      subscribeMyOffers();
+      subscribeNotifications();
+      subscribeDiplomacy();
+      subscribeBattleLog();
+      renderLeaderboard();
+    });
+
+    // ============ COUNTRY SYNC ============
+    function subscribeCountry(iso) {
+      const unsub = onSnapshot(doc(db, 'countries', iso), (snap) => {
+        if (!snap.exists()) return;
+        currentCountry = { id: snap.id, ...snap.data() };
+        updateTopbar();
+        renderMyCountry();
+      });
+      unsubscribes.push(unsub);
     }
-    document.getElementById('settings-theme-btn').onclick = toggleTheme;
-    document.getElementById('setting-sound').checked = state.soundEnabled;
-    document.getElementById('setting-sound').onchange = (e) => {
-      state.soundEnabled = e.target.checked;
-      localStorage.setItem('av_sound', String(state.soundEnabled));
-    };
-    const savedMotion = localStorage.getItem('av_reduced_motion') === 'true';
-    if (savedMotion) document.body.classList.add('reduced-motion');
-    document.getElementById('setting-motion').checked = savedMotion;
-    document.getElementById('setting-motion').onchange = (e) => {
-      document.body.classList.toggle('reduced-motion', e.target.checked);
-      localStorage.setItem('av_reduced_motion', String(e.target.checked));
+
+    function subscribeAllCountries() {
+      const unsub = onSnapshot(collection(db, 'countries'), (snap) => {
+        countriesCache = {};
+        snap.forEach(d => { countriesCache[d.id] = { id: d.id, ...d.data() }; });
+        renderMap();
+        renderLeaderboard();
+        populateWarTargets();
+        populateDiploTargets();
+      });
+      unsubscribes.push(unsub);
+    }
+
+    // ============ TOPBAR ============
+    function updateTopbar() {
+      if (!currentCountry) return;
+      const c = currentCountry;
+      document.getElementById('top-country-flag').textContent = c.flag || '🏳️';
+      document.getElementById('top-country-name').textContent = c.name || c.id;
+      document.getElementById('top-role-label').textContent = c.presidentName ? `President ${c.presidentName}` : 'Unclaimed';
+      document.getElementById('top-coins').textContent = (c.coins || 0).toLocaleString();
+      document.getElementById('top-level').textContent = c.level || 1;
+      document.getElementById('top-stability').textContent = (c.stability || 100) + '%';
+      document.getElementById('top-military').textContent = c.militaryScore || 0;
+      document.getElementById('top-nukes').textContent = c.nuclearWarheads || 0;
+
+      const xp = c.xp || 0;
+      const nextXp = (c.level || 1) * 500;
+      document.getElementById('hero-lvl-label').textContent = `Level ${c.level || 1}`;
+      document.getElementById('hero-xp-label').textContent = `${xp} / ${nextXp} XP`;
+      document.getElementById('hero-xp-fill').style.width = `${Math.min(100, (xp / nextXp) * 100)}%`;
+      document.getElementById('welcome-headline').textContent = `Welcome, President ${c.presidentName || ''}`;
+      document.getElementById('hero-nuclear-status').innerHTML = `<i data-lucide="radiation"></i> ${c.nuclearStatus || 'Non-Nuclear'}`;
+      lucide.createIcons();
+    }
+
+    // ============ MY COUNTRY ============
+    function renderMyCountry() {
+      if (!currentCountry) return;
+      const c = currentCountry;
+      document.getElementById('mc-coins').textContent = (c.coins || 0).toLocaleString();
+      document.getElementById('mc-gdp').textContent = (c.gdp || (c.coins || 0) + (c.militaryScore || 0) * 1000).toLocaleString();
+      document.getElementById('mc-nukes').textContent = `${c.nuclearWarheads || 0} Warheads`;
+      document.getElementById('mc-nuke-doctrine').textContent = `Doctrine: ${c.nuclearStatus || 'Conventional'}`;
+      document.getElementById('mc-xp').textContent = `Lvl ${c.level || 1}`;
+    }
+
+    // ============ MAP ============
+    let mapSvg, mapProjection, mapPath, mapZoom, mapGroup;
+    async function initMap() {
+      try {
+        const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r => r.json());
+        const countries = topojson.feature(topo, topo.objects.countries);
+
+        mapSvg = d3.select('#world-map-svg');
+        const width = mapSvg.node().clientWidth;
+        const height = mapSvg.node().clientHeight;
+
+        mapProjection = d3.geoNaturalEarth1().scale(width / 6.3).translate([width / 2, height / 2]);
+        mapPath = d3.geoPath().projection(mapProjection);
+
+        mapZoom = d3.zoom().scaleExtent([1, 8]).on('zoom', (e) => {
+          mapGroup.attr('transform', e.transform);
+        });
+        mapSvg.call(mapZoom);
+
+        mapGroup = mapSvg.append('g');
+        mapGroup.selectAll('path')
+          .data(countries.features)
+          .enter().append('path')
+          .attr('class', 'country-path')
+          .attr('d', mapPath)
+          .attr('data-iso', d => getIsoFromFeature(d))
+          .on('mouseover', handleMapHover)
+          .on('mouseout', handleMapOut)
+          .on('click', handleMapClick);
+
+        document.getElementById('map-loading').classList.add('hidden');
+        renderMap();
+      } catch (err) {
+        console.error('Map load failed', err);
+        document.getElementById('map-loading').innerHTML = '<span class="brand-badge" style="color:var(--danger);">Map failed to load</span>';
+      }
+    }
+
+    function getIsoFromFeature(f) {
+      // world-atlas uses numeric IDs; try to match against our catalog numerically
+      const numericMap = { '840':'USA','643':'RUS','156':'CHN','276':'DEU','392':'JPN','826':'GBR','250':'FRA','356':'IND','682':'SAU','231':'ETH','076':'BRA','170':'COL','818':'EGY','710':'ZAF','792':'TUR','410':'KOR','036':'AUS','124':'CAN','484':'MEX','380':'ITA','376':'ISR','364':'IRN','586':'PAK','566':'NGA','404':'KEN','784':'ARE','724':'ESP','360':'IDN','032':'ARG','804':'UKR' };
+      const numId = String(f.id).padStart(3, '0');
+      return numericMap[numId] || null;
+    }
+
+    function renderMap() {
+      if (!mapGroup) return;
+      mapGroup.selectAll('.country-path')
+        .classed('owned-self', d => getIsoFromFeature(d) === currentCountryIso)
+        .classed('owned-player', d => {
+          const iso = getIsoFromFeature(d);
+          return iso && countriesCache[iso] && countriesCache[iso].presidentName && iso !== currentCountryIso;
+        })
+        .classed('at-war', d => {
+          const iso = getIsoFromFeature(d);
+          return iso && countriesCache[iso] && countriesCache[iso].atWar;
+        });
+    }
+
+    function handleMapHover(event, d) {
+      const iso = getIsoFromFeature(d);
+      if (!iso) return;
+      const c = countriesCache[iso] || CATALOG[iso];
+      const tip = document.getElementById('map-tooltip');
+      tip.innerHTML = `${c.flag || '🏳️'} <strong>${escapeHtml(c.name || iso)}</strong><br><span style="font-size:11px; color:var(--text-secondary);">${c.presidentName ? 'President: ' + escapeHtml(c.presidentName) : 'Unclaimed'}</span>`;
+      tip.classList.remove('hidden');
+    }
+    function handleMapOut() { document.getElementById('map-tooltip').classList.add('hidden'); }
+    function handleMapClick(event, d) {
+      const iso = getIsoFromFeature(d);
+      if (!iso) return;
+      openCountryDrawer(iso);
+    }
+
+    // ============ COUNTRY DRAWER ============
+    let drawerIso = null;
+    function openCountryDrawer(iso) {
+      drawerIso = iso;
+      const c = countriesCache[iso] || { ...CATALOG[iso], id: iso };
+      document.getElementById('drawer-flag').textContent = c.flag || '🏳️';
+      document.getElementById('drawer-name').textContent = c.name || iso;
+      document.getElementById('drawer-president').textContent = c.presidentName ? `President ${c.presidentName}` : 'Unclaimed';
+      document.getElementById('country-drawer').classList.remove('hidden');
+      renderDrawerBody('overview');
+    }
+    function renderDrawerBody(tab) {
+      const c = countriesCache[drawerIso] || { ...CATALOG[drawerIso], id: drawerIso };
+      const body = document.getElementById('drawer-body');
+      const isSelf = drawerIso === currentCountryIso;
+      if (tab === 'overview') {
+        body.innerHTML = `
+          <div style="display:grid; gap:10px;">
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Treasury</span><strong class="mono">${(c.coins||0).toLocaleString()}</strong></div>
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Military</span><strong class="mono">${c.militaryScore||0}</strong></div>
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Stability</span><strong class="mono">${c.stability||100}%</strong></div>
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Level</span><strong class="mono">${c.level||1}</strong></div>
+            ${!isSelf && c.purchasable ? `<button class="btn btn-primary btn-full" onclick="window.avBuyCountry('${drawerIso}')"><i data-lucide="shopping-cart"></i> Buy for ${(c.purchasePrice||50000).toLocaleString()} coins</button>` : ''}
+          </div>`;
+      } else if (tab === 'military') {
+        body.innerHTML = `
+          <div style="display:grid; gap:10px;">
+            <div class="nuke-badge" style="width:100%; justify-content:center; font-size:13px; padding:10px;">☢️ ${c.nuclearWarheads||0} Warheads — ${c.nuclearStatus||'Non-Nuclear'}</div>
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Military Score</span><strong class="mono">${c.militaryScore||0}</strong></div>
+            <div class="pill" style="width:100%; justify-content:space-between;"><span>Tech Level</span><strong class="mono">${c.techLevel||1}</strong></div>
+          </div>`;
+      } else if (tab === 'actions') {
+        if (isSelf) {
+          body.innerHTML = `<div class="kpi-sub">This is your own nation.</div>`;
+        } else {
+          body.innerHTML = `
+            <div style="display:grid; gap:10px;">
+              <button class="btn btn-danger btn-full" onclick="window.avQuickAttack('${drawerIso}')"><i data-lucide="swords"></i> Attack ${escapeHtml(c.name||drawerIso)}</button>
+              <button class="btn btn-bomb btn-full" onclick="window.avLaunchNuke('${drawerIso}')"><i data-lucide="radiation"></i> Launch Nuclear Strike</button>
+              <button class="btn btn-secondary btn-full" onclick="window.avSendDiplomacy('${drawerIso}')"><i data-lucide="mail"></i> Send Message</button>
+            </div>`;
+        }
+      }
+      lucide.createIcons({ root: body });
+    }
+
+    document.getElementById('drawer-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.drawer-tab');
+      if (!btn) return;
+      document.querySelectorAll('.drawer-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderDrawerBody(btn.dataset.dtab);
+    });
+    document.getElementById('close-drawer').onclick = () => document.getElementById('country-drawer').classList.add('hidden');
+    document.getElementById('minimize-drawer').onclick = () => document.getElementById('country-drawer').classList.toggle('minimized');
+
+    // ============ WAR: ATTACK ============
+    function calcBattle(attacker, defender, attackType) {
+      const atkMil = attacker.militaryScore || 10;
+      const defMil = defender.militaryScore || 10;
+      const atkTech = attacker.techLevel || 1;
+      const defTech = defender.techLevel || 1;
+      const atkRoll = Math.random() * 0.4 + 0.8; // 0.8 - 1.2
+      const defRoll = Math.random() * 0.4 + 0.8;
+
+      let atkPower = atkMil * atkRoll * atkTech;
+      let defPower = defMil * defRoll * defTech;
+
+      if (attackType === 'air') atkPower *= 1.15;
+      if (attackType === 'cyber') { atkPower *= 0.9; defPower *= 0.7; }
+      if (attackType === 'nuclear') atkPower *= 8;
+
+      const win = atkPower > defPower;
+      const ratio = atkPower / Math.max(1, defPower);
+      return { win, ratio, atkPower, defPower };
+    }
+
+    async function launchAttack(targetIso, attackType = 'conventional') {
+      if (!currentCountry) return;
+      if (targetIso === currentCountryIso) { toast('You cannot attack yourself.', 'error'); return; }
+      const target = countriesCache[targetIso];
+      if (!target) { toast('Target not found.', 'error'); return; }
+
+      if (attackType === 'nuclear') {
+        if ((currentCountry.nuclearWarheads || 0) < 1) { toast('You have no nuclear warheads!', 'error'); return; }
+        openBombModal(targetIso);
+        return;
+      }
+
+      const result = calcBattle(currentCountry, target, attackType);
+      const loot = Math.floor((target.coins || 0) * (result.win ? 0.15 : 0));
+      const myDamage = Math.floor((currentCountry.militaryScore || 10) * (result.win ? 0.05 : 0.15));
+      const theirDamage = Math.floor((target.militaryScore || 10) * (result.win ? 0.2 : 0.05));
+
+      try {
+        const logEntry = {
+          attacker: currentCountryIso, attackerName: currentCountry.name,
+          defender: targetIso, defenderName: target.name,
+          type: attackType, win: result.win, at: serverTimestamp(),
+          message: `${currentCountry.name} launched ${attackType} strike on ${target.name} — ${result.win ? 'VICTORY' : 'DEFEAT'} (ratio ${result.ratio.toFixed(2)})`
+        };
+        await addDoc(collection(db, 'battleLog'), logEntry);
+
+        // Update attacker
+        await updateDoc(doc(db, 'countries', currentCountryIso), {
+          coins: increment(loot),
+          militaryScore: Math.max(10, (currentCountry.militaryScore || 10) - myDamage),
+          xp: increment(result.win ? 100 : 25),
+          lastAttackAt: serverTimestamp()
+        });
+
+        // Update defender
+        await updateDoc(doc(db, 'countries', targetIso), {
+          coins: Math.max(0, (target.coins || 0) - loot),
+          militaryScore: Math.max(10, (target.militaryScore || 10) - theirDamage),
+          stability: Math.max(0, (target.stability || 100) - (result.win ? 15 : 5)),
+          underAttackBy: currentCountryIso,
+          lastAttackedAt: serverTimestamp()
+        });
+
+        // Notify defender
+        await addDoc(collection(db, 'notifications'), {
+          toIso: targetIso, fromIso: currentCountryIso,
+          title: result.win ? '⚠️ UNDER ATTACK' : '🛡️ ATTACK REPELLED',
+          body: logEntry.message, read: false, at: serverTimestamp()
+        });
+
+        toast(result.win
+          ? `⚔️ VICTORY! Looted ${loot.toLocaleString()} coins.`
+          : `🛡️ Attack repelled. Lost ${myDamage} military.`, result.win ? 'success' : 'error');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }
+
+    // ============ BOMB MODAL ============
+    let bombTargetIso = null;
+    function openBombModal(iso) {
+      bombTargetIso = iso;
+      const t = countriesCache[iso];
+      document.getElementById('bomb-target-name').textContent = `${t.flag || '🏳️'} ${t.name || iso}`;
+      document.getElementById('bomb-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+    document.getElementById('bomb-cancel').onclick = () => document.getElementById('bomb-modal').classList.add('hidden');
+    document.getElementById('bomb-confirm').onclick = async () => {
+      document.getElementById('bomb-modal').classList.add('hidden');
+      const target = countriesCache[bombTargetIso];
+      try {
+        // Deduct nuke
+        await updateDoc(doc(db, 'countries', currentCountryIso), {
+          nuclearWarheads: increment(-1),
+          xp: increment(500)
+        });
+        // Devastate target
+        await updateDoc(doc(db, 'countries', bombTargetIso), {
+          coins: Math.floor((target.coins || 0) * 0.5),
+          militaryScore: Math.max(5, Math.floor((target.militaryScore || 10) * 0.3)),
+          stability: Math.max(0, (target.stability || 100) - 40),
+          nuclearStatus: 'Non-Nuclear',
+          nuclearWarheads: 0
+        });
+        await addDoc(collection(db, 'battleLog'), {
+          attacker: currentCountryIso, attackerName: currentCountry.name,
+          defender: bombTargetIso, defenderName: target.name,
+          type: 'nuclear', win: true, at: serverTimestamp(),
+          message: `☢️ NUCLEAR STRIKE: ${currentCountry.name} devastated ${target.name}!`
+        });
+        await addDoc(collection(db, 'announcements'), {
+          type: 'NUCLEAR TREATY',
+          message: `☢️ ${currentCountry.name} launched a nuclear weapon against ${target.name}. The world watches in horror.`,
+          createdAt: serverTimestamp()
+        });
+        toast(`☢️ NUCLEAR STRIKE COMPLETE. ${target.name} devastated.`, 'success');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
     };
 
-    document.getElementById('sidebar-collapse-btn').onclick = () => {
-      document.getElementById('sidebar').classList.toggle('collapsed');
-    };
-    document.getElementById('mobile-more-btn').onclick = () => {
-      document.getElementById('mobile-more-sheet').classList.toggle('hidden');
+    // ============ WAR UI ============
+    document.getElementById('declare-war-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const target = document.getElementById('war-target-select').value;
+      const type = document.getElementById('war-attack-type').value;
+      if (!target) return;
+      if (type === 'nuclear') {
+        if ((currentCountry.nuclearWarheads || 0) < 1) { toast('No warheads available!', 'error'); return; }
+        openBombModal(target);
+      } else {
+        await launchAttack(target, type);
+      }
+    });
+
+    document.getElementById('quick-war-btn').onclick = () => {
+      switchView('war');
     };
 
+    function populateWarTargets() {
+      const sel = document.getElementById('war-target-select');
+      if (!sel) return;
+      const opts = Object.values(countriesCache)
+        .filter(c => c.id !== currentCountryIso && c.presidentName)
+        .map(c => `<option value="${c.id}">${c.flag || '🏳️'} ${c.name} — ${c.militaryScore||0} mil</option>`)
+        .join('');
+      sel.innerHTML = opts || '<option value="">No player nations to attack</option>';
+    }
+
+    function subscribeWars() {
+      const unsub = onSnapshot(query(collection(db, 'battleLog'), orderBy('at', 'desc'), limit(30)), (snap) => {
+        const list = document.getElementById('battle-log-list');
+        const active = document.getElementById('active-wars-list');
+        if (!list) return;
+        let html = '';
+        let activeCount = 0;
+        snap.forEach(d => {
+          const b = d.data();
+          const ts = b.at?.toDate ? b.at.toDate().toLocaleTimeString() : '...';
+          if (b.attacker === currentCountryIso || b.defender === currentCountryIso) activeCount++;
+          html += `<div class="alert-item ${b.type === 'nuclear' ? 'critical' : ''}" style="flex-direction:column; align-items:flex-start;">
+            <div style="font-weight:600;">${escapeHtml(b.message || '')}</div>
+            <div class="kpi-sub">${ts}</div>
+          </div>`;
+        });
+        list.innerHTML = html || '<div class="kpi-sub">No battles yet.</div>';
+        active.innerHTML = activeCount > 0 ? `<div class="kpi-sub">${activeCount} battles involving your nation.</div>` : '<div class="kpi-sub">No active wars.</div>';
+      });
+      unsubscribes.push(unsub);
+    }
+
+    function subscribeBattleLog() { /* handled in subscribeWars */ }
+
+    // ============ MARKET ============
+    function subscribeMarket() {
+      const unsub = onSnapshot(query(collection(db, 'marketOffers'), orderBy('createdAt', 'desc'), limit(50)), (snap) => {
+        const grid = document.getElementById('market-cards-grid');
+        if (!grid) return;
+        if (snap.empty) { grid.innerHTML = '<div class="kpi-sub">No offers on the market yet.</div>'; return; }
+        let html = '';
+        snap.forEach(d => {
+          const o = d.data();
+          if (o.status !== 'available') return;
+          const isMine = o.sellerIso === currentCountryIso;
+          html += `
+            <div class="product-card">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div class="product-art-badge cat-${o.category || 'materials'}"><i data-lucide="package"></i></div>
+                <span class="category-chip">${escapeHtml(o.category || 'materials')}</span>
+              </div>
+              <div>
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(o.product)}</div>
+                <div class="kpi-sub">Seller: ${escapeHtml(o.sellerName || o.sellerIso)}</div>
+                <div class="mono" style="font-size:12px; margin-top:4px;">${o.quantity} units @ ${o.price} coins</div>
+              </div>
+              ${isMine
+                ? `<button class="btn btn-danger btn-sm btn-full" data-cancel-offer="${d.id}"><i data-lucide="x"></i> Cancel</button>`
+                : `<button class="btn btn-primary btn-sm btn-full" data-buy-offer="${d.id}" data-seller="${o.sellerIso}" data-price="${o.price}" data-qty="${o.quantity}" data-product="${escapeHtml(o.product)}" ${(currentCountry?.coins || 0) < o.price ? 'disabled' : ''}><i data-lucide="shopping-cart"></i> Buy (${o.price} coins)</button>`}
+            </div>`;
+        });
+        grid.innerHTML = html;
+        lucide.createIcons();
+      });
+      unsubscribes.push(unsub);
+    }
+
+    document.getElementById('market-cards-grid').addEventListener('click', async (e) => {
+      const buyBtn = e.target.closest('[data-buy-offer]');
+      const cancelBtn = e.target.closest('[data-cancel-offer]');
+      if (buyBtn) {
+        const { buyOffer, seller, price, qty, product } = buyBtn.dataset;
+        const totalPrice = Number(price);
+        if ((currentCountry.coins || 0) < totalPrice) { toast('Not enough coins!', 'error'); return; }
+        try {
+          // Deduct buyer
+          await updateDoc(doc(db, 'countries', currentCountryIso), { coins: increment(-totalPrice) });
+          // Credit seller
+          await updateDoc(doc(db, 'countries', seller), { coins: increment(totalPrice) });
+          // Mark offer sold
+          await updateDoc(doc(db, 'marketOffers', buyOffer), {
+            status: 'sold', soldTo: currentCountryIso, soldAt: serverTimestamp()
+          });
+          // Add to buyer inventory
+          await setDoc(doc(db, 'countries', currentCountryIso, 'inventory', product), {
+            quantity: increment(Number(qty))
+          }, { merge: true });
+          toast(`✅ Bought ${qty} ${product} for ${totalPrice} coins.`, 'success');
+        } catch (err) { toast(err.message, 'error'); }
+      } else if (cancelBtn) {
+        try {
+          await updateDoc(doc(db, 'marketOffers', cancelBtn.dataset.cancelOffer), { status: 'cancelled' });
+          toast('Offer cancelled.');
+        } catch (err) { toast(err.message, 'error'); }
+      }
+    });
+
+    function subscribeMyOffers() {
+      // Load own inventory for product dropdown
+      const unsub = onSnapshot(collection(db, 'countries', currentCountryIso, 'inventory'), (snap) => {
+        const sel = document.getElementById('trade-product-select');
+        if (!sel) return;
+        if (snap.empty) {
+          sel.innerHTML = '<option value="">No inventory — buy products first</option>';
+          return;
+        }
+        let html = '';
+        snap.forEach(d => {
+          const inv = d.data();
+          html += `<option value="${escapeHtml(d.id)}" data-qty="${inv.quantity || 0}">${escapeHtml(d.id)} (${inv.quantity || 0})</option>`;
+        });
+        sel.innerHTML = html;
+
+        // Also render inventory table
+        const tbody = document.getElementById('mc-inventory-tbody');
+        if (tbody) {
+          let t = '';
+          snap.forEach(d => {
+            const inv = d.data();
+            const low = (inv.quantity || 0) < 20;
+            t += `<tr><td>${escapeHtml(d.id)}</td><td class="mono">${inv.quantity || 0}</td><td>${low ? '<span style="color:var(--danger);">LOW</span>' : '<span style="color:var(--green);">OK</span>'}</td></tr>`;
+          });
+          tbody.innerHTML = t || '<tr><td colspan="3" class="kpi-sub">No inventory</td></tr>';
+        }
+      });
+      unsubscribes.push(unsub);
+    }
+
+    document.getElementById('create-trade-offer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const product = document.getElementById('trade-product-select').value;
+      const qty = Number(document.getElementById('trade-qty').value);
+      const price = Number(document.getElementById('trade-price').value);
+      if (!product) { toast('No product selected.', 'error'); return; }
+      try {
+        // Deduct from inventory
+        const invRef = doc(db, 'countries', currentCountryIso, 'inventory', product);
+        const invSnap = await getDoc(invRef);
+        const currentQty = invSnap.exists() ? (invSnap.data().quantity || 0) : 0;
+        if (currentQty < qty) { toast(`Not enough ${product}! You have ${currentQty}.`, 'error'); return; }
+        await updateDoc(invRef, { quantity: increment(-qty) });
+        await addDoc(collection(db, 'marketOffers'), {
+          product, quantity: qty, price,
+          sellerIso: currentCountryIso, sellerName: currentCountry.name,
+          category: 'materials', status: 'available', createdAt: serverTimestamp()
+        });
+        toast('✅ Listed on market!', 'success');
+        e.target.reset();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+
+    // ============ NEWS ============
+    function subscribeNews() {
+      const unsub = onSnapshot(query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20)), (snap) => {
+        const el = document.getElementById('home-news-list');
+        if (!el) return;
+        if (snap.empty) { el.innerHTML = '<div class="kpi-sub">No news yet.</div>'; return; }
+        let html = '';
+        snap.forEach(d => {
+          const a = d.data();
+          const ts = a.createdAt?.toDate ? a.createdAt.toDate().toLocaleTimeString() : '';
+          html += `<div class="alert-item"><div><div style="font-size:11px; color:var(--cyan); font-weight:700;">${escapeHtml(a.type || 'NEWS')}</div><div style="font-size:12px;">${escapeHtml(a.message)}</div><div class="kpi-sub">${ts}</div></div></div>`;
+        });
+        el.innerHTML = html;
+      });
+      unsubscribes.push(unsub);
+    }
+
+    // ============ NOTIFICATIONS ============
+    function subscribeNotifications() {
+      const unsub = onSnapshot(query(collection(db, 'notifications'), where('toIso', '==', currentCountryIso), orderBy('at', 'desc'), limit(30)), (snap) => {
+        const el = document.getElementById('notifications-list');
+        const badge = document.getElementById('notif-badge');
+        if (!el) return;
+        let html = '';
+        let unread = 0;
+        snap.forEach(d => {
+          const n = d.data();
+          if (!n.read) unread++;
+          html += `<div class="alert-item ${n.read ? '' : 'critical'}"><div><div style="font-weight:600; font-size:12px;">${escapeHtml(n.title)}</div><div class="kpi-sub">${escapeHtml(n.body)}</div></div></div>`;
+        });
+        el.innerHTML = html || '<div class="kpi-sub">No notifications.</div>';
+        if (unread > 0) { badge.classList.remove('hidden'); badge.textContent = unread; }
+        else badge.classList.add('hidden');
+      });
+      unsubscribes.push(unsub);
+    }
+
+    // ============ DIPLOMACY ============
+    function populateDiploTargets() {
+      const sel = document.getElementById('diplo-target-country');
+      if (!sel) return;
+      sel.innerHTML = Object.values(countriesCache)
+        .filter(c => c.id !== currentCountryIso)
+        .map(c => `<option value="${c.id}">${c.flag || '🏳️'} ${c.name}</option>`)
+        .join('');
+    }
+    function subscribeDiplomacy() {
+      const unsub = onSnapshot(query(collection(db, 'diplomacy'), where('toIso', '==', currentCountryIso), orderBy('at', 'desc'), limit(30)), (snap) => {
+        const el = document.getElementById('diplomacy-feed');
+        if (!el) return;
+        if (snap.empty) { el.innerHTML = '<div class="kpi-sub">No messages.</div>'; return; }
+        let html = '';
+        snap.forEach(d => {
+          const m = d.data();
+          html += `<div class="alert-item"><div><div style="font-size:11px; color:var(--cyan);">From: ${escapeHtml(m.fromName || m.fromIso)}</div><div style="font-size:13px; margin:4px 0;">${escapeHtml(m.content)}</div><div class="kpi-sub">${escapeHtml(m.type || 'message')}</div></div></div>`;
+        });
+        el.innerHTML = html;
+      });
+      unsubscribes.push(unsub);
+    }
+    document.getElementById('diplomacy-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const to = document.getElementById('diplo-target-country').value;
+      const content = document.getElementById('diplo-content').value.trim();
+      const type = document.getElementById('diplo-type').value;
+      if (!to || !content) return;
+      try {
+        await addDoc(collection(db, 'diplomacy'), {
+          toIso: to, fromIso: currentCountryIso, fromName: currentCountry.name,
+          content, type, at: serverTimestamp()
+        });
+        toast('✅ Message transmitted.', 'success');
+        e.target.reset();
+      } catch (err) { toast(err.message, 'error'); }
+    });
+
+    // ============ LEADERBOARD ============
+    function renderLeaderboard() {
+      const tbody = document.getElementById('leaderboard-tbody');
+      if (!tbody) return;
+      const cat = document.getElementById('lb-category').value;
+      const arr = Object.values(countriesCache).filter(c => c.presidentName);
+      arr.sort((a, b) => {
+        if (cat === 'overall') {
+          const sa = (a.level||1)*1000 + (a.coins||0)/10 + (a.militaryScore||0)*10 + (a.nuclearWarheads||0)*100;
+          const sb = (b.level||1)*1000 + (b.coins||0)/10 + (b.militaryScore||0)*10 + (b.nuclearWarheads||0)*100;
+          return sb - sa;
+        }
+        return (b[cat] || 0) - (a[cat] || 0);
+      });
+      tbody.innerHTML = arr.map((c, i) => `
+        <tr>
+          <td><strong>#${i + 1}</strong></td>
+          <td>${c.flag || '🏳️'} ${escapeHtml(c.name)}</td>
+          <td>${escapeHtml(c.presidentName || '—')}</td>
+          <td class="mono">${c.level || 1}</td>
+          <td class="mono">${cat === 'coins' ? (c.coins || 0).toLocaleString() : cat === 'overall' ? ((c.level||1)*1000 + Math.floor((c.coins||0)/10) + (c.militaryScore||0)*10).toLocaleString() : (c[cat] || 0)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="kpi-sub">No players yet.</td></tr>';
+    }
+    document.getElementById('lb-category').addEventListener('change', renderLeaderboard);
+
+    // ============ VIEW SWITCHING ============
     function switchView(view) {
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
       document.querySelectorAll('.game-view').forEach(v => v.classList.add('hidden'));
-      const target = document.getElementById(`view-${view}`);
-      if (target) target.classList.remove('hidden');
-      document.getElementById('mobile-more-sheet').classList.add('hidden');
+      const el = document.getElementById(`view-${view}`);
+      if (el) el.classList.remove('hidden');
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.view === view);
+      });
+      lucide.createIcons();
     }
-
     document.getElementById('main-nav').addEventListener('click', (e) => {
-      const btn = e.target.closest('.nav-item[data-view]');
-      if (btn) switchView(btn.dataset.view);
+      const btn = e.target.closest('.nav-item');
+      if (!btn || !btn.dataset.view) return;
+      switchView(btn.dataset.view);
     });
     document.getElementById('mobile-more-sheet').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-mobile-view]');
       if (btn) switchView(btn.dataset.mobileView);
     });
-    document.getElementById('quick-missions-btn').onclick = () => switchView('missions');
-    document.getElementById('quick-market-btn').onclick = () => switchView('market');
+
+    // ============ SETTINGS ============
+    document.getElementById('settings-theme-btn').onclick = () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    };
+
+    // ============ MAP CONTROLS ============
+    document.getElementById('zoom-in').onclick = () => mapSvg?.transition().call(mapZoom.scaleBy, 1.4);
+    document.getElementById('zoom-out').onclick = () => mapSvg?.transition().call(mapZoom.scaleBy, 0.7);
+    document.getElementById('zoom-reset').onclick = () => mapSvg?.transition().call(mapZoom.transform, d3.zoomIdentity);
     document.getElementById('focus-my-country-btn').onclick = () => {
-      const myIso = state.profile?.countryIso;
-      if (myIso) {
-        const meta = CATALOG_BY_ISO[myIso];
-        openCountryDrawer(myIso, meta?.name || myIso);
-      } else {
-        toast('No country assigned to your profile yet.');
-      }
+      const c = countriesCache[currentCountryIso];
+      if (c) toast(`📍 Your nation: ${c.flag} ${c.name}`);
+    };
+    document.getElementById('map-search-input').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      mapGroup?.selectAll('.country-path').classed('dimmed', d => {
+        const iso = getIsoFromFeature(d);
+        if (!iso || !q) return false;
+        const c = countriesCache[iso] || CATALOG[iso] || {};
+        return !(String(c.name || '').toLowerCase().includes(q) || iso.toLowerCase().includes(q));
+      });
+    });
+
+    // ============ EXPOSE GLOBALS FOR INLINE HANDLERS ============
+    window.avBuyCountry = async (iso) => {
+      const c = countriesCache[iso];
+      if (!c || !c.purchasable) return;
+      const price = c.purchasePrice || 50000;
+      if ((currentCountry.coins || 0) < price) { toast('Not enough coins!', 'error'); return; }
+      try {
+        await updateDoc(doc(db, 'countries', iso), {
+          presidentName: currentCountry.presidentName,
+          purchasable: false, coins: increment(-price)
+        });
+        toast(`✅ Purchased ${c.name}!`, 'success');
+      } catch (err) { toast(err.message, 'error'); }
+    };
+    window.avQuickAttack = (iso) => switchView('war') || document.getElementById('war-target-select') && (document.getElementById('war-target-select').value = iso);
+    window.avLaunchNuke = (iso) => {
+      if ((currentCountry.nuclearWarheads || 0) < 1) { toast('No nuclear warheads!', 'error'); return; }
+      openBombModal(iso);
+    };
+    window.avSendDiplomacy = (iso) => {
+      switchView('diplomacy');
+      document.getElementById('diplo-target-country').value = iso;
     };
 
-    window.addEventListener('offline', () => document.getElementById('offline-banner').classList.remove('hidden'));
-    window.addEventListener('online', () => document.getElementById('offline-banner').classList.add('hidden'));
-
-    // AUTH FLOW
-    function usernameToAuthEmail(username) {
-      return `${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '')}@avgame.internal`;
-    }
-
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      document.getElementById('login-error').textContent = '';
-      try {
-        await signInWithEmailAndPassword(
-          auth,
-          usernameToAuthEmail(document.getElementById('login-username').value),
-          document.getElementById('login-password').value
-        );
-      } catch (_) {
-        document.getElementById('login-error').textContent = 'Invalid presidential username or password.';
-      }
-    });
-
-    document.getElementById('change-password-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const p1 = document.getElementById('new-password').value;
-      const p2 = document.getElementById('confirm-password').value;
-      if (p1 !== p2) { document.getElementById('pw-error').textContent = 'Passwords do not match.'; return; }
-      try {
-        await updatePassword(auth.currentUser, p1);
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), { mustChangePassword: false, updatedAt: serverTimestamp() });
-        toast('Credentials activated.');
-        bootGame(auth.currentUser);
-      } catch (err) {
-        document.getElementById('pw-error').textContent = err.message;
-      }
-    });
-
-    document.getElementById('logout-btn').onclick = async () => {
-      state.unsubscribers.forEach(u => u());
-      state.unsubscribers = [];
-      await signOut(auth);
-    };
-
-    onAuthStateChanged(auth, async (user) => {
-      lucide.createIcons();
-      if (!user) {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        document.getElementById('login-box').classList.remove('hidden');
-        document.getElementById('force-password-box').classList.add('hidden');
-        document.getElementById('app-shell').classList.add('hidden');
-        return;
-      }
-      state.user = user;
-      const tokenRes = await user.getIdTokenResult(true);
-      state.isAdmin = tokenRes.claims.admin === true;
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
-      if (!userSnap.exists() || userSnap.data().suspended) {
-        await signOut(auth);
-        return;
-      }
-      state.profile = userSnap.data();
-      if (state.profile.mustChangePassword) {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        document.getElementById('login-box').classList.add('hidden');
-        document.getElementById('force-password-box').classList.remove('hidden');
-        return;
-      }
-      bootGame(user);
-    });
-
-    async function bootGame(user) {
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('app-shell').classList.remove('hidden');
-
-      if (state.isAdmin || state.profile.role === 'admin') {
-        document.getElementById('nav-admin-btn').classList.remove('hidden');
-        document.getElementById('mobile-admin-btn').classList.remove('hidden');
-      }
-
-      const name = state.profile.displayName || state.profile.username;
-      document.getElementById('sidebar-user-name').textContent = name;
-      document.getElementById('sidebar-user-role').textContent = state.isAdmin ? 'World Administrator' : 'President';
-      document.getElementById('welcome-headline').textContent = `Welcome back, President ${name}`;
-      document.getElementById('prof-display-name').value = name;
-      document.getElementById('prof-bio').value = state.profile.bio || '';
-      if (state.profile.avatarUrl) {
-        document.getElementById('profile-avatar-img').src = state.profile.avatarUrl;
-        document.getElementById('sidebar-avatar').src = state.profile.avatarUrl;
-      }
-
-      lucide.createIcons();
-      await initWorldMap();
-      attachRealtimeListeners();
-    }
-
-    // INTERACTIVE VECTOR WORLD MAP
-    let mapSvg, mapG, zoomBehavior;
-    async function initWorldMap() {
-      if (mapSvg) return;
-      const container = document.querySelector('.map-wrapper');
-      const width = container.clientWidth || 960;
-      const height = container.clientHeight || 550;
-
-      mapSvg = d3.select('#world-map-svg').attr('viewBox', `0 0 ${width} ${height}`);
-      mapG = mapSvg.append('g');
-      zoomBehavior = d3.zoom().scaleExtent([1, 8]).on('zoom', (e) => mapG.attr('transform', e.transform));
-      mapSvg.call(zoomBehavior);
-
-      document.getElementById('zoom-in').onclick = () => mapSvg.transition().call(zoomBehavior.scaleBy, 1.5);
-      document.getElementById('zoom-out').onclick = () => mapSvg.transition().call(zoomBehavior.scaleBy, 0.67);
-      document.getElementById('zoom-reset').onclick = () => mapSvg.transition().call(zoomBehavior.transform, d3.zoomIdentity);
-
-      const worldData = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r => r.json());
-      document.getElementById('map-loading').classList.add('hidden');
-      const countriesGeo = topojson.feature(worldData, worldData.objects.countries).features;
-      const projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "FeatureCollection", features: countriesGeo });
-      const pathGen = d3.geoPath().projection(projection);
-      const tooltip = document.getElementById('map-tooltip');
-
-      mapG.selectAll('path')
-        .data(countriesGeo)
-        .enter()
-        .append('path')
-        .attr('d', pathGen)
-        .attr('class', 'country-path')
-        .attr('data-iso', d => NUM_TO_ISO3[String(d.id).padStart(3, '0')] || d.properties.name)
-        .attr('data-name', d => d.properties.name)
-        .on('mousemove', (event, d) => {
-          const iso = NUM_TO_ISO3[String(d.id).padStart(3, '0')] || '';
-          const c = state.countries[iso];
-          const cat = CATALOG_BY_ISO[iso];
-          tooltip.classList.remove('hidden');
-          tooltip.style.left = `${event.offsetX}px`;
-          tooltip.style.top = `${event.offsetY}px`;
-          const nukeTag = (c?.nuclearWarheads || 0) > 0 ? ` • ☢️ ${c.nuclearWarheads}` : '';
-          tooltip.textContent = `${c?.flag || cat?.flag || '🏳️'} ${c?.name || cat?.name || d.properties.name}${c?.presidentName ? ` • Pres. ${c.presidentName}` : ''}${nukeTag}`;
-        })
-        .on('mouseleave', () => tooltip.classList.add('hidden'))
-        .on('click', (event, d) => {
-          const iso = NUM_TO_ISO3[String(d.id).padStart(3, '0')] || String(d.id);
-          openCountryDrawer(iso, d.properties.name);
-        });
-
-      refreshMapVisuals();
-    }
-
-    function refreshMapVisuals() {
-      if (!mapG) return;
-      const myIso = state.profile?.countryIso;
-      const term = document.getElementById('map-search-input').value.trim().toLowerCase();
-      const filter = document.getElementById('map-filter-select').value;
-
-      mapG.selectAll('.country-path').each(function() {
-        const el = d3.select(this);
-        const iso = el.attr('data-iso');
-        const name = (el.attr('data-name') || '').toLowerCase();
-        const c = state.countries[iso];
-
-        el.classed('owned-self', iso === myIso)
-          .classed('owned-player', Boolean(c && c.presidentUid && iso !== myIso))
-          .classed('selected-country', iso === state.selectedIso)
-          .classed('at-war', Boolean(c && c.atWar));
-
-        let matches = true;
-        if (term && !iso.toLowerCase().includes(term) && !name.includes(term)) matches = false;
-        if (filter === 'players' && !c?.presidentUid) matches = false;
-        if (filter === 'nuclear' && (c?.nuclearWarheads || 0) <= 0) matches = false;
-        if (filter === 'unclaimed' && (c?.presidentUid || !c?.purchasable)) matches = false;
-        if (filter === 'war' && !c?.atWar) matches = false;
-        if (filter === 'high-tech' && (c?.techLevel || 1) < 2) matches = false;
-        el.classed('dimmed', !matches);
-      });
-    }
-
-    document.getElementById('map-search-input').addEventListener('input', refreshMapVisuals);
-    document.getElementById('map-filter-select').addEventListener('change', refreshMapVisuals);
-
-    // FLOATING COUNTRY INSPECTOR
-    function openCountryDrawer(iso, fallbackName = '') {
-      state.selectedIso = iso;
-      const cat = CATALOG_BY_ISO[iso];
-      const c = state.countries[iso] || { iso, name: cat?.name || fallbackName || iso, flag: cat?.flag || '🏳️' };
-      document.getElementById('drawer-flag').textContent = c.flag || cat?.flag || '🏳️';
-      document.getElementById('drawer-name').textContent = `${c.name || cat?.name || iso} (${iso})`;
-      document.getElementById('drawer-president').textContent = c.presidentName ? `President ${c.presidentName}` : 'Unclaimed Territory';
-      const drawer = document.getElementById('country-drawer');
-      drawer.classList.remove('hidden', 'minimized');
-      refreshMapVisuals();
-      renderDrawerTab();
-    }
-
-    document.getElementById('close-drawer').onclick = () => {
-      state.selectedIso = null;
-      document.getElementById('country-drawer').classList.add('hidden');
-      refreshMapVisuals();
-    };
-    document.getElementById('minimize-drawer').onclick = () => document.getElementById('country-drawer').classList.toggle('minimized');
-    document.getElementById('drawer-tabs').addEventListener('click', (e) => {
-      const tab = e.target.closest('.drawer-tab');
-      if (!tab) return;
-      document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      state.activeDrawerTab = tab.dataset.dtab;
-      renderDrawerTab();
-    });
-
-    function renderDrawerTab() {
-      const iso = state.selectedIso;
-      const cat = CATALOG_BY_ISO[iso];
-      const c = state.countries[iso] || { iso, name: cat?.name || iso };
-      const body = document.getElementById('drawer-body');
-      const isMine = iso === state.profile?.countryIso;
-      const t = state.activeDrawerTab;
-
-      if (t === 'overview') {
-        body.innerHTML = `
-          <div class="grid-2" style="gap:8px; margin-bottom:12px;">
-            <div class="card" style="padding:10px;"><div class="kpi-sub">Level</div><div class="mono" style="font-weight:700;">Lvl ${c.level || 1}</div></div>
-            <div class="card" style="padding:10px;"><div class="kpi-sub">Stability</div><div class="mono" style="font-weight:700; color:var(--green);">${c.stability ?? 100}%</div></div>
-            <div class="card" style="padding:10px;"><div class="kpi-sub">Treasury</div><div class="mono" style="font-weight:700;">${isMine ? (c.coins || 0).toLocaleString() : 'Classified'}</div></div>
-            <div class="card" style="padding:10px;"><div class="kpi-sub">Nuclear Arsenal</div><div class="mono" style="font-weight:700; color:var(--orange);">${c.nuclearWarheads || 0} Warheads</div></div>
-          </div>
-          <div class="kpi-sub" style="margin-bottom:10px;">Strategic Doctrine: <strong>${escapeHtml(c.nuclearStatus || 'Non-Nuclear')}</strong></div>
-          ${(!c.presidentUid && c.purchasable) ? `<button class="btn btn-primary btn-full" id="claim-country-btn"><i data-lucide="flag"></i> Acquire Mandate (${(c.purchasePrice || 50000).toLocaleString()} Coins)</button>` : ''}
-        `;
-        const claimBtn = document.getElementById('claim-country-btn');
-        if (claimBtn) {
-          claimBtn.onclick = async () => {
-            try {
-              const fn = httpsCallable(functions, 'claimUnclaimedCountry');
-              await fn({ targetIso: iso });
-              toast(`Sovereign mandate over ${c.name} acquired!`, 760);
-            } catch (err) { toast(err.message, 240); }
-          };
-        }
-      } else if (t === 'economy') {
-        body.innerHTML = `<p>GDP Index: <strong class="mono">${(c.gdp || 1000).toLocaleString()}</strong></p>
-          <p class="kpi-sub" style="margin-top:6px;">Treasury Access: ${isMine ? `${(c.coins || 0).toLocaleString()} Coins` : 'Restricted to President & Finance Minister'}</p>`;
-      } else if (t === 'industries') {
-        const comps = state.companies.filter(comp => comp.countryIso === iso);
-        body.innerHTML = comps.length
-          ? comps.map(comp => `<div style="padding:8px 0; border-bottom:1px solid var(--border);"><strong>${escapeHtml(comp.name)}</strong> • Produces ${escapeHtml(comp.product)} (${comp.outputRate}/${comp.intervalMinutes}m)</div>`).join('')
-          : `<p class="kpi-sub">No major industries registered in ${escapeHtml(c.name || iso)}.</p>`;
-      } else if (t === 'deals') {
-        const deals = state.marketOffers.filter(o => o.sellerIso === iso && o.visibility === 'public');
-        body.innerHTML = deals.length
-          ? deals.map(d => `<div style="padding:8px 0; border-bottom:1px solid var(--border);"><strong>${escapeHtml(d.product)}</strong>: ${d.quantity} units @ ${d.unitPrice} coins</div>`).join('')
-          : `<p class="kpi-sub">No public export deals listed by ${escapeHtml(c.name || iso)}.</p>`;
-      } else if (t === 'military') {
-        body.innerHTML = `
-          <div class="card" style="padding:12px; margin-bottom:10px;">
-            <div>Conventional Military Score: <strong class="mono">${c.militaryScore || 10}</strong></div>
-            <div style="margin-top:6px;">Strategic Nuclear Arsenal: <strong class="mono" style="color:var(--orange);">${c.nuclearWarheads || 0} Warheads</strong></div>
-            <div class="kpi-sub" style="margin-top:4px;">Program Status: ${escapeHtml(c.nuclearStatus || 'Non-Nuclear')}</div>
-          </div>
-          <p class="kpi-sub">Status: ${c.atWar ? 'Active Strategic Conflict' : 'Peacetime Readiness'}</p>`;
-      }
-      lucide.createIcons({ root: body });
-    }
-
-    // REAL-TIME FIRESTORE LISTENERS
-    function attachRealtimeListeners() {
-      const myIso = state.profile.countryIso;
-
-      // 1. Countries (Aligns assigned country, flag, coins, military, and nuclear data immediately)
-      state.unsubscribers.push(onSnapshot(collection(db, 'countries'), (snap) => {
-        const diploSel = document.getElementById('diplo-target-country');
-        const warSel = document.getElementById('conflict-target');
-        diploSel.innerHTML = '';
-        warSel.innerHTML = '';
-        const lbRows = [];
-
-        snap.forEach(d => {
-          const cat = CATALOG_BY_ISO[d.id];
-          const data = { iso: d.id, name: cat?.name || d.id, flag: cat?.flag || '🏳️', ...d.data() };
-          state.countries[d.id] = data;
-          lbRows.push(data);
-          if (d.id !== myIso) {
-            const opt = `<option value="${d.id}">${data.flag || ''} ${escapeHtml(data.name)} (${d.id})</option>`;
-            diploSel.insertAdjacentHTML('beforeend', opt);
-            warSel.insertAdjacentHTML('beforeend', opt);
-          }
-        });
-
-        if (myIso) {
-          const cat = CATALOG_BY_ISO[myIso];
-          const mc = state.countries[myIso] || { iso: myIso, name: cat?.name || myIso, flag: cat?.flag || '🏳️', coins: 0, level: 1, stability: 100, militaryScore: 10, nuclearWarheads: 0, nuclearStatus: 'Non-Nuclear' };
-          document.getElementById('top-country-flag').textContent = mc.flag || cat?.flag || '🏳️';
-          document.getElementById('top-country-name').textContent = mc.name || cat?.name || myIso;
-          document.getElementById('top-role-label').textContent = `President ${state.profile.displayName || state.profile.username} • ${myIso}`;
-          document.getElementById('top-coins').textContent = (mc.coins || 0).toLocaleString();
-          document.getElementById('top-level').textContent = mc.level || 1;
-          document.getElementById('top-stability').textContent = `${mc.stability ?? 100}%`;
-          document.getElementById('top-military').textContent = mc.militaryScore || 10;
-          document.getElementById('top-nukes').textContent = mc.nuclearWarheads || 0;
-
-          const nukeStatus = mc.nuclearStatus || ((mc.nuclearWarheads || 0) > 0 ? 'Strategic Nuclear Power' : 'Non-Nuclear State');
-          document.getElementById('hero-nuclear-status').innerHTML = `<i data-lucide="radiation"></i> ${escapeHtml(nukeStatus)} (${mc.nuclearWarheads || 0})`;
-
-          const nextXp = (mc.level || 1) * 500;
-          const curXp = mc.xp || 0;
-          document.getElementById('hero-lvl-label').textContent = `Level ${mc.level || 1}`;
-          document.getElementById('hero-xp-label').textContent = `${curXp} / ${nextXp} XP`;
-          document.getElementById('hero-xp-fill').style.width = `${Math.min(100, Math.round((curXp % 500) / 5))}%`;
-
-          document.getElementById('mc-coins').textContent = (mc.coins || 0).toLocaleString();
-          document.getElementById('mc-gdp').textContent = (mc.gdp || 1000).toLocaleString();
-          document.getElementById('mc-nukes').textContent = `${mc.nuclearWarheads || 0} Warheads`;
-          document.getElementById('mc-nuke-doctrine').textContent = `Doctrine: ${nukeStatus}`;
-          document.getElementById('mc-xp').textContent = `Lvl ${mc.level || 1} • Tier ${mc.techLevel || 1}`;
-
-          renderTelemetryChart(mc.telemetryHistory || []);
-          lucide.createIcons();
-        }
-
-        renderLeaderboard(lbRows);
-        refreshMapVisuals();
-        if (state.selectedIso) renderDrawerTab();
-      }));
-
-      // 2. All Companies
-      state.unsubscribers.push(onSnapshot(collection(db, 'companies'), (snap) => {
-        state.companies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const list = document.getElementById('mc-companies-list');
-        const mine = state.companies.filter(c => c.countryIso === myIso);
-        list.innerHTML = mine.length ? '' : '<div class="kpi-sub">No companies assigned to your country yet.</div>';
-        mine.forEach(comp => {
-          const vis = getProductVisual(comp.product);
-          list.insertAdjacentHTML('beforeend', `
-            <div style="padding:12px; border:1px solid var(--border); border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated);">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <div class="product-art-badge ${vis.catClass}"><i data-lucide="${vis.icon}"></i></div>
-                <div>
-                  <strong>${escapeHtml(comp.name)}</strong> <span class="kpi-sub">• ${escapeHtml(comp.product)}</span>
-                  <div class="kpi-sub">Output: ${comp.outputRate} units / ${comp.intervalMinutes} mins</div>
-                </div>
-              </div>
-              <span class="brand-badge" style="margin:0;">${escapeHtml(comp.status || 'ACTIVE')}</span>
-            </div>
-          `);
-        });
-        lucide.createIcons({ root: list });
-      }));
-
-      // 3. Global News
-      state.unsubscribers.push(onSnapshot(query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20)), (snap) => {
-        const el = document.getElementById('home-news-list');
-        el.innerHTML = snap.empty ? '<div class="kpi-sub">No world dispatches recorded yet.</div>' : '';
-        snap.forEach(d => {
-          const n = d.data();
-          el.insertAdjacentHTML('beforeend', `
-            <div style="padding:8px 0; border-bottom:1px solid var(--border); font-size:12px;">
-              <span style="color:var(--cyan); font-weight:700;">[${escapeHtml(n.type || 'WORLD')}]</span> ${escapeHtml(n.message)}
-            </div>
-          `);
-        });
-      }));
-
-      // 4. Global Market Offers
-      state.unsubscribers.push(onSnapshot(query(collection(db, 'tradeOffers'), where('status', '==', 'open')), (snap) => {
-        state.marketOffers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderMarketCards();
-      }));
-
-      // 5. Verified Trade History
-      state.unsubscribers.push(onSnapshot(query(collection(db, 'tradeOffers'), where('status', '==', 'completed'), limit(20)), (snap) => {
-        const tbody = document.getElementById('market-history-tbody');
-        tbody.innerHTML = snap.empty ? '<tr><td colspan="5" class="kpi-sub">No completed international trades yet.</td></tr>' : '';
-        snap.forEach(d => {
-          const o = d.data();
-          const vis = getProductVisual(o.product, o.category);
-          tbody.insertAdjacentHTML('beforeend', `
-            <tr>
-              <td style="display:flex; align-items:center; gap:8px;"><i data-lucide="${vis.icon}" style="color:var(--cyan);"></i><strong>${escapeHtml(o.product)}</strong></td>
-              <td>${escapeHtml(o.buyerIso || '-')}</td>
-              <td>${escapeHtml(o.sellerIso)}</td>
-              <td class="mono">${o.quantity}</td>
-              <td class="mono">${(o.quantity * o.unitPrice).toLocaleString()}</td>
-            </tr>
-          `);
-        });
-        lucide.createIcons({ root: tbody });
-      }));
-
-      if (!myIso) return;
-
-      // 6. My Country Inventory & Shortage Alerts
-      state.unsubscribers.push(onSnapshot(collection(db, 'countries', myIso, 'inventory'), (snap) => {
-        const tbody = document.getElementById('mc-inventory-tbody');
-        const select = document.getElementById('trade-product-select');
-        const alertsEl = document.getElementById('home-alerts-list');
-        tbody.innerHTML = '';
-        select.innerHTML = '';
-        alertsEl.innerHTML = '';
-        let alertCount = 0;
-
-        snap.forEach(d => {
-          const item = d.data();
-          const min = item.minThreshold || 20;
-          const low = item.quantity < min;
-          const vis = getProductVisual(d.id);
-          if (low) {
-            alertCount++;
-            alertsEl.insertAdjacentHTML('beforeend', `
-              <div class="alert-item critical">
-                <div><strong>${escapeHtml(d.id)} Shortage</strong><div class="kpi-sub">Stock: ${item.quantity} / Min: ${min}</div></div>
-                <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-view=market]').click()">Source</button>
-              </div>
-            `);
-          }
-          tbody.insertAdjacentHTML('beforeend', `
-            <tr>
-              <td style="display:flex; align-items:center; gap:8px;"><i data-lucide="${vis.icon}" style="color:var(--cyan);"></i><strong>${escapeHtml(d.id)}</strong></td>
-              <td class="mono">${item.quantity}</td>
-              <td class="mono">${min}</td>
-              <td style="color:${low ? 'var(--danger)' : 'var(--green)'}; font-weight:700;">${low ? 'SHORTAGE' : 'OPTIMAL'}</td>
-            </tr>
-          `);
-          if (item.quantity > 0) {
-            select.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(d.id)}">${escapeHtml(d.id)} (${item.quantity} in stock)</option>`);
-          }
-        });
-        lucide.createIcons({ root: tbody });
-        const badge = document.getElementById('nav-alert-badge');
-        badge.textContent = alertCount;
-        badge.classList.toggle('hidden', alertCount === 0);
-      }));
-
-      // 7. Admin Corporate Offers
-      state.unsubscribers.push(onSnapshot(query(collection(db, 'companyOffers'), where('status', '==', 'available')), (snap) => {
-        const grid = document.getElementById('mc-offers-grid');
-        grid.innerHTML = snap.empty ? '<div class="kpi-sub">No corporate offers available right now.</div>' : '';
-        snap.forEach(d => {
-          const off = { id: d.id, ...d.data() };
-          if (off.targetIso && off.targetIso !== myIso) return;
-          grid.insertAdjacentHTML('beforeend', `
-            <div class="product-card">
-              <div>
-                <div class="card-title"><i data-lucide="building" style="color:var(--orange);"></i> ${escapeHtml(off.title)}</div>
-                <div class="kpi-sub" style="margin-top:6px;">Price: <strong class="mono">${off.price.toLocaleString()}</strong> Coins • Qty: ${off.quantity}</div>
-              </div>
-              <button class="btn btn-primary btn-sm btn-full" data-purchase-corp="${off.id}">Acquire Corporate Asset</button>
-            </div>
-          `);
-        });
-        lucide.createIcons({ root: grid });
-      }));
-
-      // 8. Missions, Achievements & Notifications
-      state.unsubscribers.push(onSnapshot(collection(db, 'countries', myIso, 'missions'), (snap) => {
-        const grid = document.getElementById('missions-grid');
-        grid.innerHTML = snap.empty ? '<div class="kpi-sub">No active missions assigned yet.</div>' : '';
-        snap.forEach(d => {
-          const m = { id: d.id, ...d.data() };
-          const pct = Math.min(100, Math.round(((m.progress || 0) / (m.target || 1)) * 100));
-          grid.insertAdjacentHTML('beforeend', `
-            <div class="card">
-              <div class="card-header">
-                <span class="card-title"><i data-lucide="${escapeHtml(m.icon || 'target')}" style="color:var(--cyan);"></i> ${escapeHtml(m.title)}</span>
-                <span class="brand-badge" style="margin:0;">+${m.rewardXp || 100} XP</span>
-              </div>
-              <p class="kpi-sub" style="margin-bottom:10px;">${escapeHtml(m.description)}</p>
-              <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                <span class="mono" style="font-size:12px;">${m.progress || 0} / ${m.target || 1}</span>
-                ${(pct >= 100 && !m.claimed) ? `<button class="btn btn-success btn-sm" data-claim-mission="${m.id}">Claim Reward</button>` : `<span class="kpi-sub">${m.claimed ? 'Completed' : 'In Progress'}</span>`}
-              </div>
-            </div>
-          `);
-        });
-        lucide.createIcons({ root: grid });
-      }));
-
-      state.unsubscribers.push(onSnapshot(collection(db, 'countries', myIso, 'achievements'), (snap) => {
-        const grid = document.getElementById('achievements-grid');
-        grid.innerHTML = snap.empty ? '<div class="kpi-sub">Complete trades, treaties, and milestones to unlock achievements.</div>' : '';
-        snap.forEach(d => {
-          const a = d.data();
-          grid.insertAdjacentHTML('beforeend', `
-            <div class="card rarity-${escapeHtml(a.rarity || 'rare')}">
-              <div class="card-header">
-                <span class="card-title"><i data-lucide="${escapeHtml(a.icon || 'award')}" style="color:var(--orange);"></i> ${escapeHtml(a.name)}</span>
-                <span class="brand-badge" style="margin:0;">${escapeHtml((a.rarity || 'RARE').toUpperCase())}</span>
-              </div>
-              <p class="kpi-sub">${escapeHtml(a.description)}</p>
-            </div>
-          `);
-        });
-        lucide.createIcons({ root: grid });
-      }));
-
-      state.unsubscribers.push(onSnapshot(collection(db, 'countries', myIso, 'notifications'), (snap) => {
-        const list = document.getElementById('notifications-list');
-        list.innerHTML = snap.empty ? '<div class="kpi-sub">No notifications yet.</div>' : '';
-        state.unreadNotifIds = [];
-        snap.forEach(d => {
-          const n = d.data();
-          if (!n.read) state.unreadNotifIds.push(d.id);
-          list.insertAdjacentHTML('beforeend', `
-            <div style="padding:10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; opacity:${n.read ? '0.65' : '1'};">
-              <div><strong>${escapeHtml(n.title || 'World Update')}</strong><div class="kpi-sub">${escapeHtml(n.body || '')}</div></div>
-              ${!n.read ? '<span class="badge">NEW</span>' : ''}
-            </div>
-          `);
-        });
-        const badge = document.getElementById('nav-notif-badge');
-        badge.textContent = state.unreadNotifIds.length;
-        badge.classList.toggle('hidden', state.unreadNotifIds.length === 0);
-      }));
-
-      // 9. Diplomacy & Conflicts
-      state.unsubscribers.push(onSnapshot(query(collection(db, 'messages'), where('toIso', '==', myIso)), (snap) => {
-        const feed = document.getElementById('diplomacy-feed');
-        feed.innerHTML = snap.empty ? '<div class="kpi-sub">No incoming diplomatic dispatches.</div>' : '';
-        let pending = 0;
-        snap.forEach(d => {
-          const m = { id: d.id, ...d.data() };
-          if (m.status === 'pending') pending++;
-          const senderFlag = state.countries[m.fromIso]?.flag || CATALOG_BY_ISO[m.fromIso]?.flag || '🏳️';
-          feed.insertAdjacentHTML('beforeend', `
-            <div class="product-card" style="margin-bottom:10px;">
-              <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <strong>${senderFlag} ${escapeHtml(m.fromIso)} • ${escapeHtml(m.type)}</strong>
-                <span class="brand-badge" style="margin:0;">${escapeHtml(m.status)}</span>
-              </div>
-              <p style="font-size:13px;">${escapeHtml(m.content)}</p>
-              ${m.status === 'pending' ? `<button class="btn btn-success btn-sm" data-accept-diplo="${m.id}">Ratify Agreement</button>` : ''}
-            </div>
-          `);
-        });
-        const badge = document.getElementById('nav-msg-badge');
-        badge.textContent = pending;
-        badge.classList.toggle('hidden', pending === 0);
-      }));
-
-      state.unsubscribers.push(onSnapshot(collection(db, 'conflicts'), (snap) => {
-        const list = document.getElementById('active-conflicts-list');
-        const homeDeals = document.getElementById('home-deals-wars');
-        list.innerHTML = snap.empty ? '<div class="kpi-sub">No active conflicts on the world map.</div>' : '';
-        snap.forEach(d => {
-          const w = { id: d.id, ...d.data() };
-          const a = state.countries[w.attackerIso] || { name: w.attackerIso, militaryScore: 10, nuclearWarheads: 0 };
-          const def = state.countries[w.defenderIso] || { name: w.defenderIso, militaryScore: 10, nuclearWarheads: 0 };
-          const atkScore = (a.militaryScore || 10) + (a.nuclearWarheads || 0) * 5;
-          const defScore = (def.militaryScore || 10) + (def.nuclearWarheads || 0) * 5;
-          const atkPct = Math.round((atkScore / (atkScore + defScore)) * 100);
-
-          list.insertAdjacentHTML('beforeend', `
-            <div class="alert-item critical" style="flex-direction:column; align-items:stretch;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>${a.flag || '🏳️'} ${escapeHtml(w.attackerIso)} vs ${def.flag || '🏳️'} ${escapeHtml(w.defenderIso)}</strong>
-                <span class="badge">${escapeHtml(w.status.toUpperCase())}</span>
-              </div>
-              <div class="kpi-sub">${escapeHtml(w.reason)} • Strategic Power: ${atkScore} vs ${defScore}</div>
-              <div class="versus-bar"><div class="versus-fill-atk" style="width:${atkPct}%;"></div></div>
-              ${(w.status === 'active' && (w.attackerIso === myIso || w.defenderIso === myIso))
-                ? `<button class="btn btn-primary btn-sm" data-resolve-war="${w.id}">Resolve Strategic Turn</button>` : ''}
-            </div>
-          `);
-          if (w.status === 'active') {
-            homeDeals.insertAdjacentHTML('afterbegin', `<div style="font-size:12px; padding:6px 0; color:#FCA5A5;">⚔️ <strong>${escapeHtml(w.attackerIso)}</strong> vs <strong>${escapeHtml(w.defenderIso)}</strong> (${escapeHtml(w.reason)})</div>`);
-          }
-        });
-      }));
-
-      renderResearchAndCabinet();
-    }
-
-    // MARKETPLACE CARD RENDERER
-    function renderMarketCards() {
-      const myIso = state.profile?.countryIso;
-      const grid = document.getElementById('market-cards-grid');
-      const homeDeals = document.getElementById('home-deals-wars');
-      const term = document.getElementById('market-search').value.trim().toLowerCase();
-      const cat = document.getElementById('market-cat-filter').value;
-      const sort = document.getElementById('market-sort').value;
-
-      let items = [...state.marketOffers].filter(o => {
-        if (term && !o.product.toLowerCase().includes(term) && !o.sellerIso.toLowerCase().includes(term)) return false;
-        if (cat !== 'all' && (o.category || 'materials') !== cat) return false;
-        return true;
-      });
-
-      if (sort === 'price-asc') items.sort((a, b) => a.unitPrice - b.unitPrice);
-      if (sort === 'price-desc') items.sort((a, b) => b.unitPrice - a.unitPrice);
-      if (sort === 'qty-desc') items.sort((a, b) => b.quantity - a.quantity);
-
-      grid.innerHTML = items.length ? '' : '<div class="kpi-sub">No matching international market offers available.</div>';
-      homeDeals.innerHTML = '';
-
-      items.forEach(o => {
-        const seller = state.countries[o.sellerIso] || CATALOG_BY_ISO[o.sellerIso] || { flag: '🏳️', name: o.sellerIso };
-        const vis = getProductVisual(o.product, o.category);
-        const total = o.quantity * o.unitPrice;
-        const canBuy = myIso && o.sellerIso !== myIso;
-
-        grid.insertAdjacentHTML('beforeend', `
-          <div class="product-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-              <div class="product-art-badge ${vis.catClass}"><i data-lucide="${vis.icon}"></i></div>
-              <div style="text-align:right;">
-                <span class="brand-badge" style="margin:0 0 4px 0;">${seller.flag || '🏳️'} ${escapeHtml(o.sellerIso)}</span>
-                <div><span class="category-chip">${escapeHtml(vis.label)}</span></div>
-              </div>
-            </div>
-            <div>
-              <div class="display-font" style="font-size:16px; font-weight:700;">${escapeHtml(o.product)}</div>
-              <div class="kpi-sub">Stock: <strong class="mono">${o.quantity}</strong> units @ <strong class="mono">${o.unitPrice}</strong>/unit</div>
-            </div>
-            <div style="border-top:1px solid var(--border); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
-              <div><div class="kpi-sub">Total Price</div><div class="mono" style="font-weight:700; color:var(--orange);">${total.toLocaleString()}</div></div>
-              ${canBuy
-                ? `<button class="btn btn-primary btn-sm" data-buy-offer="${o.id}"><i data-lucide="shopping-cart"></i> Buy Now</button>`
-                : `<span class="kpi-sub">Your Export</span>`}
-            </div>
-          </div>
-        `);
-
-        if (o.visibility === 'public') {
-          homeDeals.insertAdjacentHTML('beforeend', `
-            <div style="font-size:12px; padding:6px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px;">
-              <i data-lucide="${vis.icon}" style="color:var(--cyan);"></i>
-              <span><strong>${escapeHtml(o.sellerIso)}</strong> listed ${o.quantity} ${escapeHtml(o.product)} (${total.toLocaleString()} coins)</span>
-            </div>
-          `);
-        }
-      });
-      lucide.createIcons({ root: grid });
-      lucide.createIcons({ root: homeDeals });
-    }
-
-    document.getElementById('market-search').addEventListener('input', renderMarketCards);
-    document.getElementById('market-cat-filter').addEventListener('change', renderMarketCards);
-    document.getElementById('market-sort').addEventListener('change', renderMarketCards);
-
-    // SERVER-AUTHORITATIVE ACTIONS
-    document.getElementById('market-cards-grid').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-buy-offer]');
-      if (!btn) return;
-      btn.disabled = true;
-      try {
-        const tradeFn = httpsCallable(functions, 'executeMarketTrade');
-        await tradeFn({ offerId: btn.dataset.buyOffer });
-        toast('International trade settled atomically!', 720);
-      } catch (err) {
-        toast(err.message, 240);
-        btn.disabled = false;
-      }
-    });
-
-    document.getElementById('create-trade-offer-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        const listFn = httpsCallable(functions, 'publishMarketOffer');
-        await listFn({
-          product: document.getElementById('trade-product-select').value,
-          category: document.getElementById('trade-category-select').value,
-          quantity: Number(document.getElementById('trade-qty').value),
-          unitPrice: Number(document.getElementById('trade-price').value),
-          visibility: document.getElementById('trade-visibility').value
-        });
-        toast('Export offer published to Global Market.');
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    document.getElementById('mc-offers-grid').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-purchase-corp]');
-      if (!btn) return;
-      btn.disabled = true;
-      try {
-        const buyCorpFn = httpsCallable(functions, 'purchaseCorporateOffer');
-        await buyCorpFn({ offerId: btn.dataset.purchaseCorp });
-        toast('Corporate asset acquired!', 740);
-      } catch (err) {
-        toast(err.message, 240);
-        btn.disabled = false;
-      }
-    });
-
-    document.getElementById('missions-grid').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-claim-mission]');
-      if (!btn) return;
-      btn.disabled = true;
-      try {
-        const claimFn = httpsCallable(functions, 'claimMissionReward');
-        await claimFn({ missionId: btn.dataset.claimMission });
-        toast('Mission reward claimed!', 820);
-      } catch (err) {
-        toast(err.message, 240);
-        btn.disabled = false;
-      }
-    });
-
-    document.getElementById('mark-all-read-btn').onclick = async () => {
-      const myIso = state.profile?.countryIso;
-      if (!myIso || !state.unreadNotifIds.length) return;
-      const batch = writeBatch(db);
-      state.unreadNotifIds.forEach(id => batch.update(doc(db, 'countries', myIso, 'notifications', id), { read: true }));
-      await batch.commit();
-      toast('All notifications marked read.');
-    };
-
-    document.getElementById('diplomacy-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await addDoc(collection(db, 'messages'), {
-        fromIso: state.profile.countryIso,
-        toIso: document.getElementById('diplo-target-country').value,
-        type: document.getElementById('diplo-type').value,
-        content: document.getElementById('diplo-content').value.trim(),
-        status: 'pending',
-        createdAt: serverTimestamp()
-      });
-      e.target.reset();
-      toast('Diplomatic dispatch transmitted.');
-    });
-
-    document.getElementById('diplomacy-feed').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-accept-diplo]');
-      if (!btn) return;
-      await updateDoc(doc(db, 'messages', btn.dataset.acceptDiplo), { status: 'ratified' });
-      toast('Treaty ratified!');
-    });
-
-    document.getElementById('declare-conflict-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      try {
-        const fn = httpsCallable(functions, 'declareConflict');
-        await fn({
-          targetIso: document.getElementById('conflict-target').value,
-          reason: document.getElementById('conflict-reason').value.trim()
-        });
-        toast('Formal conflict declaration registered.');
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    document.getElementById('active-conflicts-list').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-resolve-war]');
-      if (!btn) return;
-      try {
-        const fn = httpsCallable(functions, 'resolveConflictTurn');
-        const res = await fn({ conflictId: btn.dataset.resolveWar });
-        toast(`Conflict outcome: ${res.data.summary}`, 660);
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    document.getElementById('sync-production-btn').onclick = async () => {
-      try {
-        const fn = httpsCallable(functions, 'processProductionTick');
-        await fn({ countryIso: state.profile.countryIso });
-        toast('Server production cycles synchronized.');
-      } catch (err) { toast(err.message, 240); }
-    };
-
-    function renderResearchAndCabinet() {
-      const rGrid = document.getElementById('research-grid');
-      const techs = [
-        { id: 'ind_auto', title: 'Automated Smart Factories', desc: '+15% national industrial output efficiency.', cost: 15000, icon: 'cpu' },
-        { id: 'agri_hydro', title: 'Hydroponic Food Reserves', desc: '+25% agricultural yield & stability protection.', cost: 12000, icon: 'sprout' },
-        { id: 'cyber_def', title: 'Sovereign Defense Grid', desc: '+20% national defensive score & early warning.', cost: 20000, icon: 'shield-check' }
-      ];
-      rGrid.innerHTML = techs.map(t => `
-        <div class="product-card">
-          <div>
-            <div class="product-art-badge cat-technology" style="margin-bottom:10px;"><i data-lucide="${t.icon}"></i></div>
-            <div class="card-title">${t.title}</div>
-            <p class="kpi-sub" style="margin-top:6px;">${t.desc}</p>
-          </div>
-          <button class="btn btn-primary btn-sm btn-full" data-research="${t.id}">Research (${t.cost.toLocaleString()} Coins)</button>
-        </div>
-      `).join('');
-      lucide.createIcons({ root: rGrid });
-
-      const roles = ['Minister of Finance', 'Minister of Defense', 'Minister of Agriculture', 'Minister of Foreign Affairs', 'Minister of Technology', 'Minister of Trade'];
-      document.getElementById('cabinet-list').innerHTML = roles.map(r => `
-        <div class="card" style="padding:12px;">
-          <div style="font-weight:700; font-size:13px;">${r}</div>
-          <div class="kpi-sub">AI Advisor Active • Delegated Scope</div>
-        </div>
-      `).join('');
-    }
-
-    document.getElementById('research-grid').addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-research]');
-      if (!btn) return;
-      try {
-        const fn = httpsCallable(functions, 'unlockResearchNode');
-        await fn({ nodeId: btn.dataset.research });
-        toast('Technology breakthrough unlocked!', 780);
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    function renderTelemetryChart(history) {
-      const emptyEl = document.getElementById('chart-empty-state');
-      const canvas = document.getElementById('country-telemetry-chart');
-      if (!history || history.length < 2) {
-        emptyEl.classList.remove('hidden');
-        canvas.classList.add('hidden');
-        return;
-      }
-      emptyEl.classList.add('hidden');
-      canvas.classList.remove('hidden');
-      if (state.chartInstance) state.chartInstance.destroy();
-      state.chartInstance = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: history.map(h => h.label),
-          datasets: [{
-            label: 'Treasury',
-            data: history.map(h => h.coins),
-            borderColor: '#38BDF8',
-            backgroundColor: 'rgba(56, 189, 248, 0.15)',
-            fill: true,
-            tension: 0.35
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-      });
-    }
-
-    // SUPABASE AVATAR UPLOAD
-    document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 2 * 1024 * 1024) { toast('Maximum avatar size is 2MB.', 240); return; }
-      const ext = file.name.split('.').pop();
-      const path = `avatars/${state.user.uid}_${Date.now()}.${ext}`;
-      const uploadUrl = `${SUPABASE_CONFIG.storageUrl}/object/${SUPABASE_CONFIG.bucket}/${path}`;
-      try {
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_CONFIG.publishableKey,
-            'Authorization': `Bearer ${SUPABASE_CONFIG.publishableKey}`,
-            'Content-Type': file.type
-          },
-          body: file
-        });
-        if (!res.ok) throw new Error('Supabase upload failed.');
-        const publicUrl = `${SUPABASE_CONFIG.storageUrl}/object/public/${SUPABASE_CONFIG.bucket}/${path}`;
-        await updateDoc(doc(db, 'users', state.user.uid), { avatarUrl: publicUrl });
-        document.getElementById('profile-avatar-img').src = publicUrl;
-        document.getElementById('sidebar-avatar').src = publicUrl;
-        toast('Presidential portrait updated!');
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    document.getElementById('profile-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await updateDoc(doc(db, 'users', state.user.uid), {
-        displayName: document.getElementById('prof-display-name').value.trim(),
-        bio: document.getElementById('prof-bio').value.trim()
-      });
-      toast('Presidential profile saved.');
-    });
-
-    function renderLeaderboard(rows) {
-      const cat = document.getElementById('lb-category').value;
-      const calc = (c) => cat === 'overall'
-        ? Math.round((c.coins || 0) / 1000 + (c.militaryScore || 0) * 10 + (c.nuclearWarheads || 0) * 25 + (c.level || 1) * 100)
-        : (c[cat] || 0);
-      const sorted = [...rows].sort((a, b) => calc(b) - calc(a));
-      document.getElementById('leaderboard-tbody').innerHTML = sorted.slice(0, 25).map((c, i) => `
-        <tr>
-          <td class="mono">#${i + 1}</td>
-          <td>${c.flag || '🏳️'} <strong>${escapeHtml(c.name)}</strong></td>
-          <td>${escapeHtml(c.presidentName || 'AI State')}</td>
-          <td class="mono">Lvl ${c.level || 1}</td>
-          <td class="mono">${calc(c).toLocaleString()}</td>
-        </tr>
-      `).join('');
-    }
-    document.getElementById('lb-category').addEventListener('change', () => renderLeaderboard(Object.values(state.countries)));
-
-    // ADMIN CONSOLE HANDLERS (ALIGNED LISTED COUNTRY + NUCLEAR + COINS)
-    document.getElementById('admin-create-player-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const iso = document.getElementById('adm-country-select').value;
-      const meta = CATALOG_BY_ISO[iso];
-      const nukes = Number(document.getElementById('adm-nukes').value) || 0;
-      const nukeStatus = document.getElementById('adm-nuke-status').value;
-      const coins = Number(document.getElementById('adm-coins').value) || 50000;
-
-      try {
-        const fn = httpsCallable(functions, 'adminProvisionPlayer');
-        await fn({
-          username: document.getElementById('adm-username').value.trim(),
-          tempPassword: document.getElementById('adm-temp-pw').value,
-          countryIso: iso,
-          countryName: meta?.name || iso,
-          countryFlag: meta?.flag || '🏳️',
-          startingCoins: coins,
-          nuclearWarheads: nukes,
-          nuclearStatus: nukeStatus
-        });
-        toast(`Player provisioned & aligned with ${meta?.flag || ''} ${meta?.name || iso}!`, 760);
-        e.target.reset();
-      } catch (err) { toast(err.message, 240); }
-    });
-
-    document.getElementById('admin-country-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const iso = document.getElementById('adm-c-select').value;
-      const meta = CATALOG_BY_ISO[iso];
-      await setDoc(doc(db, 'countries', iso), {
-        name: meta?.name || iso,
-        flag: meta?.flag || '🏳️',
-        coins: Number(document.getElementById('adm-c-coins').value),
-        militaryScore: Number(document.getElementById('adm-c-mil').value),
-        nuclearWarheads: Number(document.getElementById('adm-c-nukes').value) || 0,
-        nuclearStatus: document.getElementById('adm-c-nuke-status').value,
-        purchasable: document.getElementById('adm-c-purchasable').value === 'true',
-        level: 1, xp: 0, stability: 100, techLevel: 1
-      }, { merge: true });
-      toast(`${meta?.flag || ''} ${meta?.name || iso} aligned & updated.`);
-    });
-
-    document.getElementById('admin-company-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const iso = document.getElementById('adm-comp-select').value;
-      await addDoc(collection(db, 'companies'), {
-        name: document.getElementById('adm-comp-name').value.trim(),
-        countryIso: iso,
-        product: document.getElementById('adm-comp-prod').value.trim(),
-        outputRate: Number(document.getElementById('adm-comp-rate').value),
-        intervalMinutes: Number(document.getElementById('adm-comp-mins').value),
-        lastProducedAt: serverTimestamp(),
-        status: 'ACTIVE'
-      });
-      toast(`Company registered to ${iso}.`);
-    });
-
-    document.getElementById('admin-offer-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await addDoc(collection(db, 'companyOffers'), {
-        title: document.getElementById('adm-off-title').value.trim(),
-        targetIso: document.getElementById('adm-off-select').value,
-        price: Number(document.getElementById('adm-off-price').value),
-        quantity: Number(document.getElementById('adm-off-qty').value),
-        unique: document.getElementById('adm-off-unique').value === 'true',
-        status: 'available',
-        createdAt: serverTimestamp()
-      });
-      toast('Corporate offer published.');
-    });
-
-    document.getElementById('admin-news-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await addDoc(collection(db, 'announcements'), {
-        type: 'WORLD COUNCIL',
-        message: document.getElementById('adm-news-text').value.trim(),
-        createdAt: serverTimestamp()
-      });
-      e.target.reset();
-      toast('World decree broadcast.');
-    });
+    // ============ BOOT ============
+    initMap();
+    lucide.createIcons();
   </script>
 </body>
 </html>
